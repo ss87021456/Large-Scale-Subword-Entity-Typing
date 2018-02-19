@@ -32,6 +32,9 @@ def entity_parser(args):
         entity = {k: [] for k in keys}
         print("Start append...")
         total_len = len(keys)
+        #
+        leaf = list()
+        depth = 0
         for idx, k in enumerate(keys):
             if idx % 100 == 0:
                 vprint("step {:3d} / {:3d}".format(idx + 1, total_len))
@@ -41,16 +44,78 @@ def entity_parser(args):
             path = k.split('.')
             # Append all indice along the path
             entity[k] += ['.'.join(path[:i + 1]) for i in range(len(path))]
+            # Check leaf nodes
+            if depth < len(entity[k]):
+                # print(" - Update depth to {:d}".format(len(entity[k])))
+                for itr_leaf in leaf:
+                    if keys[itr_leaf] not in k:
+                        entity[keys[itr_leaf]].append('*')
+                    else:
+                        continue
+                # clear leaf list
+                del leaf[:]
+            # node of the same depth: just append to the leaf list
+            elif depth == len(entity[k]):
+                # print(" - Found same depth")
+                pass
+            # mark leaf nodes and clear leaf list
+            else:
+                # If the depth is larger than the current node
+                # all the nodes in the list must be leaves
+                print(" - Leaves: {:s}".format([keys[i] for i in leaf]))
+                # add indicator to the node
+                for itr_leaf in leaf:
+                    entity[keys[itr_leaf]].append('*')
+                # clear the leaf list
+                del leaf[:]
+            # update depth
+            depth = len(entity[k])
+            # add node to leaf list
+            leaf.append(idx)
+            # Final adjustment on last group of leaves
+            if k == keys[-1]:
+                for itr_leaf in leaf:
+                    entity[keys[itr_leaf]].append('*')
+                # Clear up the list
+                del leaf[:]
+            else:
+                continue
+        #
+        vpprint(entity)
+        # exit()
 
         print("Filling entity names...")
         # Filling the entity with there names according to the hierarchy
         for key in entity:
-            for idx, element in enumerate(entity[key]):
-                # lookup the hierarchy index in the key list
-                # element: hierarchy index iterator
-                index = keys.index(element)
-                # fill in the names
-                entity[key][idx] = value[index]
+            # Leaf node correspond to a entity
+            if entity[key][-1] == '*':
+                # copy the types
+                type_list = [value[keys.index(itr)]
+                             for itr in entity[key][:-1]]
+                # parsing the mentions (TBC)
+                mention = type_list[-1]
+                if "," in mention:
+                    if 'or' in mention:
+                        mention = mention.replace('or', '')
+                        synonym = [mention.split(',')[-1]]
+                        mention = mention.split(',')[:-1]
+                    else:
+                        pass
+                    print("*** {0} ***".format(mention + synonym))
+                # no different mentions
+                else:
+                    pass
+                # create a dictionary with types and mentions
+                entity[key] = {"type": type_list,
+                               "mention": mention}
+                pass
+            else:
+                for idx, element in enumerate(entity[key]):
+                    # lookup the hierarchy index in the key list
+                    # element: hierarchy index iterator
+                    index = keys.index(element)
+                    # fill in the names
+                    entity[key][idx] = value[index]
 
         save_name = args.file[:-4] + "_index.json"
         print("Replacing key names...")
