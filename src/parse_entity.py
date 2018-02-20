@@ -204,7 +204,7 @@ def entity_parser(args):
         vpprint(leaf_info)
         # Save leaf node file
         with open(leaf_name, 'w') as fp:
-            json.dump(entity, fp, sort_keys=True, indent=4)
+            json.dump(leaf_info, fp, sort_keys=True, indent=4)
         print("File saved in {:s}".format(leaf_name))
 
 
