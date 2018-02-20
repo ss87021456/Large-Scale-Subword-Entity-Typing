@@ -62,7 +62,7 @@ def entity_parser(args):
             else:
                 # If the depth is larger than the current node
                 # all the nodes in the list must be leaves
-                print(" - Leaves: {:s}".format([keys[i] for i in leaf]))
+                # print(" - Leaves: {:s}".format([keys[i] for i in leaf]))
                 # add indicator to the node
                 for itr_leaf in leaf:
                     entity[keys[itr_leaf]].append('*')
@@ -94,20 +94,20 @@ def entity_parser(args):
                              for itr in entity[key][:-1]]
                 # parsing the mentions (TBC)
                 mention = type_list[-1]
-                if "," in mention:
-                    if 'or' in mention:
+                # print("{0}".format(mention))
+                if ", " in mention:
+                    if ' or ' in mention:
                         mention = mention.replace('or', '')
-                        synonym = [mention.split(',')[-1]]
-                        mention = mention.split(',')[:-1]
-                    else:
-                        pass
-                    print("*** {0} ***".format(mention + synonym))
+                    # synonym = mention.split(',')
+                    mention = mention.split(', ')
+                    # print("*** {0} ***".format(mention + synonym))
                 # no different mentions
                 else:
+                    mention = [mention]
                     pass
                 # create a dictionary with types and mentions
-                entity[key] = {"type": type_list,
-                               "mention": mention}
+                entity[key] = {"TYPE": type_list, "MENTION": mention}
+                # print(mention)
                 pass
             else:
                 for idx, element in enumerate(entity[key]):
@@ -117,16 +117,39 @@ def entity_parser(args):
                     # fill in the names
                     entity[key][idx] = value[index]
 
+        def uni_list(arr):
+            """
+            Generate unique list
+            """
+            return list(np.unique(arr))
+
         save_name = args.file[:-4] + "_index.json"
-        print("Replacing key names...")
+        print("Replacing key names and merge duplicated names...")
+        # check duplicated key
         for i in range(len(keys)):
-            # check duplicated key
-            # if entity.has_key(value[i]):
-            if value[i] in entity:
-                entity[value[i]] = entity[value[i]] + entity.pop(keys[i])
-                entity[value[i]] = list(np.unique(entity[value[i]]))
+            # Merge leaves
+            name = value[i]
+            if name in entity:
+                duplicate = entity.pop(keys[i])
+                print(duplicate)
+                print(entity[name])
+                #
+                if type(entity[name]) == dict:
+                    if type(duplicate) == dict:
+                        entity[name]["TYPE"] += duplicate["TYPE"]
+                        entity[name]["MENTION"] += duplicate["MENTION"]
+                    else:
+                        entity[name]["TYPE"] += duplicate
+                        # entity[name]["MENTION"] += duplicate
+                    # convert to unique list
+                    entity[name]["TYPE"] = uni_list(entity[name]["TYPE"])
+                    entity[name]["MENTION"] = uni_list(entity[name]["MENTION"])
+                else:
+                    entity[name] += duplicate
+                    entity[name] = uni_list(entity[name])
+            # Replace names
             else:
-                entity[value[i]] = entity.pop(keys[i])
+                entity[name] = entity.pop(keys[i])
 
         vpprint(entity)
         # Save
