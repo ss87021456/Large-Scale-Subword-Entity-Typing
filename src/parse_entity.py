@@ -157,6 +157,56 @@ def entity_parser(args):
             json.dump(entity, fp, sort_keys=True, indent=4)
         print("File saved in {:s}".format(save_name))
 
+        leaf_info = dict()
+        print("Generating leaf node file...")
+        # Output only leaf node dictionary
+        leaf_name = args.file[:-4] + "_leaf.json"
+        for entry in entity:
+            print(entry)
+            if type(entity[entry]) == dict:
+                # A, B, or C
+                if ", or " in entry:
+                    deduced = entry.replace(" or", "")
+                    A, B, C = deduced.split(", ")
+                    leaf_info[A] = entity[entry]["TYPE"]
+                    leaf_info[B] = entity[entry]["TYPE"]
+                    leaf_info[C] = entity[entry]["TYPE"]
+                    pass
+                # A or B
+                elif " or " in entry:
+                    A, B = entry.split(" or ")
+                    leaf_info[A] = entity[entry]["TYPE"]
+                    leaf_info[B] = entity[entry]["TYPE"]
+                    pass
+                # A, B -> A, BA
+                # A, B, C -> A, BA, CBA
+                elif ", " in entry:
+                    word = entry.split(", ")
+                    if len(word) == 2:
+                        A, B = word
+                        leaf_info[A] = entity[entry]["TYPE"]
+                        leaf_info[B + " " + A] = entity[entry]["TYPE"]
+                    elif len(word) == 3:
+                        A, B, C = word
+                        leaf_info[A] = entity[entry]["TYPE"]
+                        leaf_info[B + " " + A] = entity[entry]["TYPE"]
+                        leaf_info[C + " " + B + " " + A] = entity[entry]["TYPE"]
+                    else:
+                        print("Encountered 4 or more sets: {0}"
+                              .format(entry))
+                        leaf_info[entry] = entity[entry]["TYPE"]
+                    pass
+                # normal one
+                else:
+                    leaf_info[entry] = entity[entry]["TYPE"]
+            else:
+                pass
+        vpprint(leaf_info)
+        # Save leaf node file
+        with open(leaf_name, 'w') as fp:
+            json.dump(entity, fp, sort_keys=True, indent=4)
+        print("File saved in {:s}".format(leaf_name))
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -164,8 +214,12 @@ if __name__ == '__main__':
     parser.add_argument("-o", "--output", help="Output file name, postfix \
                         \"_index\" would be added if this argument is not \
                         given. [file_type: .json]")
+    parser.add_argument("-l", "--leaf", help="Output leaf node file name \
+                        \"\" would be added if this argument is not given \
+                        . [file_type: .json]")
     parser.add_argument("-v", "--verbose", action="store_true",
                         help="Verbose output")
+
     args = parser.parse_args()
 
     entity_parser(args)
