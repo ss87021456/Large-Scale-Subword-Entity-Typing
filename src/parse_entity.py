@@ -182,20 +182,10 @@ def entity_parser(args):
                 # A, B, C -> A, BA, CBA
                 elif ", " in entry:
                     word = entry.split(", ")
-                    if len(word) == 2:
-                        A, B = word
-                        leaf_info[A] = entity[entry]["TYPE"]
-                        leaf_info[B + " " + A] = entity[entry]["TYPE"]
-                    elif len(word) == 3:
-                        A, B, C = word
-                        leaf_info[A] = entity[entry]["TYPE"]
-                        leaf_info[B + " " + A] = entity[entry]["TYPE"]
-                        leaf_info[C + " " + B + " " + A] = entity[entry]["TYPE"]
-                    else:
-                        print("Encountered 4 or more sets: {0}"
-                              .format(entry))
-                        leaf_info[entry] = entity[entry]["TYPE"]
-                    pass
+                    combination = [" ".join(reversed(word[: i + 1])) 
+                                   for i in range(len(word))]
+                    for itr in combination:
+                        leaf_info[itr] = entity[entry]["TYPE"]
                 # normal one
                 else:
                     leaf_info[entry] = entity[entry]["TYPE"]
