@@ -1,0 +1,1269 @@
+{
+    "Acquired Abnormality": {
+        "MENTION": [
+            "Acquired Abnormality"
+        ], 
+        "TYPE": [
+            "Entity", 
+            "Physical Object", 
+            "Anatomical Structure", 
+            "Anatomical Abnormality", 
+            "Acquired Abnormality"
+        ]
+    }, 
+    "Activity": [
+        "Event", 
+        "Activity"
+    ], 
+    "Age Group": {
+        "MENTION": [
+            "Age Group"
+        ], 
+        "TYPE": [
+            "Entity", 
+            "Conceptual Entity", 
+            "Group", 
+            "Age Group"
+        ]
+    }, 
+    "Amino Acid Sequence": {
+        "MENTION": [
+            "Amino Acid Sequence"
+        ], 
+        "TYPE": [
+            "Entity", 
+            "Conceptual Entity", 
+            "Idea or Concept", 
+            "Spatial Concept", 
+            "Molecular Sequence", 
+            "Amino Acid Sequence"
+        ]
+    }, 
+    "Amino Acid, Peptide, or Protein": {
+        "MENTION": [
+            "Amino Acid", 
+            "Peptide", 
+            " Protein"
+        ], 
+        "TYPE": [
+            "Entity", 
+            "Physical Object", 
+            "Substance", 
+            "Chemical", 
+            "Chemical Viewed Structurally", 
+            "Organic Chemical", 
+            "Amino Acid, Peptide, or Protein"
+        ]
+    }, 
+    "Amphibian": {
+        "MENTION": [
+            "Amphibian"
+        ], 
+        "TYPE": [
+            "Entity", 
+            "Physical Object", 
+            "Organism", 
+            "Eukaryote", 
+            "Animal", 
+            "Vertebrate", 
+            "Amphibian"
+        ]
+    }, 
+    "Anatomical Abnormality": [
+        "Entity", 
+        "Physical Object", 
+        "Anatomical Structure", 
+        "Anatomical Abnormality"
+    ], 
+    "Anatomical Structure": [
+        "Entity", 
+        "Physical Object", 
+        "Anatomical Structure"
+    ], 
+    "Animal": [
+        "Entity", 
+        "Physical Object", 
+        "Organism", 
+        "Eukaryote", 
+        "Animal"
+    ], 
+    "Antibiotic": {
+        "MENTION": [
+            "Antibiotic"
+        ], 
+        "TYPE": [
+            "Entity", 
+            "Physical Object", 
+            "Substance", 
+            "Chemical", 
+            "Chemical Viewed Functionally", 
+            "Pharmacologic Substance", 
+            "Antibiotic"
+        ]
+    }, 
+    "Archaeon": {
+        "MENTION": [
+            "Archaeon"
+        ], 
+        "TYPE": [
+            "Entity", 
+            "Physical Object", 
+            "Organism", 
+            "Archaeon"
+        ]
+    }, 
+    "Bacterium": {
+        "MENTION": [
+            "Bacterium"
+        ], 
+        "TYPE": [
+            "Entity", 
+            "Physical Object", 
+            "Organism", 
+            "Bacterium"
+        ]
+    }, 
+    "Behavior": [
+        "Event", 
+        "Activity", 
+        "Behavior"
+    ], 
+    "Biologic Function": [
+        "Event", 
+        "Phenomenon or Process", 
+        "Natural Phenomenon or Process", 
+        "Biologic Function"
+    ], 
+    "Biologically Active Substance": [
+        "Entity", 
+        "Physical Object", 
+        "Substance", 
+        "Chemical", 
+        "Chemical Viewed Functionally", 
+        "Biologically Active Substance"
+    ], 
+    "Biomedical Occupation or Discipline": {
+        "MENTION": [
+            "Biomedical Occupation or Discipline"
+        ], 
+        "TYPE": [
+            "Entity", 
+            "Conceptual Entity", 
+            "Occupation or Discipline", 
+            "Biomedical Occupation or Discipline"
+        ]
+    }, 
+    "Biomedical or Dental Material": {
+        "MENTION": [
+            "Biomedical or Dental Material"
+        ], 
+        "TYPE": [
+            "Entity", 
+            "Physical Object", 
+            "Substance", 
+            "Chemical", 
+            "Chemical Viewed Functionally", 
+            "Biomedical or Dental Material"
+        ]
+    }, 
+    "Bird": {
+        "MENTION": [
+            "Bird"
+        ], 
+        "TYPE": [
+            "Entity", 
+            "Physical Object", 
+            "Organism", 
+            "Eukaryote", 
+            "Animal", 
+            "Vertebrate", 
+            "Bird"
+        ]
+    }, 
+    "Body Location or Region": {
+        "MENTION": [
+            "Body Location or Region"
+        ], 
+        "TYPE": [
+            "Entity", 
+            "Conceptual Entity", 
+            "Idea or Concept", 
+            "Spatial Concept", 
+            "Body Location or Region"
+        ]
+    }, 
+    "Body Part, Organ, or Organ Component": {
+        "MENTION": [
+            "Body Part", 
+            "Organ", 
+            " Organ Component"
+        ], 
+        "TYPE": [
+            "Entity", 
+            "Physical Object", 
+            "Anatomical Structure", 
+            "Fully Formed Anatomical Structure", 
+            "Body Part, Organ, or Organ Component"
+        ]
+    }, 
+    "Body Space or Junction": {
+        "MENTION": [
+            "Body Space or Junction"
+        ], 
+        "TYPE": [
+            "Entity", 
+            "Conceptual Entity", 
+            "Idea or Concept", 
+            "Spatial Concept", 
+            "Body Space or Junction"
+        ]
+    }, 
+    "Body Substance": {
+        "MENTION": [
+            "Body Substance"
+        ], 
+        "TYPE": [
+            "Entity", 
+            "Physical Object", 
+            "Substance", 
+            "Body Substance"
+        ]
+    }, 
+    "Body System": {
+        "MENTION": [
+            "Body System"
+        ], 
+        "TYPE": [
+            "Entity", 
+            "Conceptual Entity", 
+            "Idea or Concept", 
+            "Functional Concept", 
+            "Body System"
+        ]
+    }, 
+    "Carbohydrate Sequence": {
+        "MENTION": [
+            "Carbohydrate Sequence"
+        ], 
+        "TYPE": [
+            "Entity", 
+            "Conceptual Entity", 
+            "Idea or Concept", 
+            "Spatial Concept", 
+            "Molecular Sequence", 
+            "Carbohydrate Sequence"
+        ]
+    }, 
+    "Cell": {
+        "MENTION": [
+            "Cell"
+        ], 
+        "TYPE": [
+            "Entity", 
+            "Physical Object", 
+            "Anatomical Structure", 
+            "Fully Formed Anatomical Structure", 
+            "Cell"
+        ]
+    }, 
+    "Cell Component": {
+        "MENTION": [
+            "Cell Component"
+        ], 
+        "TYPE": [
+            "Entity", 
+            "Physical Object", 
+            "Anatomical Structure", 
+            "Fully Formed Anatomical Structure", 
+            "Cell Component"
+        ]
+    }, 
+    "Cell Function": {
+        "MENTION": [
+            "Cell Function"
+        ], 
+        "TYPE": [
+            "Event", 
+            "Phenomenon or Process", 
+            "Natural Phenomenon or Process", 
+            "Biologic Function", 
+            "Physiologic Function", 
+            "Cell Function"
+        ]
+    }, 
+    "Cell or Molecular Dysfunction": {
+        "MENTION": [
+            "Cell or Molecular Dysfunction"
+        ], 
+        "TYPE": [
+            "Event", 
+            "Phenomenon or Process", 
+            "Natural Phenomenon or Process", 
+            "Biologic Function", 
+            "Pathologic Function", 
+            "Cell or Molecular Dysfunction"
+        ]
+    }, 
+    "Chemical": [
+        "Entity", 
+        "Physical Object", 
+        "Substance", 
+        "Chemical"
+    ], 
+    "Chemical Viewed Functionally": [
+        "Entity", 
+        "Physical Object", 
+        "Substance", 
+        "Chemical", 
+        "Chemical Viewed Functionally"
+    ], 
+    "Chemical Viewed Structurally": [
+        "Entity", 
+        "Physical Object", 
+        "Substance", 
+        "Chemical", 
+        "Chemical Viewed Structurally"
+    ], 
+    "Classification": {
+        "MENTION": [
+            "Classification"
+        ], 
+        "TYPE": [
+            "Entity", 
+            "Conceptual Entity", 
+            "Intellectual Product", 
+            "Classification"
+        ]
+    }, 
+    "Clinical Attribute": {
+        "MENTION": [
+            "Clinical Attribute"
+        ], 
+        "TYPE": [
+            "Entity", 
+            "Conceptual Entity", 
+            "Organism Attribute", 
+            "Clinical Attribute"
+        ]
+    }, 
+    "Clinical Drug": {
+        "MENTION": [
+            "Clinical Drug"
+        ], 
+        "TYPE": [
+            "Entity", 
+            "Physical Object", 
+            "Manufactured Object", 
+            "Clinical Drug"
+        ]
+    }, 
+    "Conceptual Entity": [
+        "Entity", 
+        "Conceptual Entity"
+    ], 
+    "Congenital Abnormality": {
+        "MENTION": [
+            "Congenital Abnormality"
+        ], 
+        "TYPE": [
+            "Entity", 
+            "Physical Object", 
+            "Anatomical Structure", 
+            "Anatomical Abnormality", 
+            "Congenital Abnormality"
+        ]
+    }, 
+    "Daily or Recreational Activity": {
+        "MENTION": [
+            "Daily or Recreational Activity"
+        ], 
+        "TYPE": [
+            "Event", 
+            "Activity", 
+            "Daily or Recreational Activity"
+        ]
+    }, 
+    "Diagnostic Procedure": {
+        "MENTION": [
+            "Diagnostic Procedure"
+        ], 
+        "TYPE": [
+            "Event", 
+            "Activity", 
+            "Occupational Activity", 
+            "Health Care Activity", 
+            "Diagnostic Procedure"
+        ]
+    }, 
+    "Disease or Syndrome": [
+        "Event", 
+        "Phenomenon or Process", 
+        "Natural Phenomenon or Process", 
+        "Biologic Function", 
+        "Pathologic Function", 
+        "Disease or Syndrome"
+    ], 
+    "Drug Delivery Device": {
+        "MENTION": [
+            "Drug Delivery Device"
+        ], 
+        "TYPE": [
+            "Entity", 
+            "Physical Object", 
+            "Manufactured Object", 
+            "Medical Device", 
+            "Drug Delivery Device"
+        ]
+    }, 
+    "Educational Activity": {
+        "MENTION": [
+            "Educational Activity"
+        ], 
+        "TYPE": [
+            "Event", 
+            "Activity", 
+            "Occupational Activity", 
+            "Educational Activity"
+        ]
+    }, 
+    "Element, Ion, or Isotope": {
+        "MENTION": [
+            "Element", 
+            "Ion", 
+            " Isotope"
+        ], 
+        "TYPE": [
+            "Entity", 
+            "Physical Object", 
+            "Substance", 
+            "Chemical", 
+            "Chemical Viewed Structurally", 
+            "Element, Ion, or Isotope"
+        ]
+    }, 
+    "Embryonic Structure": {
+        "MENTION": [
+            "Embryonic Structure"
+        ], 
+        "TYPE": [
+            "Entity", 
+            "Physical Object", 
+            "Anatomical Structure", 
+            "Embryonic Structure"
+        ]
+    }, 
+    "Entity": [
+        "Entity", 
+        "Entity"
+    ], 
+    "Environmental Effect of Humans": {
+        "MENTION": [
+            "Environmental Effect of Humans"
+        ], 
+        "TYPE": [
+            "Event", 
+            "Phenomenon or Process", 
+            "Human-caused Phenomenon or Process", 
+            "Environmental Effect of Humans"
+        ]
+    }, 
+    "Enzyme": {
+        "MENTION": [
+            "Enzyme"
+        ], 
+        "TYPE": [
+            "Entity", 
+            "Physical Object", 
+            "Substance", 
+            "Chemical", 
+            "Chemical Viewed Functionally", 
+            "Biologically Active Substance", 
+            "Enzyme"
+        ]
+    }, 
+    "Eukaryote": [
+        "Entity", 
+        "Physical Object", 
+        "Organism", 
+        "Eukaryote"
+    ], 
+    "Event": [
+        "Event", 
+        "Event"
+    ], 
+    "Experimental Model of Disease": {
+        "MENTION": [
+            "Experimental Model of Disease"
+        ], 
+        "TYPE": [
+            "Event", 
+            "Phenomenon or Process", 
+            "Natural Phenomenon or Process", 
+            "Biologic Function", 
+            "Pathologic Function", 
+            "Experimental Model of Disease"
+        ]
+    }, 
+    "Family Group": {
+        "MENTION": [
+            "Family Group"
+        ], 
+        "TYPE": [
+            "Entity", 
+            "Conceptual Entity", 
+            "Group", 
+            "Family Group"
+        ]
+    }, 
+    "Finding": [
+        "Entity", 
+        "Conceptual Entity", 
+        "Finding"
+    ], 
+    "Fish": {
+        "MENTION": [
+            "Fish"
+        ], 
+        "TYPE": [
+            "Entity", 
+            "Physical Object", 
+            "Organism", 
+            "Eukaryote", 
+            "Animal", 
+            "Vertebrate", 
+            "Fish"
+        ]
+    }, 
+    "Food": {
+        "MENTION": [
+            "Food"
+        ], 
+        "TYPE": [
+            "Entity", 
+            "Physical Object", 
+            "Substance", 
+            "Food"
+        ]
+    }, 
+    "Fully Formed Anatomical Structure": [
+        "Entity", 
+        "Physical Object", 
+        "Anatomical Structure", 
+        "Fully Formed Anatomical Structure"
+    ], 
+    "Functional Concept": [
+        "Entity", 
+        "Conceptual Entity", 
+        "Idea or Concept", 
+        "Functional Concept"
+    ], 
+    "Fungus": {
+        "MENTION": [
+            "Fungus"
+        ], 
+        "TYPE": [
+            "Entity", 
+            "Physical Object", 
+            "Organism", 
+            "Eukaryote", 
+            "Fungus"
+        ]
+    }, 
+    "Gene or Genome": {
+        "MENTION": [
+            "Gene or Genome"
+        ], 
+        "TYPE": [
+            "Entity", 
+            "Physical Object", 
+            "Anatomical Structure", 
+            "Fully Formed Anatomical Structure", 
+            "Gene or Genome"
+        ]
+    }, 
+    "Genetic Function": {
+        "MENTION": [
+            "Genetic Function"
+        ], 
+        "TYPE": [
+            "Event", 
+            "Phenomenon or Process", 
+            "Natural Phenomenon or Process", 
+            "Biologic Function", 
+            "Physiologic Function", 
+            "Molecular Function", 
+            "Genetic Function"
+        ]
+    }, 
+    "Geographic Area": {
+        "MENTION": [
+            "Geographic Area"
+        ], 
+        "TYPE": [
+            "Entity", 
+            "Conceptual Entity", 
+            "Idea or Concept", 
+            "Spatial Concept", 
+            "Geographic Area"
+        ]
+    }, 
+    "Governmental or Regulatory Activity": {
+        "MENTION": [
+            "Governmental or Regulatory Activity"
+        ], 
+        "TYPE": [
+            "Event", 
+            "Activity", 
+            "Occupational Activity", 
+            "Governmental or Regulatory Activity"
+        ]
+    }, 
+    "Group": [
+        "Entity", 
+        "Conceptual Entity", 
+        "Group"
+    ], 
+    "Group Attribute": {
+        "MENTION": [
+            "Group Attribute"
+        ], 
+        "TYPE": [
+            "Entity", 
+            "Conceptual Entity", 
+            "Group Attribute"
+        ]
+    }, 
+    "Hazardous or Poisonous Substance": {
+        "MENTION": [
+            "Hazardous or Poisonous Substance"
+        ], 
+        "TYPE": [
+            "Entity", 
+            "Physical Object", 
+            "Substance", 
+            "Chemical", 
+            "Chemical Viewed Functionally", 
+            "Hazardous or Poisonous Substance"
+        ]
+    }, 
+    "Health Care Activity": [
+        "Event", 
+        "Activity", 
+        "Occupational Activity", 
+        "Health Care Activity"
+    ], 
+    "Health Care Related Organization": {
+        "MENTION": [
+            "Health Care Related Organization"
+        ], 
+        "TYPE": [
+            "Entity", 
+            "Conceptual Entity", 
+            "Organization", 
+            "Health Care Related Organization"
+        ]
+    }, 
+    "Hormone": {
+        "MENTION": [
+            "Hormone"
+        ], 
+        "TYPE": [
+            "Entity", 
+            "Physical Object", 
+            "Substance", 
+            "Chemical", 
+            "Chemical Viewed Functionally", 
+            "Biologically Active Substance", 
+            "Hormone"
+        ]
+    }, 
+    "Human": {
+        "MENTION": [
+            "Human"
+        ], 
+        "TYPE": [
+            "Entity", 
+            "Physical Object", 
+            "Organism", 
+            "Eukaryote", 
+            "Animal", 
+            "Vertebrate", 
+            "Mammal", 
+            "Human"
+        ]
+    }, 
+    "Human-caused Phenomenon or Process": [
+        "Event", 
+        "Phenomenon or Process", 
+        "Human-caused Phenomenon or Process"
+    ], 
+    "Idea or Concept": [
+        "Entity", 
+        "Conceptual Entity", 
+        "Idea or Concept"
+    ], 
+    "Immunologic Factor": {
+        "MENTION": [
+            "Immunologic Factor"
+        ], 
+        "TYPE": [
+            "Entity", 
+            "Physical Object", 
+            "Substance", 
+            "Chemical", 
+            "Chemical Viewed Functionally", 
+            "Biologically Active Substance", 
+            "Immunologic Factor"
+        ]
+    }, 
+    "Indicator, Reagent, or Diagnostic Aid": {
+        "MENTION": [
+            "Indicat", 
+            "Reagent", 
+            " Diagnostic Aid"
+        ], 
+        "TYPE": [
+            "Entity", 
+            "Physical Object", 
+            "Substance", 
+            "Chemical", 
+            "Chemical Viewed Functionally", 
+            "Indicator, Reagent, or Diagnostic Aid"
+        ]
+    }, 
+    "Individual Behavior": {
+        "MENTION": [
+            "Individual Behavior"
+        ], 
+        "TYPE": [
+            "Event", 
+            "Activity", 
+            "Behavior", 
+            "Individual Behavior"
+        ]
+    }, 
+    "Injury or Poisoning": {
+        "MENTION": [
+            "Injury or Poisoning"
+        ], 
+        "TYPE": [
+            "Event", 
+            "Phenomenon or Process", 
+            "Injury or Poisoning"
+        ]
+    }, 
+    "Inorganic Chemical": {
+        "MENTION": [
+            "Inorganic Chemical"
+        ], 
+        "TYPE": [
+            "Entity", 
+            "Physical Object", 
+            "Substance", 
+            "Chemical", 
+            "Chemical Viewed Structurally", 
+            "Inorganic Chemical"
+        ]
+    }, 
+    "Intellectual Product": [
+        "Entity", 
+        "Conceptual Entity", 
+        "Intellectual Product"
+    ], 
+    "Laboratory Procedure": {
+        "MENTION": [
+            "Laboratory Procedure"
+        ], 
+        "TYPE": [
+            "Event", 
+            "Activity", 
+            "Occupational Activity", 
+            "Health Care Activity", 
+            "Laboratory Procedure"
+        ]
+    }, 
+    "Laboratory or Test Result": {
+        "MENTION": [
+            "Laboratory or Test Result"
+        ], 
+        "TYPE": [
+            "Entity", 
+            "Conceptual Entity", 
+            "Finding", 
+            "Laboratory or Test Result"
+        ]
+    }, 
+    "Language": {
+        "MENTION": [
+            "Language"
+        ], 
+        "TYPE": [
+            "Entity", 
+            "Conceptual Entity", 
+            "Language"
+        ]
+    }, 
+    "Machine Activity": {
+        "MENTION": [
+            "Machine Activity"
+        ], 
+        "TYPE": [
+            "Event", 
+            "Activity", 
+            "Machine Activity"
+        ]
+    }, 
+    "Mammal": [
+        "Entity", 
+        "Physical Object", 
+        "Organism", 
+        "Eukaryote", 
+        "Animal", 
+        "Vertebrate", 
+        "Mammal"
+    ], 
+    "Manufactured Object": [
+        "Entity", 
+        "Physical Object", 
+        "Manufactured Object"
+    ], 
+    "Medical Device": [
+        "Entity", 
+        "Physical Object", 
+        "Manufactured Object", 
+        "Medical Device"
+    ], 
+    "Mental Process": {
+        "MENTION": [
+            "Mental Process"
+        ], 
+        "TYPE": [
+            "Event", 
+            "Phenomenon or Process", 
+            "Natural Phenomenon or Process", 
+            "Biologic Function", 
+            "Physiologic Function", 
+            "Organism Function", 
+            "Mental Process"
+        ]
+    }, 
+    "Mental or Behavioral Dysfunction": {
+        "MENTION": [
+            "Mental or Behavioral Dysfunction"
+        ], 
+        "TYPE": [
+            "Event", 
+            "Phenomenon or Process", 
+            "Natural Phenomenon or Process", 
+            "Biologic Function", 
+            "Pathologic Function", 
+            "Disease or Syndrome", 
+            "Mental or Behavioral Dysfunction"
+        ]
+    }, 
+    "Molecular Biology Research Technique": {
+        "MENTION": [
+            "Molecular Biology Research Technique"
+        ], 
+        "TYPE": [
+            "Event", 
+            "Activity", 
+            "Occupational Activity", 
+            "Research Activity", 
+            "Molecular Biology Research Technique"
+        ]
+    }, 
+    "Molecular Function": [
+        "Event", 
+        "Phenomenon or Process", 
+        "Natural Phenomenon or Process", 
+        "Biologic Function", 
+        "Physiologic Function", 
+        "Molecular Function"
+    ], 
+    "Molecular Sequence": [
+        "Entity", 
+        "Conceptual Entity", 
+        "Idea or Concept", 
+        "Spatial Concept", 
+        "Molecular Sequence"
+    ], 
+    "Natural Phenomenon or Process": [
+        "Event", 
+        "Phenomenon or Process", 
+        "Natural Phenomenon or Process"
+    ], 
+    "Neoplastic Process": {
+        "MENTION": [
+            "Neoplastic Process"
+        ], 
+        "TYPE": [
+            "Event", 
+            "Phenomenon or Process", 
+            "Natural Phenomenon or Process", 
+            "Biologic Function", 
+            "Pathologic Function", 
+            "Disease or Syndrome", 
+            "Neoplastic Process"
+        ]
+    }, 
+    "Nucleic Acid, Nucleoside, or Nucleotide": {
+        "MENTION": [
+            "Nucleic Acid", 
+            "Nucleoside", 
+            " Nucleotide"
+        ], 
+        "TYPE": [
+            "Entity", 
+            "Physical Object", 
+            "Substance", 
+            "Chemical", 
+            "Chemical Viewed Structurally", 
+            "Organic Chemical", 
+            "Nucleic Acid, Nucleoside, or Nucleotide"
+        ]
+    }, 
+    "Nucleotide Sequence": {
+        "MENTION": [
+            "Nucleotide Sequence"
+        ], 
+        "TYPE": [
+            "Entity", 
+            "Conceptual Entity", 
+            "Idea or Concept", 
+            "Spatial Concept", 
+            "Molecular Sequence", 
+            "Nucleotide Sequence"
+        ]
+    }, 
+    "Occupation or Discipline": [
+        "Entity", 
+        "Conceptual Entity", 
+        "Occupation or Discipline"
+    ], 
+    "Occupational Activity": [
+        "Event", 
+        "Activity", 
+        "Occupational Activity"
+    ], 
+    "Organ or Tissue Function": {
+        "MENTION": [
+            "Organ or Tissue Function"
+        ], 
+        "TYPE": [
+            "Event", 
+            "Phenomenon or Process", 
+            "Natural Phenomenon or Process", 
+            "Biologic Function", 
+            "Physiologic Function", 
+            "Organ or Tissue Function"
+        ]
+    }, 
+    "Organic Chemical": [
+        "Entity", 
+        "Physical Object", 
+        "Substance", 
+        "Chemical", 
+        "Chemical Viewed Structurally", 
+        "Organic Chemical"
+    ], 
+    "Organism": [
+        "Entity", 
+        "Physical Object", 
+        "Organism"
+    ], 
+    "Organism Attribute": [
+        "Entity", 
+        "Conceptual Entity", 
+        "Organism Attribute"
+    ], 
+    "Organism Function": [
+        "Event", 
+        "Phenomenon or Process", 
+        "Natural Phenomenon or Process", 
+        "Biologic Function", 
+        "Physiologic Function", 
+        "Organism Function"
+    ], 
+    "Organization": [
+        "Entity", 
+        "Conceptual Entity", 
+        "Organization"
+    ], 
+    "Pathologic Function": [
+        "Event", 
+        "Phenomenon or Process", 
+        "Natural Phenomenon or Process", 
+        "Biologic Function", 
+        "Pathologic Function"
+    ], 
+    "Patient or Disabled Group": {
+        "MENTION": [
+            "Patient or Disabled Group"
+        ], 
+        "TYPE": [
+            "Entity", 
+            "Conceptual Entity", 
+            "Group", 
+            "Patient or Disabled Group"
+        ]
+    }, 
+    "Pharmacologic Substance": [
+        "Entity", 
+        "Physical Object", 
+        "Substance", 
+        "Chemical", 
+        "Chemical Viewed Functionally", 
+        "Pharmacologic Substance"
+    ], 
+    "Phenomenon or Process": [
+        "Event", 
+        "Phenomenon or Process"
+    ], 
+    "Physical Object": [
+        "Entity", 
+        "Physical Object"
+    ], 
+    "Physiologic Function": [
+        "Event", 
+        "Phenomenon or Process", 
+        "Natural Phenomenon or Process", 
+        "Biologic Function", 
+        "Physiologic Function"
+    ], 
+    "Plant": {
+        "MENTION": [
+            "Plant"
+        ], 
+        "TYPE": [
+            "Entity", 
+            "Physical Object", 
+            "Organism", 
+            "Eukaryote", 
+            "Plant"
+        ]
+    }, 
+    "Population Group": {
+        "MENTION": [
+            "Population Group"
+        ], 
+        "TYPE": [
+            "Entity", 
+            "Conceptual Entity", 
+            "Group", 
+            "Population Group"
+        ]
+    }, 
+    "Professional Society": {
+        "MENTION": [
+            "Professional Society"
+        ], 
+        "TYPE": [
+            "Entity", 
+            "Conceptual Entity", 
+            "Organization", 
+            "Professional Society"
+        ]
+    }, 
+    "Professional or Occupational Group": {
+        "MENTION": [
+            "Professional or Occupational Group"
+        ], 
+        "TYPE": [
+            "Entity", 
+            "Conceptual Entity", 
+            "Group", 
+            "Professional or Occupational Group"
+        ]
+    }, 
+    "Qualitative Concept": {
+        "MENTION": [
+            "Qualitative Concept"
+        ], 
+        "TYPE": [
+            "Entity", 
+            "Conceptual Entity", 
+            "Idea or Concept", 
+            "Qualitative Concept"
+        ]
+    }, 
+    "Quantitative Concept": {
+        "MENTION": [
+            "Quantitative Concept"
+        ], 
+        "TYPE": [
+            "Entity", 
+            "Conceptual Entity", 
+            "Idea or Concept", 
+            "Quantitative Concept"
+        ]
+    }, 
+    "Receptor": {
+        "MENTION": [
+            "Receptor"
+        ], 
+        "TYPE": [
+            "Entity", 
+            "Physical Object", 
+            "Substance", 
+            "Chemical", 
+            "Chemical Viewed Functionally", 
+            "Biologically Active Substance", 
+            "Receptor"
+        ]
+    }, 
+    "Regulation or Law": {
+        "MENTION": [
+            "Regulation or Law"
+        ], 
+        "TYPE": [
+            "Entity", 
+            "Conceptual Entity", 
+            "Intellectual Product", 
+            "Regulation or Law"
+        ]
+    }, 
+    "Reptile": {
+        "MENTION": [
+            "Reptile"
+        ], 
+        "TYPE": [
+            "Entity", 
+            "Physical Object", 
+            "Organism", 
+            "Eukaryote", 
+            "Animal", 
+            "Vertebrate", 
+            "Reptile"
+        ]
+    }, 
+    "Research Activity": [
+        "Event", 
+        "Activity", 
+        "Occupational Activity", 
+        "Research Activity"
+    ], 
+    "Research Device": {
+        "MENTION": [
+            "Research Device"
+        ], 
+        "TYPE": [
+            "Entity", 
+            "Physical Object", 
+            "Manufactured Object", 
+            "Research Device"
+        ]
+    }, 
+    "Self-help or Relief Organization": {
+        "MENTION": [
+            "Self-help or Relief Organization"
+        ], 
+        "TYPE": [
+            "Entity", 
+            "Conceptual Entity", 
+            "Organization", 
+            "Self-help or Relief Organization"
+        ]
+    }, 
+    "Sign or Symptom": {
+        "MENTION": [
+            "Sign or Symptom"
+        ], 
+        "TYPE": [
+            "Entity", 
+            "Conceptual Entity", 
+            "Finding", 
+            "Sign or Symptom"
+        ]
+    }, 
+    "Social Behavior": {
+        "MENTION": [
+            "Social Behavior"
+        ], 
+        "TYPE": [
+            "Event", 
+            "Activity", 
+            "Behavior", 
+            "Social Behavior"
+        ]
+    }, 
+    "Spatial Concept": [
+        "Entity", 
+        "Conceptual Entity", 
+        "Idea or Concept", 
+        "Spatial Concept"
+    ], 
+    "Substance": [
+        "Entity", 
+        "Physical Object", 
+        "Substance"
+    ], 
+    "Temporal Concept": {
+        "MENTION": [
+            "Temporal Concept"
+        ], 
+        "TYPE": [
+            "Entity", 
+            "Conceptual Entity", 
+            "Idea or Concept", 
+            "Temporal Concept"
+        ]
+    }, 
+    "Therapeutic or Preventive Procedure": {
+        "MENTION": [
+            "Therapeutic or Preventive Procedure"
+        ], 
+        "TYPE": [
+            "Event", 
+            "Activity", 
+            "Occupational Activity", 
+            "Health Care Activity", 
+            "Therapeutic or Preventive Procedure"
+        ]
+    }, 
+    "Tissue": {
+        "MENTION": [
+            "Tissue"
+        ], 
+        "TYPE": [
+            "Entity", 
+            "Physical Object", 
+            "Anatomical Structure", 
+            "Fully Formed Anatomical Structure", 
+            "Tissue"
+        ]
+    }, 
+    "Vertebrate": [
+        "Entity", 
+        "Physical Object", 
+        "Organism", 
+        "Eukaryote", 
+        "Animal", 
+        "Vertebrate"
+    ], 
+    "Virus": {
+        "MENTION": [
+            "Virus"
+        ], 
+        "TYPE": [
+            "Entity", 
+            "Physical Object", 
+            "Organism", 
+            "Virus"
+        ]
+    }, 
+    "Vitamin": {
+        "MENTION": [
+            "Vitamin"
+        ], 
+        "TYPE": [
+            "Entity", 
+            "Physical Object", 
+            "Substance", 
+            "Chemical", 
+            "Chemical Viewed Functionally", 
+            "Biologically Active Substance", 
+            "Vitamin"
+        ]
+    }
+}
