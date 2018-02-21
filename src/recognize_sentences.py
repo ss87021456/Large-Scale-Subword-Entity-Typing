@@ -9,9 +9,22 @@ from multiprocessing import Pool
 from itertools import chain
 
 
+# Used as shared memory among threads
 keywords = None
 
 def threading_search(thread_idx, data):
+    """
+    Sentence keyword search (called by threads)
+
+    Arguments:
+        thread_idx(int): Order of threads, used to align progressbar.
+        data(list of str): Each elements in the list contains one sentence
+                          of raw corpus.
+
+    Returns:
+        result(listof str): Each elements in the list contains one 
+                     sentence with one or more keywords.
+    """
     global keywords
     result = list()
     #
@@ -27,6 +40,8 @@ def threading_search(thread_idx, data):
     return result
 
 def recognize_sentences(args):
+    """
+    """
     with open(args.sentences, "r") as f_in, open(args.found, "w") as f_out:
         # Fetch all dictionaries names
         # *** TO BE REVISED ***
@@ -41,7 +56,7 @@ def recognize_sentences(args):
         global keywords
         keywords = entity.keys()
         # Acquire all sentences
-        raw_data = f_in.read().splitlines()[:20]
+        raw_data = f_in.read().splitlines()
         # Threading settings
         n_cores = multiprocessing.cpu_count()
         n_threads = n_cores * 2 if args.thread == None else args.thread
@@ -52,7 +67,9 @@ def recognize_sentences(args):
         per_slice = int(len(raw_data) / n_threads)
         thread_data = list()
         for itr in range(n_threads):
+            # Generate indices for each slice
             idx_begin = itr * per_slice
+            # last slice may be larger or smaller
             idx_end = (itr + 1) * per_slice if itr != n_threads - 1 else None
             #
             thread_data.append((itr, raw_data[idx_begin:idx_end]))
