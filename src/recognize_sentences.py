@@ -2,7 +2,6 @@ import os
 import argparse
 import json
 from pprint import pprint
-from mmap import mmap
 from tqdm import tqdm
 import multiprocessing
 from multiprocessing import Pool
