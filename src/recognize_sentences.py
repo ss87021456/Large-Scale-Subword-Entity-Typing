@@ -3,9 +3,8 @@ import argparse
 import json
 from pprint import pprint
 from tqdm import tqdm
-import multiprocessing
-from multiprocessing import Pool
 from itertools import chain
+from utils import generic_threading
 
 
 # Used as shared memory among threads
@@ -47,7 +46,7 @@ def recognize_sentences(args):
         files = [itr for itr in os.listdir(args.dict_path) 
                  if itr.endswith('_leaf.json')]
         # Open and merge all dictionaries
-        print("Loading keywords from {:d} dictionaries".format(len(file)))
+        print("Loading keywords from {:d} dictionaries".format(len(files)))
         entity = dict()
         for itr in files:
             entity.update(json.load(open(args.dict_path + '/' + itr, "r")))
@@ -55,29 +54,9 @@ def recognize_sentences(args):
         global keywords
         keywords = entity.keys()
         # Acquire all sentences
-        raw_data = f_in.read().splitlines()
-        # Threading settings
-        n_cores = multiprocessing.cpu_count()
-        n_threads = n_cores * 2 if args.thread == None else args.thread
-        print("Number of CPU cores: {:d}".format(n_cores))
-        print("Number of Threading: {:d}".format(n_threads))
-        # Slice data for each thread
-        print(" - Slicing data for threading...")
-        per_slice = int(len(raw_data) / n_threads)
-        thread_data = list()
-        for itr in range(n_threads):
-            # Generate indices for each slice
-            idx_begin = itr * per_slice
-            # last slice may be larger or smaller
-            idx_end = (itr + 1) * per_slice if itr != n_threads - 1 else None
-            #
-            thread_data.append((itr, raw_data[idx_begin:idx_end]))
-        #
-        print(" - Begin threading...")
+        raw_data = f_in.read().splitlines()[:20]
         # Threading
-        with Pool(processes=n_threads) as p:
-            result = p.starmap(threading_search, thread_data)
-        print("\n\nAll threads completed.")
+        result = generic_threading(args.thread, raw_data, threading_search)
         # write all result to file
         # *** TO BE REVISED, MAY CONSUME TOO MUCH MEMORY ***
         print("Writing result to file...")
