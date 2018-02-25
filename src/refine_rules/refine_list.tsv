@@ -1,3 +1,7 @@
-[+-]?(\d+)(\.)*(\d)*%	<PERCENTAGE>
-[+-]?([0-9]*[.])[0-9]+	<FLOAT>
-(\d+)(,(\d+))*	<NUMBER>
+\[OR.*?\]	<CONFIDENCE_INTERVAL>
+by .* et al.*DOI.*/*.	<CITATION>
+[, ] .* et al. \([0-9]*\)	<CITATION>
+by .+ et al\..*[0-9]*-[0-9]*	<CITATION>
+[+-]?[0-9]*[.][0-9]+%	<PERCENTAGE>
+[+-]?\d+%	<PERCENTAGE>
+[+-]?[0-9]*[.][0-9]+	<FLOAT>

@@ -1,4 +1,5 @@
 import re
+import os
 import argparse
 from tqdm import tqdm
 from pprint import pprint
@@ -7,14 +8,15 @@ from utils import generic_threading
 
 
 # Define shared objects
-# refine_dict = dict()
 refine_list = list()
+parentheses = list()
 keys = None
 
 def threading_refine(thread_idx, data):
     """
     """
     global refine_list
+    global parentheses
     # global keys
     #
     result = list()
@@ -23,13 +25,26 @@ def threading_refine(thread_idx, data):
         # Find contents within parentheses 
         contents = re.findall(r'\(.*?\)', article)
         for itr_content in contents:
-            for itr_tag in refine_list:
-                found = re.findall(itr_tag[0], itr_content)
+            for itr_tag in parentheses:
+                # extract entry
+                pattern, tag = itr_tag
+                # find pattern
+                found = re.findall(pattern, itr_content)
                 if len(found) != 0:
-                    article = article.replace(itr_content, itr_tag[1])
+                    # add redundant space to avoid words stay together
+                    article = article.replace(itr_content, " " + tag)
                 else:
                     pass
-        #
+        # Find and replace patterns in the article
+        for itr_pattern in refine_list:
+            pattern, tag = itr_pattern
+            found = re.findall(pattern, article)
+            if len(found) != 0:
+                for itr_found in found:
+                    # add redundant space to avoid words stay together
+                    article = article.replace(itr_found, " " + tag)
+            else:
+                pass
         #
         result.append(article)
 
@@ -40,14 +55,24 @@ def refine_corpus(args):
     """
     # load replacement list
     global refine_list
-    with open(args.dict_file) as f_list:
-        lines = f_list.read().splitlines()
+    global parentheses
+    # Load rule files
+    file_p = args.rule_path + "parentheses.tsv"
+    file_r = args.rule_path + "refine_list.tsv"
+    #
+    with open(file_p, "r") as fp, open(file_r, "r") as fr:
+        # parentheses
+        lines = fp.read().splitlines()
+        for itr in lines:
+            parentheses.append(itr.split('\t'))
+        # refine_list
+        lines = fr.read().splitlines()
         for itr in lines:
             refine_list.append(itr.split('\t'))
     #
     with open(args.corpus, "r") as f_cor, open(args.output, "w") as f_out:
         # Acquire all sentences
-        raw_data = f_cor.read().splitlines()[:20]
+        raw_data = f_cor.read().splitlines()
         # Threading
         result = generic_threading(args.thread, raw_data, threading_refine)
         # write all result to file
@@ -62,8 +87,8 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("corpus", help="Input sentences to be recognized.")
     parser.add_argument("output", help="Sentences with key words")
-    parser.add_argument("dict_file", help="Containing replacement details\
-                         with file extension \".json\".")
+    parser.add_argument("rule_path", help="Containing replacement details\
+                         with file extension \".tsv\".")
     parser.add_argument("-t", "--thread", type=int, help="Number of threads \
                         to run, default: 2 * number_of_cores")
     parser.add_argument("-v", "--verbose", action="store_true",
@@ -71,6 +96,4 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
-    # check dict file name
-    assert args.dict_file.endswith(".tsv")
     refine_corpus(args)
