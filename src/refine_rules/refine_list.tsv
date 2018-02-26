@@ -6,4 +6,6 @@ by .+ et al\..*[0-9]*-[0-9]*	<CITATION>
 [+-]?\d+%	<PERCENTAGE>
 [+-]?[0-9]*[.][0-9]+	<FLOAT>
  \(*\d+\)	<ITEMIZE>
-\d+(?:,\d+)?	<NUMBER>
+~?\b\d+(,[\d][\d][\d])+\b	<NUMBER>
+ \d+\b 	<NUMBER>
+\d+, 	<NUMBER>

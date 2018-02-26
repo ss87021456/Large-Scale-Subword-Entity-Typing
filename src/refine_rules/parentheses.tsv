@@ -1,3 +1,5 @@
 CI:	<CONFIDENCE_INTERVAL>
 et al.	<CITATION>
 [pP]&lt	<P_VALUE>
+[pP]=	<P_VALUE>
+[pP] =	<P_VALUE>

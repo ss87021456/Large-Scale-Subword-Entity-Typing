@@ -21,6 +21,8 @@ def threading_refine(thread_idx, data):
     #
     result = list()
     for article in tqdm(data, position=thread_idx):
+        tab_index = article.find('\t')
+        article = article[tab_index+1:] # skip PMID\t
         # refine the corpus
         # Find contents within parentheses 
         contents = re.findall(r'\(.*?\)', article)
@@ -32,20 +34,14 @@ def threading_refine(thread_idx, data):
                 found = re.findall(pattern, itr_content)
                 if len(found) != 0:
                     # add redundant space to avoid words stay together
-                    article = article.replace(itr_content, " " + tag)
+                    article = article.replace(itr_content, " " + tag + " ")
                 else:
                     pass
         # Find and replace patterns in the article
         for itr_pattern in refine_list:
             pattern, tag = itr_pattern
-            found = re.findall(pattern, article)
-            if len(found) != 0:
-                for itr_found in found:
-                    # add redundant space to avoid words stay together
-                    target = " " + itr_found + " "
-                    article = article.replace(target, " " + tag)
-            else:
-                pass
+            #found = re.findall(pattern, article)
+            article = re.sub(pattern, " " + tag + " ", article)
         #
         result.append(article)
 
