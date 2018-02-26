@@ -42,7 +42,8 @@ def threading_refine(thread_idx, data):
             if len(found) != 0:
                 for itr_found in found:
                     # add redundant space to avoid words stay together
-                    article = article.replace(itr_found, " " + tag)
+                    target = " " + itr_found + " "
+                    article = article.replace(target, " " + tag)
             else:
                 pass
         #
@@ -71,8 +72,9 @@ def refine_corpus(args):
             refine_list.append(itr.split('\t'))
     #
     with open(args.corpus, "r") as f_cor, open(args.output, "w") as f_out:
-        # Acquire all sentences
-        raw_data = f_cor.read().splitlines()
+        # skip first line
+        # Acquire the corpus
+        raw_data = f_cor.read().splitlines()[1:]
         # Threading
         result = generic_threading(args.thread, raw_data, threading_refine)
         # write all result to file
