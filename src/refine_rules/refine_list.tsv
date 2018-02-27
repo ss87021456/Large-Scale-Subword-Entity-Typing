@@ -1,4 +1,7 @@
+[Pp]&lt;\d.?\d+	<P_VALUE>
+\d\d:\d\d	<TIME>
 \[OR.*?\]	<CONFIDENCE_INTERVAL>
+\[.*DOI.*\]	<CITATION>
 by .* et al.*DOI.*/*.	<CITATION>
 [, ] .* et al. \([0-9]*\)	<CITATION>
 by .+ et al\..*[0-9]*-[0-9]*	<CITATION>
@@ -9,3 +12,6 @@ by .+ et al\..*[0-9]*-[0-9]*	<CITATION>
 ~?\b\d+(,[\d][\d][\d])+\b	<NUMBER>
  \d+\b 	<NUMBER>
 \d+, 	<NUMBER>
+\d{4}	<NUMBER>
+\d+days	<TIME>
+\d+-day	<TIME>
