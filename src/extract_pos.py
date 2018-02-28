@@ -29,7 +29,7 @@ def extract_pos(args):
         # Acquire all sentences
         raw_data = f.read().splitlines()[1:] # skip first line
         # Threading
-        result = generic_threading(args.thread, raw_data, threading_split)
+        result = generic_threading(args.thread, raw_data, thread_pos_tagging)
 
         for line in tqdm(list(chain.from_iterable(result))):
             fw.write('\n'.join('{} {}'.format(x[1],x[0]) for x in line))
