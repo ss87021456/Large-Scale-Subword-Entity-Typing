@@ -4,13 +4,15 @@ from string import punctuation
 from collections import Counter
 from itertools import chain
 from tqdm import tqdm
-from utils import vprint, vpprint, generic_threading
+from utils import vprint, vpprint, load_rules, generic_threading
 
 result = None
+rules = None
 
 def threading_split(thread_idx, data):
     """
     """
+    global rules
     linewords = list()
     desc = "Thread {:2d}".format(thread_idx + 1)
     for article in tqdm(data, position=thread_idx, desc=desc):
@@ -19,6 +21,11 @@ def threading_split(thread_idx, data):
         article = article.replace("\t", " ")
         # skip PMID
         vocabulary = article.translate(punctuation).lower().split()
+        vocabulary = [itr.replace("\"", "") for itr in vocabulary]
+        vocabulary = [itr.replace("\'", "") for itr in vocabulary]
+        vocabulary = [itr.replace("?", "") for itr in vocabulary]
+        vocabulary = [itr.replace("!", "") for itr in vocabulary]
+        # vocabulary = [itr.replace(",", "") if itr.endswith(",", "") else itr for itr in vocabulary]
         linewords.append(vocabulary)
 
     # result[thread_idx] = list(chain.from_iterable(linewords))
@@ -35,6 +42,9 @@ def init_share_mem(n_threads):
 def vocabulary(args):
     """
     """
+    global rules
+    rules = load_rules(args.rule)
+    
     with open(args.file) as f:
         print("Loading corpus from file {:s}".format(args.file))
         raw_data = f.read().splitlines()
@@ -58,6 +68,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("file", help="Input sentences to be recognized.")
     parser.add_argument("vocb", help="File name for vocabulary list to be saved.")
+    parser.add_argument("rule", help="Rules for vocabulary list to be cleaned up.")
     parser.add_argument("-t", "--thread", type=int, help="Number of threads \
                         to run, default: 2 * number_of_cores") 
     """

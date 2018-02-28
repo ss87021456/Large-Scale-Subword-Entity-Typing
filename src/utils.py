@@ -19,6 +19,18 @@ def vpprint(msg, verbose=False):
     else:
         pass
 
+def load_rules(file):
+    """
+    .tsv files ONLY
+    """
+    rules = list()
+    with open(file, "r") as f:
+        lines = f.read().splitlines()
+        for itr in lines:
+            rules.append(itr.split("\t"))
+    #
+    return rules
+
 def split_data(data, n_slice):
     """
     """

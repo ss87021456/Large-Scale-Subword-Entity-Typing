@@ -4,7 +4,7 @@ import argparse
 from tqdm import tqdm
 from pprint import pprint
 from itertools import chain
-from utils import generic_threading
+from utils import load_rules, generic_threading
 
 
 # Define shared objects
@@ -21,11 +21,10 @@ def threading_refine(thread_idx, data):
     #
     result = list()
     for article in tqdm(data, position=thread_idx):
-        tab_index = article.find('\t')
-        article = article[tab_index+1:] # skip PMID\t
+        article = article[article.find("\t") + 1:] # skip PMID\t
         # refine the corpus
         # Find contents within parentheses 
-        contents = re.findall(r'\(.*?\)', article)
+        contents = re.findall(r"\(.*?\)", article)
         for itr_content in contents:
             for itr_tag in parentheses:
                 # extract entry
@@ -33,7 +32,7 @@ def threading_refine(thread_idx, data):
                 # find pattern
                 found = re.findall(pattern, itr_content)
                 if len(found) != 0:
-                    # add redundant space to avoid words stay together
+                    # add redundant spaces to avoid words stay together
                     article = article.replace(itr_content, " " + tag + " ")
                 else:
                     pass
@@ -54,9 +53,12 @@ def refine_corpus(args):
     global refine_list
     global parentheses
     # Load rule files
-    file_p = args.rule_path + "parentheses.tsv"
     file_r = args.rule_path + "refine_list.tsv"
+    file_p = args.rule_path + "parentheses.tsv"
     #
+    refine_list = load_rules(filefile_r_p)
+    parentheses = load_rules(file_p)
+    """
     with open(file_p, "r") as fp, open(file_r, "r") as fr:
         # parentheses
         lines = fp.read().splitlines()
@@ -66,19 +68,19 @@ def refine_corpus(args):
         lines = fr.read().splitlines()
         for itr in lines:
             refine_list.append(itr.split('\t'))
+    """
     #
     with open(args.corpus, "r") as f_cor, open(args.output, "w") as f_out:
-        # skip first line
-        # Acquire the corpus
+        # Acquire the corpus (skip first line)
         raw_data = f_cor.read().splitlines()[1:]
-        # Threading
-        result = generic_threading(args.thread, raw_data, threading_refine)
-        # write all result to file
-        # *** TO BE REVISED, MAY CONSUME TOO MUCH MEMORY ***
-        print("Writing result to file...")
-        for line in tqdm(list(chain.from_iterable(result))):
-            f_out.write(line + "\n")
-        print("File saved in {:s}".format(args.output))
+    # Threading
+    result = generic_threading(args.thread, raw_data, threading_refine)
+    # write all result to file
+    # *** TO BE REVISED, MAY CONSUME TOO MUCH MEMORY ***
+    print("Writing result to file...")
+    for line in tqdm(list(chain.from_iterable(result))):
+        f_out.write(line + "\n")
+    print("File saved in {:s}".format(args.output))
 
 
 if __name__ == '__main__':
