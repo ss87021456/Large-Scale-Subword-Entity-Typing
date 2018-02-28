@@ -6,6 +6,7 @@ from itertools import chain
 from tqdm import tqdm
 from utils import vprint, vpprint, generic_threading
 
+result = None
 
 def threading_split(thread_idx, data):
     """
@@ -17,22 +18,34 @@ def threading_split(thread_idx, data):
         # replace tabs as spaces
         article = article.replace("\t", " ")
         # skip PMID
-        vocabulary = article.translate(punctuation).lower().split()[1:]
+        vocabulary = article.translate(punctuation).lower().split()
         linewords.append(vocabulary)
 
+    # result[thread_idx] = list(chain.from_iterable(linewords))
+    # result = list(chain.from_iterable(linewords))
+    # print(result[thread_idx])
+    # print("Thread {:d} done".format(thread_idx))
     return list(chain.from_iterable(linewords))
+
+def init_share_mem(n_threads):
+    global result
+    result = [None for _ in range(args.thread)]
+    print(id(result))
 
 def vocabulary(args):
     """
     """
     with open(args.file) as f:
         print("Loading corpus from file {:s}".format(args.file))
-        raw_data = f.read().splitlines()[1:]
+        raw_data = f.read().splitlines()
     # Threading
-    result = generic_threading(args.thread, raw_data, threading_split)
+    # init_share_mem(args.thread)
+    # generic_threading(args.thread, raw_data, threading_split, shared=True)
+    result = threading_split(0, raw_data)
     # count occurance
     print("Counting occurance...")
-    voc_list = Counter(chain.from_iterable(result))
+    # voc_list = Counter(chain.from_iterable(result))
+    voc_list = Counter(result)
 
     # Save vocabulary to file
     print("Saving vocabulary list to file...")

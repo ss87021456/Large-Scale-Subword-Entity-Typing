@@ -36,7 +36,7 @@ def split_data(data, n_slice):
     #
     return partitioned_data
 
-def generic_threading(n_jobs, data, threading_method):
+def generic_threading(n_jobs, data, threading_method, shared=False):
     """
     """
     # Threading settings
@@ -50,8 +50,11 @@ def generic_threading(n_jobs, data, threading_method):
     print(" - Begin threading...")
     # Threading
     with Pool(processes=n_threads) as p:
-        result = p.starmap(threading_method, thread_data)
+        if not shared:
+            result = p.starmap(threading_method, thread_data)
+        else:
+            p.starmap(threading_method, thread_data)
     #
     print("\n" * n_threads)
     print("All threads completed.")
-    return result
+    return result if not shared else None
