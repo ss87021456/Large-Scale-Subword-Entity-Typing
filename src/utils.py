@@ -1,5 +1,23 @@
 import multiprocessing
 from multiprocessing import Pool, cpu_count
+from pprint import pprint
+
+
+def vprint(msg, verbose=False):
+    """
+    """
+    if verbose:
+        print(msg)
+    else:
+        pass
+
+def vpprint(msg, verbose=False):
+    """
+    """
+    if verbose:
+        pprint(msg)
+    else:
+        pass
 
 def split_data(data, n_slice):
     """
