@@ -1,4 +1,4 @@
-[a-Z][a-Z]\.[a-Z][a-Z]
+[a-zA-Z][a-zA-Z]\.[a-zA-Z][a-zA-Z]	
 [Pp]&lt;\d.?\d+	<P_VALUE>
 &amp	and
 &quot	

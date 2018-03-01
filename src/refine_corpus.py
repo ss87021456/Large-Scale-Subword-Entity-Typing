@@ -56,7 +56,7 @@ def refine_corpus(args):
     file_r = args.rule_path + "refine_list.tsv"
     file_p = args.rule_path + "parentheses.tsv"
     #
-    refine_list = load_rules(filefile_r_p)
+    refine_list = load_rules(file_r)
     parentheses = load_rules(file_p)
     """
     with open(file_p, "r") as fp, open(file_r, "r") as fr:
@@ -73,14 +73,14 @@ def refine_corpus(args):
     with open(args.corpus, "r") as f_cor, open(args.output, "w") as f_out:
         # Acquire the corpus (skip first line)
         raw_data = f_cor.read().splitlines()[1:]
-    # Threading
-    result = generic_threading(args.thread, raw_data, threading_refine)
-    # write all result to file
-    # *** TO BE REVISED, MAY CONSUME TOO MUCH MEMORY ***
-    print("Writing result to file...")
-    for line in tqdm(list(chain.from_iterable(result))):
-        f_out.write(line + "\n")
-    print("File saved in {:s}".format(args.output))
+        # Threading
+        result = generic_threading(args.thread, raw_data, threading_refine)
+        # write all result to file
+        # *** TO BE REVISED, MAY CONSUME TOO MUCH MEMORY ***
+        print("Writing result to file...")
+        for line in tqdm(list(chain.from_iterable(result))):
+            f_out.write(line + "\n")
+        print("File saved in {:s}".format(args.output))
 
 
 if __name__ == '__main__':

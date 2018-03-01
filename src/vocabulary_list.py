@@ -72,7 +72,7 @@ def vocabulary(args):
     
     with open(args.file) as f:
         print("Loading corpus from file {:s}".format(args.file))
-        raw_data = f.read().splitlines()[:500]
+        raw_data = f.read().splitlines()
     # Threading
     # init_share_mem(args.thread)
     # generic_threading(args.thread, raw_data, threading_split, shared=True)
