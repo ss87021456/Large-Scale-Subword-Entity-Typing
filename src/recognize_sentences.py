@@ -24,9 +24,10 @@ def threading_search(thread_idx, data):
                      sentence with one or more keywords.
     """
     global keywords
+    desc = "Thread {:2d}".format(thread_idx + 1)
     result = list()
     #
-    for line in tqdm(data, position=thread_idx):
+    for line in tqdm(data, position=thread_idx, desc=desc):
         # search for keywords
         for itr in keywords:
             if itr in line:

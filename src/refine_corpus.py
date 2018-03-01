@@ -10,17 +10,16 @@ from utils import load_rules, generic_threading
 # Define shared objects
 refine_list = list()
 parentheses = list()
-keys = None
 
 def threading_refine(thread_idx, data):
     """
     """
     global refine_list
     global parentheses
-    # global keys
+    desc = "Thread {:2d}".format(thread_idx + 1)
     #
     result = list()
-    for article in tqdm(data, position=thread_idx):
+    for article in tqdm(data, position=thread_idx, desc=desc):
         article = article[article.find("\t") + 1:] # skip PMID\t
         # refine the corpus
         # Find contents within parentheses 
@@ -42,40 +41,31 @@ def threading_refine(thread_idx, data):
             #found = re.findall(pattern, article)
             article = re.sub(pattern, " " + tag + " ", article)
         #
-        result.append(article)
+        result.append(article.lower())
 
     return result
 
 def refine_corpus(args):
     """
     """
-    # load replacement list
+    # Load replacement list
     global refine_list
     global parentheses
     # Load rule files
     file_r = args.rule_path + "refine_list.tsv"
     file_p = args.rule_path + "parentheses.tsv"
-    #
     refine_list = load_rules(file_r)
     parentheses = load_rules(file_p)
-    """
-    with open(file_p, "r") as fp, open(file_r, "r") as fr:
-        # parentheses
-        lines = fp.read().splitlines()
-        for itr in lines:
-            parentheses.append(itr.split('\t'))
-        # refine_list
-        lines = fr.read().splitlines()
-        for itr in lines:
-            refine_list.append(itr.split('\t'))
-    """
-    #
-    with open(args.corpus, "r") as f_cor, open(args.output, "w") as f_out:
+
+    with open(args.corpus, "r") as f_cor:
         # Acquire the corpus (skip first line)
         raw_data = f_cor.read().splitlines()[1:]
-        # Threading
-        result = generic_threading(args.thread, raw_data, threading_refine)
-        # write all result to file
+
+    # Threading
+    result = generic_threading(args.thread, raw_data, threading_refine)
+    
+    # Write all result to file
+    with open(args.output, "w") as f_out:
         # *** TO BE REVISED, MAY CONSUME TOO MUCH MEMORY ***
         print("Writing result to file...")
         for line in tqdm(list(chain.from_iterable(result))):

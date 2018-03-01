@@ -7,12 +7,18 @@ Chia-Wei, Chen (Jack Chen)
 Teng-Jie, You (Daniel You)  
 
 # To-Do List
-1. Use utf-8 encoding for future support multi-languages
-2. Pipelining the processes 
-3. Documentation on all methods
-4. Documentation on separate works 
-5. Remove LateX commmands in volcabulary list
-6. (TBD)
+- [ ] Use utf-8 encoding for future support multi-languages
+- [ ] Pipelining the processes 
+- [ ] Documentation on all methods
+- [ ] Documentation on separate works 
+- [X] Remove LateX commmands in volcabulary list
+- [ ] (TBD)
+- [ ] Find ways or algorithms for detecting and expanding acronyms that followed immediately after the full name
 
 # Known Issues:
-1. Volcabulary list generation threading issue: Unknown cause to join threads
+- [ ] Volcabulary list generation threading issue: Unknown cause to join threads
+
+# Optimization on code
+- [ ] Bugs on displaying tqdm, consider to write progressbar manually \\
+- [ ] Better threading code structure \\
+- [ ] Writing result to file might consume too much memory on larger dataset \\

@@ -8,9 +8,10 @@ from utils import generic_threading
 tokenizer = nltk.data.load('tokenizers/punkt/english.pickle')
 
 def thread_pos_tagging(thread_idx, dataset):
+    desc = "Thread {:2d}".format(thread_idx + 1)
     X = list()
     #for data in dataset:
-    for data in tqdm(dataset, position=thread_idx):
+    for data in tqdm(dataset, position=thread_idx, desc=desc):
         # From an article to sentences.
         result = tokenizer.tokenize(data)
         tab_index = result[0].find('\t')
