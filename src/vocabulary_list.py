@@ -27,18 +27,30 @@ def threading_split(thread_idx, data):
             # symbols at the end
             if pattern.startswith("*"):
                 symbol = pattern[1:]
-                vocabulary = [i[:-len(symbol)] if i.endswith(symbol) else i
+                vocabulary = [i[:-len(symbol)] if i.endswith(symbol)
+                              and not "-" in i else i
                               for i in vocabulary]
+                """
+                for i in vocabulary:
+                    if "ad-d)" in i and symbol == ")":
+                        print(i)
+                        exit()
+                """
             # symbols in the beginning
             elif pattern.endswith("*"):
                 symbol = pattern[:-1]
-                vocabulary = [i[len(symbol):] if i.startswith(symbol) else i
+                vocabulary = [i[len(symbol):] if i.startswith(symbol)
+                              and not "-" in i else i
                               for i in vocabulary]
             else:
                 vocabulary = [i.replace(pattern, "") for i in vocabulary]
-        # vocabulary = [i.replace("?", "") for i in vocabulary]
-        # vocabulary = [i.replace("!", "") for i in vocabulary]
-        # vocabulary = [itr.replace(",", "") if itr.endswith(",", "") else itr for itr in vocabulary]
+                """
+                for i in vocabulary:
+                    if "ad-d" in i:
+                        print(vocabulary, pattern)
+                        print(i.replace(pattern, ""))
+                        exit()
+                """
         linewords.append(vocabulary)
 
     # result[thread_idx] = list(chain.from_iterable(linewords))
@@ -60,7 +72,7 @@ def vocabulary(args):
     
     with open(args.file) as f:
         print("Loading corpus from file {:s}".format(args.file))
-        raw_data = f.read().splitlines()[:100]
+        raw_data = f.read().splitlines()[:500]
     # Threading
     # init_share_mem(args.thread)
     # generic_threading(args.thread, raw_data, threading_split, shared=True)
