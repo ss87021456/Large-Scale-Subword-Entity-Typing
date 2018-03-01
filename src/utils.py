@@ -5,6 +5,11 @@ from pprint import pprint
 
 def vprint(msg, verbose=False):
     """
+    Verbose print implementation.
+
+    Arguments:
+        msg(str): Message to 
+        verbose(bool): 
     """
     if verbose:
         print(msg)

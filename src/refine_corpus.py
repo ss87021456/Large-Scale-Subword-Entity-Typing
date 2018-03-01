@@ -13,6 +13,16 @@ parentheses = list()
 
 def threading_refine(thread_idx, data):
     """
+    Used to clean up the corpus according to the predefined regex commands.
+    This method can be used standalone or passed to threads to improve
+    performance.
+
+    Arguments:
+        thread_idx(int): Indicating the thread ID, used for the positioning
+                         and information of the progressbar.
+        data(list of str): Each entry is a corpus to be processed.
+    Returns:
+        result(list of str): Processed version of the input "data"
     """
     global refine_list
     global parentheses
@@ -47,6 +57,8 @@ def threading_refine(thread_idx, data):
 
 def refine_corpus(args):
     """
+    Clean up the given corpus according to the rules defined in the files.
+    This method utilizes multithreading to accelerate the process.
     """
     # Load replacement list
     global refine_list

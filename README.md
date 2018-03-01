@@ -14,11 +14,12 @@ Teng-Jie, You (Daniel You)
 - [X] Remove LateX commmands in volcabulary list
 - [ ] (TBD)
 - [ ] Find ways or algorithms for detecting and expanding acronyms that followed immediately after the full name
+- [ ] Add scipts for processing the dataset
 
 # Known Issues:
 - [ ] Volcabulary list generation threading issue: Unknown cause to join threads
 
 # Optimization on code
-- [ ] Bugs on displaying tqdm, consider to write progressbar manually \\
-- [ ] Better threading code structure \\
-- [ ] Writing result to file might consume too much memory on larger dataset \\
+- [ ] Bugs on displaying tqdm, consider to write progressbar manually
+- [ ] Better threading code structure
+- [ ] Writing result to file might consume too much memory on larger dataset
