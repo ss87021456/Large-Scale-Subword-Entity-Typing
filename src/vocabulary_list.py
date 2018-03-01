@@ -21,10 +21,23 @@ def threading_split(thread_idx, data):
         article = article.replace("\t", " ")
         # skip PMID
         vocabulary = article.translate(punctuation).lower().split()
-        vocabulary = [itr.replace("\"", "") for itr in vocabulary]
-        vocabulary = [itr.replace("\'", "") for itr in vocabulary]
-        vocabulary = [itr.replace("?", "") for itr in vocabulary]
-        vocabulary = [itr.replace("!", "") for itr in vocabulary]
+        # cleanup some redundant punctuation
+        for itr in rules:
+            pattern, _ = itr
+            # symbols at the end
+            if pattern.startswith("*"):
+                symbol = pattern[1:]
+                vocabulary = [i[:-len(symbol)] if i.endswith(symbol) else i
+                              for i in vocabulary]
+            # symbols in the beginning
+            elif pattern.endswith("*"):
+                symbol = pattern[:-1]
+                vocabulary = [i[len(symbol):] if i.startswith(symbol) else i
+                              for i in vocabulary]
+            else:
+                vocabulary = [i.replace(pattern, "") for i in vocabulary]
+        # vocabulary = [i.replace("?", "") for i in vocabulary]
+        # vocabulary = [i.replace("!", "") for i in vocabulary]
         # vocabulary = [itr.replace(",", "") if itr.endswith(",", "") else itr for itr in vocabulary]
         linewords.append(vocabulary)
 
@@ -47,7 +60,7 @@ def vocabulary(args):
     
     with open(args.file) as f:
         print("Loading corpus from file {:s}".format(args.file))
-        raw_data = f.read().splitlines()
+        raw_data = f.read().splitlines()[:100]
     # Threading
     # init_share_mem(args.thread)
     # generic_threading(args.thread, raw_data, threading_split, shared=True)
