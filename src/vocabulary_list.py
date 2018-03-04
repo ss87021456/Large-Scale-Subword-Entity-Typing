@@ -6,13 +6,13 @@ from itertools import chain
 from tqdm import tqdm
 from utils import vprint, vpprint, load_rules, generic_threading
 
-result = None
-rules = None
+# result = None
+# rules = None
 
-def threading_split(thread_idx, data):
+def threading_split(thread_idx, data, rules):
     """
     """
-    global rules
+    # global rules
     linewords = list()
     desc = "Thread {:2d}".format(thread_idx + 1)
     for article in tqdm(data, position=thread_idx, desc=desc):
@@ -30,12 +30,6 @@ def threading_split(thread_idx, data):
                 vocabulary = [i[:-len(symbol)] if i.endswith(symbol)
                               and not "-" in i else i
                               for i in vocabulary]
-                """
-                for i in vocabulary:
-                    if "ad-d)" in i and symbol == ")":
-                        print(i)
-                        exit()
-                """
             # symbols in the beginning
             elif pattern.endswith("*"):
                 symbol = pattern[:-1]
@@ -44,19 +38,9 @@ def threading_split(thread_idx, data):
                               for i in vocabulary]
             else:
                 vocabulary = [i.replace(pattern, "") for i in vocabulary]
-                """
-                for i in vocabulary:
-                    if "ad-d" in i:
-                        print(vocabulary, pattern)
-                        print(i.replace(pattern, ""))
-                        exit()
-                """
         linewords.append(vocabulary)
 
     # result[thread_idx] = list(chain.from_iterable(linewords))
-    # result = list(chain.from_iterable(linewords))
-    # print(result[thread_idx])
-    # print("Thread {:d} done".format(thread_idx))
     return list(chain.from_iterable(linewords))
 
 def init_share_mem(n_threads):
@@ -67,7 +51,7 @@ def init_share_mem(n_threads):
 def vocabulary(args):
     """
     """
-    global rules
+    # global rules
     rules = load_rules(args.rule)
     
     with open(args.file) as f:
@@ -76,7 +60,7 @@ def vocabulary(args):
     # Threading
     # init_share_mem(args.thread)
     # generic_threading(args.thread, raw_data, threading_split, shared=True)
-    result = threading_split(0, raw_data)
+    result = threading_split(0, raw_data, rules)
     # count occurance
     print("Counting occurance...")
     # voc_list = Counter(chain.from_iterable(result))

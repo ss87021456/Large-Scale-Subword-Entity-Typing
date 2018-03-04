@@ -38,32 +38,35 @@ def threading_search(thread_idx, data):
                 pass
     return result
 
-def recognize_sentences(args):
+def recognize_sentences(sentences):
     """
     """
-    with open(args.sentences, "r") as f_in, open(args.found, "w") as f_out:
-        # Fetch all dictionaries names
-        # *** TO BE REVISED ***
-        files = [itr for itr in os.listdir(args.dict_path) 
-                 if itr.endswith('_leaf.json')]
-        # Open and merge all dictionaries
-        print("Loading keywords from {:d} dictionaries".format(len(files)))
-        entity = dict()
-        for itr in files:
-            entity.update(json.load(open(args.dict_path + '/' + itr, "r")))
-        # Acquire keys and share memory
-        global keywords
+    # Fetch all dictionaries names
+    # *** TO BE REVISED ***
+    files = [itr for itr in os.listdir(args.dict_path) 
+             if itr.endswith('_leaf.json')]
+    # Open and merge all dictionaries
+    print("Loading keywords from {:d} dictionaries".format(len(files)))
+    entity = dict()
+    for itr in files:
+        entity.update(json.load(open(args.dict_path + '/' + itr, "r")))
+
+    # Acquire keys and share memory
+    global keywords
+    with open(sentences, "r") as f_in:
         keywords = entity.keys()
         # Acquire all sentences
         raw_data = f_in.read().splitlines()[:20]
         # Threading
         result = generic_threading(args.thread, raw_data, threading_search)
-        # write all result to file
-        # *** TO BE REVISED, MAY CONSUME TOO MUCH MEMORY ***
-        print("Writing result to file...")
+
+    # write all result to file
+    # *** TO BE REVISED, MAY CONSUME TOO MUCH MEMORY ***
+    print("Writing result to file...")
+    with open(args.found, "w") as f_out:
         for line in tqdm(list(chain.from_iterable(result))):
             f_out.write(line + "\n")
-        print("File saved in {:s}".format(args.found))
+    print("File saved in {:s}".format(args.found))
 
 
 if __name__ == '__main__':
@@ -79,4 +82,4 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
-    recognize_sentences(args)
+    recognize_sentences(args.sentences, )

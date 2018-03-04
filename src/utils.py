@@ -28,6 +28,7 @@ def load_rules(file):
     """
     .tsv files ONLY
     """
+    assert file.endswith(".tsv")
     rules = list()
     with open(file, "r") as f:
         lines = f.read().splitlines()
@@ -53,7 +54,7 @@ def split_data(data, n_slice):
     #
     return partitioned_data
 
-def generic_threading(n_jobs, data, threading_method, shared=False):
+def generic_threading(n_jobs, data, method, shared_obj=None, shared=False):
     """
     """
     # Threading settings
@@ -68,9 +69,9 @@ def generic_threading(n_jobs, data, threading_method, shared=False):
     # Threading
     with Pool(processes=n_threads) as p:
         if not shared:
-            result = p.starmap(threading_method, thread_data)
+            result = p.starmap(method, thread_data)
         else:
-            p.starmap(threading_method, thread_data)
+            p.starmap(method, thread_data)
     #
     print("\n" * n_threads)
     print("All threads completed.")
