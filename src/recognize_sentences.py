@@ -57,8 +57,9 @@ def recognize_sentences(sentences):
         keywords = entity.keys()
         # Acquire all sentences
         raw_data = f_in.read().splitlines()[:20]
-        # Threading
-        result = generic_threading(args.thread, raw_data, threading_search)
+
+    # Threading
+    result = generic_threading(args.thread, raw_data, threading_search)
 
     # write all result to file
     # *** TO BE REVISED, MAY CONSUME TOO MUCH MEMORY ***

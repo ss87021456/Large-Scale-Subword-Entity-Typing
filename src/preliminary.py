@@ -1,22 +1,44 @@
 import argparse
-from utils import load_rules, generic_threading
+from utils import load_rules, generic_threading, punctuation_cleanup
+from tqdm import tqdm
+from itertools import chain
 
 
-rules = None
+# python src/preliminary.py data/smaller.tsv src/refine_rules/preliminary.tsv --thread=5
 
+def preliminary_cleanup(corpus, output, rule, thread, verbose):
+    """
+    Preliminary cleanup the corpus to make it easier for further
+    processing methods. This method can be used to correct the
+    missing spaces after punctuations any other customized rules
+    can be added to the rule file, see punctuation_cleanup in utils
+    for the formatting of the rules.
 
-def preliminary_cleanup(corpus, rule, thread, verbose):
+    Arguments:
+        corpus(str): Path to the corpus file.
+        output(str): Path to the output file.
+        rule(str): Path to the processing rule file.
+        thread(int): Number of thread to process.
+        verbose(bool): (undefined)
+    """
+    # output name
+    if output is None:
+        output = corpus[:-4] + "_preprocessed.tsv"
     # Load rules
-    # global rules
-    # rules = load_rules(rule)
+    rules = load_rules(rule)
 
     # load corpus
     with open(corpus, "r") as f:
         raw_data = f.read().splitlines()
 
+    # Threading
+    param = (rules, "PRELIMINARY")
+    result = generic_threading(thread, raw_data, punctuation_cleanup, param)
 
-
-
+    with open(output, "w") as f:
+        for line in tqdm(list(chain.from_iterable(result))):
+            f.write(line + "\n")
+    print("File saved in {:s}".format(output))
 
 
 if __name__ == '__main__':
@@ -32,4 +54,4 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
-    preliminary_cleanup(args.corpus, args.rule, args.thread, args.verbose)
+    preliminary_cleanup(args.corpus, args.output, args.rule, args.thread, args.verbose)

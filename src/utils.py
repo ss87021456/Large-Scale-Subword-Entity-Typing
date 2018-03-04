@@ -44,9 +44,11 @@ def load_rules(file):
 def split_data(data, n_slice):
     """
     """
+    n_data = len(data)
     # Slice data for each thread
     print(" - Slicing data for threading...")
-    per_slice = int(len(data) / n_slice)
+    print(" - Total number of data: {0}".format(n_data))
+    per_slice = int(n_data / n_slice)
     partitioned_data = list()
     for itr in range(n_slice):
         # Generate indices for each slice
@@ -58,8 +60,19 @@ def split_data(data, n_slice):
     #
     return partitioned_data
 
-def generic_threading(n_jobs, data, method, shared_obj=None, shared=False):
+def generic_threading(n_jobs, data, method, param=None, shared=False):
     """
+    Generic threading method.
+
+    Arguments:
+        n_jobs(int): number of thead to run the target method
+        data(ndarray): Data that will be split and distributed to threads.
+        method(method object): Threading target method
+        param(tuple): tuple of additional parameters needed for the method.
+        shared: (undefined)
+
+    Return:
+        result(list of any type): List of return values from the method.
     """
     # Threading settings
     n_cores = cpu_count()
@@ -68,6 +81,10 @@ def generic_threading(n_jobs, data, method, shared_obj=None, shared=False):
     print("Number of Threading: {:d}".format(n_threads))
     #
     thread_data = split_data(data, n_threads)
+    if param is not None:
+        thread_data = [itr + param for itr in thread_data]
+    else:
+        pass
     #
     print(" - Begin threading...")
     # Threading
@@ -121,14 +138,24 @@ def punctuation_cleanup(thread_idx, data, rules, mode):
         # PRELIMINARY:
         elif mode == 'PRELIMINARY':
             for itr in rules:
-                pattern, replacement = itr
-                replacement = replacement[1:] if "*" in replacement
+                pattern, tag = itr
                 found = re.findall(pattern, article)
-                for itr_found in found:
-                    article.replace(itr_found)
+                if len(found) == 0:
+                    continue
+                # support * replacement
+                if tag.startswith("*"):
+                    tag = tag[1:]
+                    for itr_found in found:
+                        new_word = itr_found
+                        article.replace(itr_found, new_word.replace(tag, tag + " "))
+                else:
+                    for itr_found in found:
+                        article.replace(itr_found, tag)
+            linewords.append(article)
         else:
             print("Invalid mode type: {0}".format(mode))
 
-
     # result[thread_idx] = list(chain.from_iterable(linewords))
-    return list(chain.from_iterable(linewords))
+    if mode == "SPLIT_WORDS":
+        linewords = list(chain.from_iterable(linewords))
+    return linewords
