@@ -1,6 +1,6 @@
-&amp	and
-&quot	
-&gt	
-"	
-*.	
-*,	
+&amp	 and 
+&quot	 
+&gt	 
+"	 
+[a-zA-Z][a-zA-Z]\.[a-zA-Z][a-zA-Z]	*.
+,	

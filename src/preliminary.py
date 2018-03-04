@@ -7,14 +7,14 @@ rules = None
 
 def preliminary_cleanup(corpus, rule, thread, verbose):
     # Load rules
-    global rules
-    rules = load_rules(rule)
+    # global rules
+    # rules = load_rules(rule)
 
     # load corpus
     with open(corpus, "r") as f:
         raw_data = f.read().splitlines()
 
-    
+
 
 
 

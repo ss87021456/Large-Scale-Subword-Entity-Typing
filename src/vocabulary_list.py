@@ -1,47 +1,10 @@
 import argparse
 import json
-from string import punctuation
 from collections import Counter
 from itertools import chain
 from tqdm import tqdm
-from utils import vprint, vpprint, load_rules, generic_threading
+from utils import load_rules, generic_threading, punctuation_cleanup
 
-# result = None
-# rules = None
-
-def threading_split(thread_idx, data, rules):
-    """
-    """
-    # global rules
-    linewords = list()
-    desc = "Thread {:2d}".format(thread_idx + 1)
-    for article in tqdm(data, position=thread_idx, desc=desc):
-    # for article in data:
-        # replace tabs as spaces
-        article = article.replace("\t", " ")
-        # skip PMID
-        vocabulary = article.translate(punctuation).lower().split()
-        # cleanup some redundant punctuation
-        for itr in rules:
-            pattern, _ = itr
-            # symbols at the end
-            if pattern.startswith("*"):
-                symbol = pattern[1:]
-                vocabulary = [i[:-len(symbol)] if i.endswith(symbol)
-                              and not "-" in i else i
-                              for i in vocabulary]
-            # symbols in the beginning
-            elif pattern.endswith("*"):
-                symbol = pattern[:-1]
-                vocabulary = [i[len(symbol):] if i.startswith(symbol)
-                              and not "-" in i else i
-                              for i in vocabulary]
-            else:
-                vocabulary = [i.replace(pattern, "") for i in vocabulary]
-        linewords.append(vocabulary)
-
-    # result[thread_idx] = list(chain.from_iterable(linewords))
-    return list(chain.from_iterable(linewords))
 
 def init_share_mem(n_threads):
     global result
@@ -56,11 +19,11 @@ def vocabulary(args):
     
     with open(args.file) as f:
         print("Loading corpus from file {:s}".format(args.file))
-        raw_data = f.read().splitlines()
+        raw_data = f.read().splitlines()[:20]
     # Threading
     # init_share_mem(args.thread)
-    # generic_threading(args.thread, raw_data, threading_split, shared=True)
-    result = threading_split(0, raw_data, rules)
+    # generic_threading(args.thread, raw_data, punctuation_cleanup, shared=True)
+    result = punctuation_cleanup(0, raw_data, rules, mode='SPLIT_WORDS')
     # count occurance
     print("Counting occurance...")
     # voc_list = Counter(chain.from_iterable(result))
