@@ -7,7 +7,7 @@ from itertools import chain
 from utils import readlines, string_file_io, generic_threading
 
 
-# python src/recognize_sentences.py data/smaller_sentence.txt data/ --thread=3
+# python src/recognize_sentences.py data/smaller_preprocessed_sentence.txt data/ --thread=10
 
 def keyword_in_sentences(thread_idx, data, keywords):
     """

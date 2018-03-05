@@ -1,0 +1,10 @@
+26151966 Psychometric Properties of the Iowa Infant Feeding Attitude Scale among a Multiethnic Population during Pregnancy.
+The Iowa Infant Feeding Attitude Scale (IIFAS) was developed to measure maternal attitudes toward infant feeding, but a number of validated studies on the IIFAS found that it was subject to methodological limitations.The purpose of this study was to evaluate the psychometric properties of the IIFAS among a multiethnic population in Singapore.A cross-sectional research design was used on a sample of 417 antenatal women.
+The internal consistency and stability of the IIFAS were evaluated using Cronbach's alpha and test-retest reliability.
+Known-group comparisons discriminated certain group differences in a predictable way.
+A series of exploratory factor analyses (EFAs) was conducted to test the factor structure of the IIFAS using the maximum likelihood and principal axis factoring.
+The number of factors was selected according to theoretical and statistical considerations.
+A confirmatory factor analysis (CFA) was further performed to validate the factor structure constructed in the prior EFA.The IIFAS had a Cronbach's alpha and Pearson correlation of 0.79 and 0.85, respectively.
+The known-group comparisons among certain groups were supported.
+The EFA results showed that the 3-factor structure produced the most interpretable and theoretical sense.
+A second-order CFA was conducted to confirm the construct dimensionality of the 15-item IIFAS, with satisfactory fit indices found.The 15-item IIFAS is a psychometrically sound measurement tool that health care professionals can use to understand the diverse infant feeding attitudes and knowledge among different ethnic groups in order to provide breastfeeding interventions that are culturally sensitive.

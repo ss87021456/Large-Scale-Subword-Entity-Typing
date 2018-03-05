@@ -67,8 +67,12 @@ def string_file_io(file, data):
     """
     print("Writing result to file...")
     with open(file, "w") as f:
-        for itr in tqdm(list(chain.from_iterable(data))):
-            f.write(itr + "\n")
+        if type(data[0]) == list:
+            for itr in tqdm(list(chain.from_iterable(data))):
+                f.write(itr + "\n")
+        else:
+            for itr in tqdm(data):
+                f.write(itr + "\n")
     print("File saved in {:s}".format(file))
 
 def split_data(data, n_slice):
