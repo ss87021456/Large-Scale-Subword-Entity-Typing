@@ -41,8 +41,46 @@ def load_rules(file):
     #
     return rules
 
+def readlines(file, limit=None):
+    """
+    Read and split all content in the files line by line.
+
+    Arguments:
+        file(str): File to be read.
+        limit(int): Number of maximum lines to be read.
+    Return:
+        raw_data(list of strings): Lines from the files
+    """
+    print("Loading lines in the file...")
+    with open(file, "r") as f:
+        data = f.read().splitlines()[:limit]
+    print("Total {0} lines loaded.".format(len(data)))
+    return data
+
+def string_file_io(file, data):
+    """
+    Write strings to files.
+
+    Arguments:
+        file(str): Output filename.
+        data(list of list): List of list of strings.
+    """
+    print("Writing result to file...")
+    with open(file, "w") as f:
+        for itr in tqdm(list(chain.from_iterable(data))):
+            f.write(itr + "\n")
+    print("File saved in {:s}".format(file))
+
 def split_data(data, n_slice):
     """
+    Split data to minibatches with last batch may be larger or smaller.
+
+    Arguments:
+        data(ndarray): Array of data.
+        n_slice(int): Number of slices to separate the data.
+
+    Return:
+        partitioned_data(list): List of list containing any type of data.
     """
     n_data = len(data)
     # Slice data for each thread
@@ -68,7 +106,7 @@ def generic_threading(n_jobs, data, method, param=None, shared=False):
         n_jobs(int): number of thead to run the target method
         data(ndarray): Data that will be split and distributed to threads.
         method(method object): Threading target method
-        param(tuple): tuple of additional parameters needed for the method.
+        param(tuple): Tuple of additional parameters needed for the method.
         shared: (undefined)
 
     Return:
@@ -101,6 +139,14 @@ def generic_threading(n_jobs, data, method, param=None, shared=False):
 
 def punctuation_cleanup(thread_idx, data, rules, mode):
     """
+
+    Arguments:
+        thread_idx():
+        data():
+        rules():
+        mode():
+    Return:
+        linewords():
     """
     desc = "Thread {:2d}".format(thread_idx + 1)
     ########### EXCEPTION HANDLING ###########

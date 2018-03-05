@@ -4,15 +4,14 @@ import json
 from pprint import pprint
 from tqdm import tqdm
 from itertools import chain
-from utils import generic_threading
+from utils import readlines, string_file_io, generic_threading
 
 
-# Used as shared memory among threads
-keywords = None
+# python src/recognize_sentences.py data/smaller_sentence.txt data/ --thread=3
 
-def threading_search(thread_idx, data):
+def keyword_in_sentences(thread_idx, data, keywords):
     """
-    Sentence keyword search (called by threads)
+    Sentence keyword search (called by threads or used normally)
 
     Arguments:
         thread_idx(int): Order of threads, used to align progressbar.
@@ -20,67 +19,67 @@ def threading_search(thread_idx, data):
                           of raw corpus.
 
     Returns:
-        result(listof str): Each elements in the list contains one 
+        result(list of str): Each elements in the list contains one 
                      sentence with one or more keywords.
     """
-    global keywords
+    # global keywords
     desc = "Thread {:2d}".format(thread_idx + 1)
     result = list()
     #
     for line in tqdm(data, position=thread_idx, desc=desc):
         # search for keywords
+        found = False
+        found_keyword = list()
         for itr in keywords:
-            if itr in line:
-                # print(" - Found sentence with keyword: {0}".format(itr))
-                result.append(line)
-                break
-            else:
-                pass
+            # Append keywords to the list
+            if itr.lower() in line.lower():
+                found = True
+                found_keyword.append(itr)
+        #
+        if found:
+            result.append(line + "\t" + "\t".join(found_keyword))
+
     return result
 
-def recognize_sentences(sentences):
+def recognize_sentences(corpus, rule, thread, output=None, verbose=False):
     """
     """
+    # output name
+    if output is None:
+        output = corpus[:-4] + "_keywords.tsv"
+
     # Fetch all dictionaries names
     # *** TO BE REVISED ***
-    files = [itr for itr in os.listdir(args.dict_path) 
-             if itr.endswith('_leaf.json')]
+    if not rule.endswith("/"):
+        rule += "/"
+    files = [itr for itr in os.listdir(rule) if itr.endswith("_leaf.json")]
     # Open and merge all dictionaries
     print("Loading keywords from {:d} dictionaries".format(len(files)))
     entity = dict()
     for itr in files:
-        entity.update(json.load(open(args.dict_path + '/' + itr, "r")))
+        entity.update(json.load(open(rule + itr, "r")))
 
-    # Acquire keys and share memory
-    global keywords
-    with open(sentences, "r") as f_in:
-        keywords = entity.keys()
-        # Acquire all sentences
-        raw_data = f_in.read().splitlines()[:20]
+    # Load lines from corpus
+    raw_data = readlines(corpus, limit=None)
 
     # Threading
-    result = generic_threading(args.thread, raw_data, threading_search)
+    keywords = list(entity.keys())
+    param = (keywords,)
+    result = generic_threading(thread, raw_data, keyword_in_sentences, param)
 
     # write all result to file
-    # *** TO BE REVISED, MAY CONSUME TOO MUCH MEMORY ***
-    print("Writing result to file...")
-    with open(args.found, "w") as f_out:
-        for line in tqdm(list(chain.from_iterable(result))):
-            f_out.write(line + "\n")
-    print("File saved in {:s}".format(args.found))
+    string_file_io(output, result)
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument("sentences", help="Input sentences to be recognized.")
-    parser.add_argument("found", help="Sentences with key words")
-    parser.add_argument("dict_path", help="Put all dictionaries \
+    parser.add_argument("corpus", help="Input sentences to be recognized.")
+    parser.add_argument("rule", help="Put all dictionaries \
                          with extension \".json\".")
-    parser.add_argument("-t", "--thread", type=int, help="Number of threads \
+    parser.add_argument("--output", help="Sentences with key words")
+    parser.add_argument("--thread", type=int, help="Number of threads \
                         to run, default: 2 * number_of_cores") 
-    parser.add_argument("-v", "--verbose", action="store_true",
-                        help="Verbose output")
-
+    parser.add_argument("--verbose", action="store_true", help="Verbose output")
     args = parser.parse_args()
 
-    recognize_sentences(args.sentences, )
+    recognize_sentences(args.corpus, args.rule, args.thread, args.output, args.verbose)
