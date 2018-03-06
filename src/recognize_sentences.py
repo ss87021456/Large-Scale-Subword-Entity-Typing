@@ -38,7 +38,7 @@ def recognize_sentences(corpus, keywords_path, thread, output=None):
     with open(keywords_file, 'w') as fp:
         json.dump(entity, fp, sort_keys=True, indent=4)
     print("File saved in {:s}".format(keywords_file))
-    exit()
+
     # Load lines from corpus
     raw_data = readlines(corpus, limit=None)
 
