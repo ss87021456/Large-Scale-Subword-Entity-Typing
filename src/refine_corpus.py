@@ -47,6 +47,7 @@ def threading_refine(thread_idx, data):
                     pass
         # Find and replace patterns in the article
         for itr_pattern in refine_list:
+            # print(len(itr_pattern),itr_pattern)
             pattern, tag = itr_pattern
             #found = re.findall(pattern, article)
             article = re.sub(pattern, " " + tag + " ", article)

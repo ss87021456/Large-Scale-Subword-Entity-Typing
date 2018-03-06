@@ -27,7 +27,7 @@ def preliminary_cleanup(corpus, rule, thread, output=None, verbose=False):
     # Load rules
     rules = load_rules(rule)
 
-    raw_data = readlines(corpus, limit=10)
+    raw_data = readlines(corpus)
 
     # Threading
     param = (rules, "PRELIMINARY")
