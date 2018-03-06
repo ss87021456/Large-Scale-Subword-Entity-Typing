@@ -41,19 +41,20 @@ def load_rules(file):
     #
     return rules
 
-def readlines(file, limit=None):
+def readlines(file, begin=None, limit=None):
     """
     Read and split all content in the files line by line.
 
     Arguments:
         file(str): File to be read.
-        limit(int): Number of maximum lines to be read.
+        begin(int): Index of the first line to be read.
+        limit(int): Index of the last line to be read.
     Return:
         raw_data(list of strings): Lines from the files
     """
     print("Loading lines in the file...")
     with open(file, "r") as f:
-        data = f.read().splitlines()[:limit]
+        data = f.read().splitlines()[begin:limit]
     print("Total {0} lines loaded.".format(len(data)))
     return data
 
@@ -143,17 +144,24 @@ def generic_threading(n_jobs, data, method, param=None, shared=False):
 
 def punctuation_cleanup(thread_idx, data, rules, mode):
     """
+    Generic clean up the given corpus, the cleanup process can be either
+    corpus-level (preliminary cleanup) or finer cleanups, i.e. vocabulary-
+    level (for gaining purer vocabularies).
 
     Arguments:
-        thread_idx():
-        data():
-        rules():
-        mode():
+        thread_idx(int): Indicating the thread ID, used for the positioning
+                         and information of the progressbar.
+        data(list of str): Each entry is a corpus to be processed.
+        rules(list of tuples):
+        mode(str): Mode of the cleanup method, available modes are
+                SPLIT_WORDS: Used in extracting the vocabularies.
+                PRELIMINARY: Preliminary rules for cleaning up the corpus.
     Return:
-        linewords():
+        linewords(list of str): List of either corpus (PRELIMINARY) or
+                words (SPLIT_WORDS)
     """
     desc = "Thread {:2d}".format(thread_idx + 1)
-    ########### EXCEPTION HANDLING ###########
+    ########### EXCEPTION HANDLING ########### (TO-BE-IMPELMENTED)
     # assert mode 
 
     # global rules
@@ -204,7 +212,83 @@ def punctuation_cleanup(thread_idx, data, rules, mode):
         else:
             print("Invalid mode type: {0}".format(mode))
 
-    # result[thread_idx] = list(chain.from_iterable(linewords))
     if mode == "SPLIT_WORDS":
         linewords = list(chain.from_iterable(linewords))
     return linewords
+
+def corpus_cleanup(thread_idx, data, parentheses, refine_list):
+    """
+    Used to clean up the corpus according to the predefined regex commands.
+    This method can be used standalone or passed to threads to improve
+    performance.
+
+    Arguments:
+        thread_idx(int): Indicating the thread ID, used for the positioning
+                         and information of the progressbar.
+        data(list of str): Each entry is a corpus to be processed.
+        parentheses(list of tuples): List containing patterns in the
+            parentheses that are to be replaced by tags.
+        refine_list(list of tuples):List containig patterns to be replaced
+            by tags.
+    Returns:
+        result(list of str): Processed version of the input "data"
+    """
+    desc = "Thread {:2d}".format(thread_idx + 1)
+    #
+    result = list()
+    for article in tqdm(data, position=thread_idx, desc=desc):
+        article = article[article.find("\t") + 1:] # skip PMID\t
+        # refine the corpus
+        # Find contents within parentheses 
+        contents = re.findall(r"\(.*?\)", article)
+        for itr_content in contents:
+            for itr_tag in parentheses:
+                # extract entry
+                pattern, tag = itr_tag
+                # find pattern
+                found = re.findall(pattern, itr_content)
+                if len(found) != 0:
+                    # add redundant spaces to avoid words stay together
+                    article = article.replace(itr_content, " " + tag + " ")
+                else:
+                    pass
+        # Find and replace patterns in the article
+        for itr_pattern in refine_list:
+            pattern, tag = itr_pattern
+            article = re.sub(pattern, " " + tag + " ", article)
+        #
+        result.append(article.lower())
+
+    return result
+
+def keyword_in_sentences(thread_idx, data, keywords):
+    """
+    Sentence keyword search (called by threads or used normally)
+
+    Arguments:
+        thread_idx(int): Order of threads, used to align progressbar.
+        data(list of str): Each elements in the list contains one sentence
+                          of raw corpus.
+
+    Returns:
+        result(list of str): Each elements in the list contains one 
+                     sentence with one or more keywords.
+    """
+    # global keywords
+    desc = "Thread {:2d}".format(thread_idx + 1)
+    result = list()
+    #
+    for line in tqdm(data, position=thread_idx, desc=desc):
+        # search for keywords
+        found = False
+        found_keyword = list()
+        for itr in keywords:
+            # Append keywords to the list
+            if itr.lower() in line.lower():
+                found = True
+                found_keyword.append(itr)
+        #
+        if found:
+            result.append(line + "\t" + "\t".join(found_keyword))
+
+    return result

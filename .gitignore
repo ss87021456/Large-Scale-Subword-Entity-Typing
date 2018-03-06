@@ -3,3 +3,5 @@ data/output.txt
 data/smaller_sentence.txt
 data/smaller_sentence_found.txt
 src/__pycache__/
+*.pyc
+*.swp

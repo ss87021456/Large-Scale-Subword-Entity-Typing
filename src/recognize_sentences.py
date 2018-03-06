@@ -4,45 +4,18 @@ import json
 from pprint import pprint
 from tqdm import tqdm
 from itertools import chain
-from utils import readlines, string_file_io, generic_threading
+from utils import keyword_in_sentences, readlines, string_file_io, generic_threading
 
 
 # python src/recognize_sentences.py data/smaller_preprocessed_sentence.txt data/ --thread=10
 
-def keyword_in_sentences(thread_idx, data, keywords):
+def recognize_sentences(corpus, keywords_path, thread, output=None):
     """
-    Sentence keyword search (called by threads or used normally)
-
     Arguments:
-        thread_idx(int): Order of threads, used to align progressbar.
-        data(list of str): Each elements in the list contains one sentence
-                          of raw corpus.
-
-    Returns:
-        result(list of str): Each elements in the list contains one 
-                     sentence with one or more keywords.
-    """
-    # global keywords
-    desc = "Thread {:2d}".format(thread_idx + 1)
-    result = list()
-    #
-    for line in tqdm(data, position=thread_idx, desc=desc):
-        # search for keywords
-        found = False
-        found_keyword = list()
-        for itr in keywords:
-            # Append keywords to the list
-            if itr.lower() in line.lower():
-                found = True
-                found_keyword.append(itr)
-        #
-        if found:
-            result.append(line + "\t" + "\t".join(found_keyword))
-
-    return result
-
-def recognize_sentences(corpus, rule, thread, output=None, verbose=False):
-    """
+        corpus(str): Path to the corpus file.
+        keywords_path(str): Path to where keywords dictionaries are.
+        thread(int): Number of thread to process.
+        output(str): Path to the output file.
     """
     # output name
     if output is None:
@@ -50,15 +23,22 @@ def recognize_sentences(corpus, rule, thread, output=None, verbose=False):
 
     # Fetch all dictionaries names
     # *** TO BE REVISED ***
-    if not rule.endswith("/"):
-        rule += "/"
-    files = [itr for itr in os.listdir(rule) if itr.endswith("_leaf.json")]
+    if not keywords_path.endswith("/"):
+        keywords_path += "/"
+    files = [itr for itr in os.listdir(keywords_path) if itr.endswith("_leaf.json")]
     # Open and merge all dictionaries
     print("Loading keywords from {:d} dictionaries".format(len(files)))
     entity = dict()
     for itr in files:
-        entity.update(json.load(open(rule + itr, "r")))
+        entity.update(json.load(open(keywords_path + itr, "r")))
 
+    # Merge the keywords
+    keywords_file = "data/keywords.json"
+    print("Saving keywords to file...")
+    with open(keywords_file, 'w') as fp:
+        json.dump(entity, fp, sort_keys=True, indent=4)
+    print("File saved in {:s}".format(keywords_file))
+    exit()
     # Load lines from corpus
     raw_data = readlines(corpus, limit=None)
 
@@ -74,12 +54,12 @@ def recognize_sentences(corpus, rule, thread, output=None, verbose=False):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("corpus", help="Input sentences to be recognized.")
-    parser.add_argument("rule", help="Put all dictionaries \
-                         with extension \".json\".")
+    parser.add_argument("keywords_path", help="Put all dictionaries \
+                         end with \"_leaf.json\".")
     parser.add_argument("--output", help="Sentences with key words")
     parser.add_argument("--thread", type=int, help="Number of threads \
                         to run, default: 2 * number_of_cores") 
-    parser.add_argument("--verbose", action="store_true", help="Verbose output")
+
     args = parser.parse_args()
 
-    recognize_sentences(args.corpus, args.rule, args.thread, args.output, args.verbose)
+    recognize_sentences(args.corpus, args.keywords_path, args.thread, args.output)
