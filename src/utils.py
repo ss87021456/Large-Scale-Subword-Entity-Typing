@@ -196,11 +196,10 @@ def punctuation_cleanup(thread_idx, data, rules, mode):
                 if tag.startswith("*"):
                     tag = tag[1:]
                     for itr_found in found:
-                        new_word = itr_found
-                        article.replace(itr_found, new_word.replace(tag, tag + " "))
+                        article = article.replace(itr_found, itr_found.replace(tag, tag + " "))
                 else:
                     for itr_found in found:
-                        article.replace(itr_found, tag)
+                        article = article.replace(itr_found, tag)
             linewords.append(article)
         else:
             print("Invalid mode type: {0}".format(mode))
