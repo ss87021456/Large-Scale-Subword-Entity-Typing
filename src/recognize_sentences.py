@@ -40,11 +40,11 @@ def recognize_sentences(corpus, keywords_path, output=None, thread=None):
     print("File saved in {:s}".format(keywords_file))
 
     # Load lines from corpus
-    raw_data = readlines(corpus, limit=None)
+    raw_data = readlines(corpus, limit=150)
 
     # Threading
     keywords = list(entity.keys())
-    param = (keywords,)
+    param = (keywords,"MULTI")
     result = generic_threading(thread, raw_data, keyword_in_sentences, param)
 
     # write all result to file

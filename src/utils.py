@@ -1,6 +1,8 @@
 import re
 import random
+import nltk
 import multiprocessing
+import numpy as np
 from multiprocessing import Pool, cpu_count
 from pprint import pprint
 from tqdm import tqdm
@@ -271,7 +273,7 @@ def corpus_cleanup(thread_idx, data, parentheses, refine_list):
 
     return result
 
-def keyword_in_sentences(thread_idx, data, keywords):
+def keyword_in_sentences(thread_idx, data, keywords, mode):
     """
     Sentence keyword search (called by threads or used normally)
 
@@ -279,6 +281,7 @@ def keyword_in_sentences(thread_idx, data, keywords):
         thread_idx(int): Order of threads, used to align progressbar.
         data(list of str): Each elements in the list contains one sentence
                           of raw corpus.
+        mode(str): MULTI or SINGLE
 
     Returns:
         result(list of str): Each elements in the list contains one 
@@ -286,18 +289,33 @@ def keyword_in_sentences(thread_idx, data, keywords):
     """
     desc = "Thread {:2d}".format(thread_idx + 1)
     result = list()
+    found, found_sentence = None, None
     #
     for line in tqdm(data, position=thread_idx, desc=desc):
-        # search for keywords
-        found = False
+        # split words
+        words = nltk.word_tokenize(line)
         found_keyword = list()
-        for itr in keywords:
-            # Append keywords to the list
-            if itr.lower() in line.lower():
-                found = True
-                found_keyword.append(itr)
+        found_sentence = False
+        for word in words:
+            # search for keywords
+            found_word = False
+            # Iterate through all keywords
+            for itr in keywords:
+                # Append keywords to the list
+                if itr.lower() == word.lower():
+                    found_word, found_sentence = True, True
+                    found_keyword.append(itr)
+                    # stop keyword iterate if some keyword is found
+                    break
+                # no keyword found in the sentence
+                else:
+                    pass
+            # break if the mode is set to SINGLE
+            if mode == "SINGLE" and found_word:
+                break
         #
-        if found:
+        if found_sentence:
+            found_keyword = list(np.unique(found_keyword))
             result.append(line + "\t" + "\t".join(found_keyword))
 
     return result
