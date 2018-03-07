@@ -97,7 +97,8 @@ def entity_parser(args):
                 # print("{0}".format(mention))
                 if ", " in mention:
                     if ' or ' in mention:
-                        mention = mention.replace('or', '')
+                        # mention = mention.replace('or', '')
+                        mention = mention.replace('or', ', ')
                     # synonym = mention.split(',')
                     mention = mention.split(', ')
                     # print("*** {0} ***".format(mention + synonym))

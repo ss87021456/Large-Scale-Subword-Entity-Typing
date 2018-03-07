@@ -2,12 +2,7 @@ from utils import readlines, string_file_io
 import argparse
 
 """
-python src/demo_corpus.py 
-data/smaller_preprocessed_sentence_keywords.tsv 
-data/smaller_preprocessed_sentence.txt 
-data/smaller_preprocessed.tsv 
---random
---amount=10
+python src/demo_corpus.py [file] --rand --amount=10
 
 """
 

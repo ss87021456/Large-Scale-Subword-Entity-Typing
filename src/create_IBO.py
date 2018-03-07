@@ -16,7 +16,7 @@ def parallel_gen_IOB(thread_idx, data):
         for idx, word in enumerate(words):
             find = False
             for mention in entity_mention:
-                entity_type = (entity[mention])
+                entity_type = ", ".join(entity[mention])
                 for i in range(len(mention.split())):
                     if word.lower() == mention.split()[i].lower():
                         if i == 0:
