@@ -6,11 +6,12 @@ python src/demo_corpus.py
 data/smaller_preprocessed_sentence_keywords.tsv 
 data/smaller_preprocessed_sentence.txt 
 data/smaller_preprocessed.tsv 
+--random
 --amount=10
 
 """
 
-def sample_data_for_demo(files, amount):
+def sample_data_for_demo(files, amount, rand):
     """
     Make sample of the large dataset for demo on online platform
 
@@ -22,7 +23,7 @@ def sample_data_for_demo(files, amount):
     print("Total number of files: {0}".format(len(files)))
     for itr in files:
         output = itr[:-4] + "_sampled" + itr[-4:]
-        data = readlines(itr, limit=amount)
+        data = readlines(itr, limit=amount, rand=rand)
         string_file_io(output, data)
 
 
@@ -32,6 +33,8 @@ if __name__ == '__main__':
                         help="Input files to be sampled.")
     parser.add_argument("--amount", nargs='?', type=int, const=10,
                         help="Number of samples drawn from the files.")
+    parser.add_argument("--rand", action="store_true",
+                        help="Randomly draw samples from file.")
     args = parser.parse_args()
 
-    sample_data_for_demo(args.files, args.amount)
+    sample_data_for_demo(args.files, args.amount, args.rand)

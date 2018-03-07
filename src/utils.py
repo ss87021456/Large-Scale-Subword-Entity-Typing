@@ -1,10 +1,11 @@
+import re
+import random
 import multiprocessing
 from multiprocessing import Pool, cpu_count
 from pprint import pprint
 from tqdm import tqdm
 from string import punctuation
 from itertools import chain
-import re
 
 
 def vprint(msg, verbose=False):
@@ -41,20 +42,27 @@ def load_rules(file):
     #
     return rules
 
-def readlines(file, begin=None, limit=None):
+def readlines(file, begin=None, limit=None, rand=False):
     """
     Read and split all content in the files line by line.
 
     Arguments:
         file(str): File to be read.
         begin(int): Index of the first line to be read.
-        limit(int): Index of the last line to be read.
+        limit(int): Index of the last line to be read, or the amount of
+            samples drawn from the dataset if rand is asserted.
+        rand(bool): Randomly drawn samples from the data.
     Return:
         raw_data(list of strings): Lines from the files
     """
     print("Loading lines in the file...")
     with open(file, "r") as f:
-        data = f.read().splitlines()[begin:limit]
+        if rand:
+            print(" - Random sample {:d} entries from data.".format(limit))
+            data = f.read().splitlines()
+            data = random.sample(data, limit)
+        else:
+            data = f.read().splitlines()[begin:limit]
     print("Total {0} lines loaded.".format(len(data)))
     return data
 

@@ -6,14 +6,14 @@ from sklearn.preprocessing import LabelEncoder
 from utils import string_file_io
 
 
-# python src/label.py mode=FIT_ENCODER data/keywords.json --thread=5
-# python src/label.py mode=ENCODE data/keywords.json --thread=5
+# python src/label.py FIT_ENCODER data/keywords.json
+# python src/label.py mode=ENCODE data/keywords.json
 
-def fit_encoder(keywords, model=None, output=None):
+def fit_encoder(keywords, one_hot=False, model=None, output=None):
     """
     Arguments:
         keywords(str): Path to keywords dictionary.
-        thread(int): Number of thread to process.
+        one_hot(bool): Use one-hot encoding.
         model(str): Label Encoder save filename.
         output(str): Path to the output file.
     """
@@ -46,7 +46,10 @@ def fit_encoder(keywords, model=None, output=None):
     print("Saving encoded result to file...")
     with open(output, "w") as f:
         for entity_type, code in zip(unique_types, codes):
-            f.write(entity_type + "\t" + str(code) + "\n")
+            if one_hot:
+                f.write(str(code) + "\t" + entity_type + "\n")
+            else:
+                f.write(str(code) + "\t" + entity_type + "\n")
     print("Encoded result saved to {0}".format(output))
 
 def encode_entity_types():
@@ -59,11 +62,12 @@ if __name__ == '__main__':
     parser.add_argument("keywords", help="Points to data/keywords.json.")
     parser.add_argument("--model", help="Output encoder name.")
     parser.add_argument("--output", help="Sentences with key words")
+    parser.add_argument("-oh", "--one_hot", help="Use multi-hot labeling.")
 
     args = parser.parse_args()
 
     if args.mode == 'FIT_ENCODER':
-        fit_encoder(args.keywords, args.model, args.output)
+        fit_encoder(args.keywords, args.one_hot, args.model, args.output)
     elif args.mode == 'ENCODE':
         encode_entity_types()
     else:
