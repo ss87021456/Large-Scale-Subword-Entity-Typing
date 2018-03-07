@@ -60,7 +60,9 @@ def readlines(file, begin=None, limit=None, rand=False):
         if rand:
             print(" - Random sample {:d} entries from data.".format(limit))
             data = f.read().splitlines()
-            data = random.sample(data, limit)
+            n_data = len(data)
+            index = sorted(random.sample(list(range(n_data)), limit))
+            data = [data[itr] for itr in index]
         else:
             data = f.read().splitlines()[begin:limit]
     print("Total {0} lines loaded.".format(len(data)))
