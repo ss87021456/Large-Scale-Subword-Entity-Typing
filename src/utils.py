@@ -284,7 +284,6 @@ def keyword_in_sentences(thread_idx, data, keywords):
         result(list of str): Each elements in the list contains one 
                      sentence with one or more keywords.
     """
-    # global keywords
     desc = "Thread {:2d}".format(thread_idx + 1)
     result = list()
     #

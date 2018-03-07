@@ -8,7 +8,7 @@ from utils import readlines, load_rules, generic_threading, punctuation_cleanup
 
 # python src/extract_vocabulary.py data/smaller_preprocessed.tsv src/refine_rules/voc_cleanup.tsv --thread=5
 
-def extract_vocabularies(corpus, rule, thread, output=None):
+def extract_vocabularies(corpus, rule, output=None, thread=None):
     """
     Extract vocabularies from the corpus, additional rules to achieve
     purer vocabularies can be defined in src/refine_rules/voc_cleanup.tsv
@@ -46,8 +46,7 @@ def extract_vocabularies(corpus, rule, thread, output=None):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument("corpus", help="Input sentences to be recognized.\
-                        [Default: ]")
+    parser.add_argument("corpus", help="Input sentences to be recognized.")
     parser.add_argument("rule", help="Rules to purify vocabularies.")
     parser.add_argument("--output", help="File name for vocabulary list to\
                         be saved. [Default: vocabulary_list.json]")
@@ -56,4 +55,4 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
-    extract_vocabularies(args.corpus, args.rule, args.thread, args.output)
+    extract_vocabularies(args.corpus, args.rule, args.output, args.thread)

@@ -9,7 +9,7 @@ from utils import keyword_in_sentences, readlines, string_file_io, generic_threa
 
 # python src/recognize_sentences.py data/smaller_preprocessed_sentence.txt data/ --thread=10
 
-def recognize_sentences(corpus, keywords_path, thread, output=None):
+def recognize_sentences(corpus, keywords_path, output=None, thread=None):
     """
     Arguments:
         corpus(str): Path to the corpus file.
@@ -62,4 +62,4 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
-    recognize_sentences(args.corpus, args.keywords_path, args.thread, args.output)
+    recognize_sentences(args.corpus, args.keywords_path, args.output, args.thread)

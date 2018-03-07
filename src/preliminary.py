@@ -6,7 +6,7 @@ from itertools import chain
 
 # python src/preliminary.py data/smaller.tsv src/refine_rules/preliminary.tsv --thread=5
 
-def preliminary_cleanup(corpus, rule, thread, output=None):
+def preliminary_cleanup(corpus, rule, output=None, thread=None):
     """
     Preliminary cleanup the corpus to make it easier for further
     processing methods. This method can be used to correct the
@@ -47,4 +47,4 @@ if __name__ == '__main__':
                         to run. [Default: 2 * number_of_cores]")
     args = parser.parse_args()
 
-    preliminary_cleanup(args.corpus, args.rule, args.thread, args.output)
+    preliminary_cleanup(args.corpus, args.rule, args.output, args.thread)

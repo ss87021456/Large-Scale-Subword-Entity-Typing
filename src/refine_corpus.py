@@ -6,7 +6,7 @@ from utils import string_file_io, load_rules, readlines, generic_threading, corp
 
 # python src/refine_corpus.py data/smaller_preprocessed_cleaned.txt src/refine_rules/ --thread=5
 
-def refine_corpus(corpus, rule_path, thread, output=None):
+def refine_corpus(corpus, rule_path, output=None, thread=None):
     """
     Clean up the given corpus according to the rules defined in the files.
     This method utilizes multithreading to accelerate the process.
@@ -51,4 +51,4 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
-    refine_corpus(args.corpus, args.rule_path, args.thread, args.output)
+    refine_corpus(args.corpus, args.rule_path, args.output, args.thread)
