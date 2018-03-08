@@ -294,8 +294,35 @@ def keyword_in_sentences(thread_idx, data, keywords, mode):
     for line in tqdm(data, position=thread_idx, desc=desc):
         # split words
         words = nltk.word_tokenize(line)
+        len_sentence = len(words)
         found_keyword = list()
         found_sentence = False
+
+        # search for keywords
+        set_found_keyword = list()
+        for itr in keywords:
+            # Append keywords to the list
+            if itr.lower() in line.lower():
+                set_found_keyword.append(itr)
+
+        for itr in set_found_keyword:
+            len_window = len(itr.split())
+            for begin in range(len_sentence - len_window):
+                tmp = " ".join(words[begin:begin + len_window])
+                if tmp.lower() == itr.lower():
+                    found_word, found_sentence = True, True
+                    found_keyword.append(itr)
+                    break
+                else:
+                    pass
+            if mode == "SINGLE" and found_word:
+                break
+
+        if found_sentence:
+            found_keyword = list(np.unique(found_keyword))
+            result.append(line + "\t" + "\t".join(found_keyword))
+    return result
+'''
         for word in words:
             # search for keywords
             found_word = False
@@ -317,5 +344,5 @@ def keyword_in_sentences(thread_idx, data, keywords, mode):
         if found_sentence:
             found_keyword = list(np.unique(found_keyword))
             result.append(line + "\t" + "\t".join(found_keyword))
+'''
 
-    return result

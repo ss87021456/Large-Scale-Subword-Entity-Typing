@@ -40,7 +40,7 @@ def recognize_sentences(corpus, keywords_path, output=None, thread=None):
     print("File saved in {:s}".format(keywords_file))
 
     # Load lines from corpus
-    raw_data = readlines(corpus, limit=150)
+    raw_data = readlines(corpus, limit=None)
 
     # Threading
     keywords = list(entity.keys())
