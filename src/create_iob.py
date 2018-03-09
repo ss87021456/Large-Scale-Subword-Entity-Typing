@@ -5,7 +5,7 @@ import argparse
 from tqdm import tqdm
 from utils import readlines, string_file_io, generic_threading
 
-# python src/create_ibo.py data/smaller_preprocessed_sentence_keywords.tsv data/keywords.json --thread=10
+# python src/create_iob.py data/smaller_preprocessed_sentence_keywords.tsv data/keywords.json --thread=10
 
 def generate_ibo(thread_idx, data, entity):
     """
@@ -29,7 +29,7 @@ def generate_ibo(thread_idx, data, entity):
         # Format: [sentence] \tab [mentions]
         sentence, entity_mentions = line.split('\t')[0], line.split('\t')[1:]
         # Decompose the sentence to word-level
-        words = (nltk.word_tokenize(sentence))
+        words = nltk.word_tokenize(sentence)
         len_sentence = len(words)
         # Duplicate the words for output
         result = words.copy()

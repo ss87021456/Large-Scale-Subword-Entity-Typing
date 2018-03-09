@@ -9,7 +9,8 @@ from utils import keyword_in_sentences, readlines, string_file_io, generic_threa
 
 # python src/recognize_sentences.py data/smaller_preprocessed_sentence.txt data/ --thread=10
 
-def recognize_sentences(corpus, keywords_path, output=None, thread=None):
+def recognize_sentences(corpus, keywords_path, mode, validation, testing,
+                        output=None, thread=None):
     """
     Arguments:
         corpus(str): Path to the corpus file.
@@ -44,11 +45,22 @@ def recognize_sentences(corpus, keywords_path, output=None, thread=None):
 
     # Threading
     keywords = list(entity.keys())
-    param = (keywords,"MULTI")
+    param = (keywords, mode)
     result = generic_threading(thread, raw_data, keyword_in_sentences, param)
 
     # write all result to file
-    string_file_io(output, result)
+    if split:
+        amount = sum([len(itr) for itr in result])
+        train_amt = amount * (1 - validation - testing)
+        valid_amt = amount * validation + train_amt
+        test_amt = amount * testing + valid_amt
+        ### SHUFFLE ###
+        # Add label
+        string_file_io(output[:-4] + "_train.tsv", result[:train_amt])
+        string_file_io(output[:-4] + "_validation.tsv", result[train_amt:valid_amt])
+        string_file_io(output[:-4] + "_test.tsv", result[valid_amt:test_amt])
+    else:
+        string_file_io(output, result)
 
 
 if __name__ == '__main__':
@@ -56,10 +68,20 @@ if __name__ == '__main__':
     parser.add_argument("corpus", help="Input sentences to be recognized.")
     parser.add_argument("keywords_path", help="Put all dictionaries \
                          end with \"_leaf.json\".")
+    # optional arguments
+    parser.add_argument("--mode", choices=["SINGLE", "MULTI"], \
+                        const="SINGLE", help="Single mention or \
+                        multi-mentions per sentence.")
+    parser.add_argument("--split", action="store_true", help="Split the dataset.")
+    parser.add_argument("--validation", nargs='?', const=0.1, type=float,
+                        help="The ratio of validation dataset when --split is given.")
+    parser.add_argument("--testing", nargs='?', const=0.1, type=float,
+                        help="The ratio of testing dataset when --split is given.")
     parser.add_argument("--output", help="Sentences with key words")
     parser.add_argument("--thread", type=int, help="Number of threads \
                         to run, default: 2 * number_of_cores") 
 
     args = parser.parse_args()
 
-    recognize_sentences(args.corpus, args.keywords_path, args.output, args.thread)
+    recognize_sentences(args.corpus, args.keywords_path, args.mode, args.split, 
+                        args.validation, args.testing, args.output, args.thread)

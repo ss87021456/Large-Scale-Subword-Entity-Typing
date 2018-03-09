@@ -322,27 +322,4 @@ def keyword_in_sentences(thread_idx, data, keywords, mode):
             found_keyword = list(np.unique(found_keyword))
             result.append(line + "\t" + "\t".join(found_keyword))
     return result
-'''
-        for word in words:
-            # search for keywords
-            found_word = False
-            # Iterate through all keywords
-            for itr in keywords:
-                # Append keywords to the list
-                if itr.lower() == word.lower():
-                    found_word, found_sentence = True, True
-                    found_keyword.append(itr)
-                    # stop keyword iterate if some keyword is found
-                    break
-                # no keyword found in the sentence
-                else:
-                    pass
-            # break if the mode is set to SINGLE
-            if mode == "SINGLE" and found_word:
-                break
-        #
-        if found_sentence:
-            found_keyword = list(np.unique(found_keyword))
-            result.append(line + "\t" + "\t".join(found_keyword))
-'''
 
