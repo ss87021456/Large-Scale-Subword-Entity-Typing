@@ -3,7 +3,7 @@ import os
 import nltk
 import argparse
 from tqdm import tqdm
-from utils import readlines, string_file_io, generic_threading
+from utils import readlines, file_io, generic_threading
 
 # python src/create_iob.py data/smaller_preprocessed_sentence_keywords.tsv data/keywords.json --thread=10
 
@@ -128,7 +128,7 @@ def ibo_tagging(corpus, keywords, output=None, thread=None):
     result = generic_threading(thread, raw_data, generate_ibo, param)
 
     # Write result to file
-    string_file_io(output, result)
+    file_io(output, result)
 
 
 if __name__ == '__main__':

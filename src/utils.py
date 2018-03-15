@@ -1,3 +1,4 @@
+import json
 import re
 import random
 import nltk
@@ -70,22 +71,38 @@ def readlines(file, begin=None, limit=None, rand=False):
     print("Total {0} lines loaded.".format(len(data)))
     return data
 
-def string_file_io(file, data):
+def write_to_file(file, data):
     """
     Write strings to files.
+    Saving choices available: JSON [.json], TSV [.tsv]
 
     Arguments:
-        file(str): Output filename.
-        data(list of list): List of list of strings.
+        file(str): Output filename, carefully deal with the extension.
+        data(list): List of list of strings OR Dictionary.
+            
     """
+    as_type = "JSON" if file.lower().endswith("json") else \
+              "TSV"  if file.lower().endswith("tsv")  else \
+              "TXT"  if file.lower().endswith("txt")  else \
+              None
+    #
     print("Writing result to file...")
     with open(file, "w") as f:
-        if type(data[0]) == list:
-            for itr in tqdm(list(chain.from_iterable(data))):
-                f.write(itr + "\n")
+        if as_type == "JSON":
+            # sort_keys = type(list(data.keys())[0]) == int or \
+            #             type(list(data.keys())[0]) == float
+            # json.dump(data, f, sort_keys=sort_keys, indent=4)
+            json.dump(data, f, sort_keys=True, indent=4)
+        elif as_type == "TSV" or as_type == "TXT":
+            if type(data[0]) == list:
+                for itr in tqdm(list(chain.from_iterable(data))):
+                    f.write(itr + "\n")
+            else:
+                for itr in tqdm(data):
+                    f.write(itr + "\n")
         else:
-            for itr in tqdm(data):
-                f.write(itr + "\n")
+            print("[Type Error] Please specify type as JSON or TSV")
+            exit()
     print("File saved in {:s}".format(file))
 
 def split_data(data, n_slice):
@@ -273,7 +290,7 @@ def corpus_cleanup(thread_idx, data, parentheses, refine_list):
 
     return result
 
-def keyword_in_sentences(thread_idx, data, keywords, mode):
+def keyword_in_sentences(thread_idx, data, keywords, mode="SINGLE"):
     """
     Sentence keyword search (called by threads or used normally)
 
@@ -281,12 +298,14 @@ def keyword_in_sentences(thread_idx, data, keywords, mode):
         thread_idx(int): Order of threads, used to align progressbar.
         data(list of str): Each elements in the list contains one sentence
                           of raw corpus.
-        mode(str): MULTI or SINGLE
+        keywords(list of str): Contains all the keywords.
+        [TO-BE-IMPLEMENTED] mode(str): MULTI or SINGLE
 
     Returns:
         result(list of str): Each elements in the list contains one 
                      sentence with one or more keywords.
     """
+    print("Marking the sentence in {:s} mode.".format(mode))
     desc = "Thread {:2d}".format(thread_idx + 1)
     result = list()
     found, found_sentence = None, None
@@ -298,10 +317,13 @@ def keyword_in_sentences(thread_idx, data, keywords, mode):
         found_keyword = list()
         found_sentence = False
 
-        # search for keywords
+        ### TO-BE-REVISED ###
+        # Faster partial matching using "in" and tokenization together
+
+        # Conduct preliminary partial matching for keywords
         set_found_keyword = list()
         for itr in keywords:
-            # Append keywords to the list
+            # Append condidate to the list
             if itr.lower() in line.lower():
                 set_found_keyword.append(itr)
 
@@ -323,3 +345,32 @@ def keyword_in_sentences(thread_idx, data, keywords, mode):
             result.append(line + "\t" + "\t".join(found_keyword))
     return result
 
+def keywords_as_labels(thread_idx, data, keywords, labels, mode=None):
+    """
+    Arguments:
+        thread_idx():
+        data():
+        labels():
+        mode():
+    
+    Returns:
+        result():
+    """
+    desc = "Thread {:2d}".format(thread_idx + 1)
+    result = list()
+    #
+    for line in tqdm(data, position=thread_idx, desc=desc):
+        split_point = line.find("\t")
+        sentence = line[:split_point]
+        mentions = line[split_point + 1:].split("\t")
+        # replace mentions by labels
+        if mode == "SINGLE":
+            entity_types = keywords[mentions[0]]
+            replace = [str(labels[itr]) for itr in entity_types]
+        ### TO-BE-IMPELMENTED ###
+        else: 
+            replace = [str(labels[itr]) for itr in mentions]
+        # append to the result list
+        result.append(sentence + "\t" + "\t".join(replace))
+    #
+    return result

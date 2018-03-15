@@ -4,13 +4,13 @@ import json
 from pprint import pprint
 from tqdm import tqdm
 from itertools import chain
-from utils import keyword_in_sentences, readlines, string_file_io, generic_threading
+from utils import write_to_file, keyword_in_sentences, readlines, generic_threading
 
 
 # python src/recognize_sentences.py data/smaller_preprocessed_sentence.txt data/ --thread=10
 
 def recognize_sentences(corpus, keywords_path, mode, validation, testing,
-                        output=None, thread=None):
+                        label=False, output=None, thread=None):
     """
     Arguments:
         corpus(str): Path to the corpus file.
@@ -35,17 +35,20 @@ def recognize_sentences(corpus, keywords_path, mode, validation, testing,
 
     # Merge the keywords
     keywords_file = "data/keywords.json"
+    """
     print("Saving keywords to file...")
     with open(keywords_file, 'w') as fp:
         json.dump(entity, fp, sort_keys=True, indent=4)
     print("File saved in {:s}".format(keywords_file))
+    """
+    write_to_file(keywords_file, entity)
 
     # Load lines from corpus
     raw_data = readlines(corpus, limit=None)
 
     # Threading
     keywords = list(entity.keys())
-    param = (keywords, mode)
+    param = (keywords, mode, label)
     result = generic_threading(thread, raw_data, keyword_in_sentences, param)
 
     # write all result to file
@@ -56,11 +59,11 @@ def recognize_sentences(corpus, keywords_path, mode, validation, testing,
         test_amt = amount * testing + valid_amt
         ### SHUFFLE ###
         # Add label
-        string_file_io(output[:-4] + "_train.tsv", result[:train_amt])
-        string_file_io(output[:-4] + "_validation.tsv", result[train_amt:valid_amt])
-        string_file_io(output[:-4] + "_test.tsv", result[valid_amt:test_amt])
+        write_to_file(output[:-4] + "_train.tsv", result[:train_amt])
+        write_to_file(output[:-4] + "_validation.tsv", result[train_amt:valid_amt])
+        write_to_file(output[:-4] + "_test.tsv", result[valid_amt:test_amt])
     else:
-        string_file_io(output, result)
+        write_to_file(output, result)
 
 
 if __name__ == '__main__':
@@ -80,8 +83,11 @@ if __name__ == '__main__':
     parser.add_argument("--output", help="Sentences with key words")
     parser.add_argument("--thread", type=int, help="Number of threads \
                         to run, default: 2 * number_of_cores") 
+    parser.add_argument("--label", action="store_true", \
+                        help="Replace entity name with labels.")
 
     args = parser.parse_args()
 
-    recognize_sentences(args.corpus, args.keywords_path, args.mode, args.split, 
-                        args.validation, args.testing, args.output, args.thread)
+    recognize_sentences(args.corpus, args.keywords_path, args.mode, args.split,
+                        args.validation, args.testing, args.label args.output,
+                        args.thread)

@@ -1,5 +1,5 @@
 import argparse
-from utils import load_rules, generic_threading, punctuation_cleanup, readlines
+from utils import load_rules, generic_threading, punctuation_cleanup, readlines, string_file_io
 from tqdm import tqdm
 from itertools import chain
 
@@ -27,7 +27,7 @@ def preliminary_cleanup(corpus, rule, output=None, thread=None):
     # Load rules
     rules = load_rules(rule)
     # Load data
-    raw_data = readlines(corpus)
+    raw_data = readlines(corpus, limit=None)
 
     # Threading
     param = (rules, "PRELIMINARY")

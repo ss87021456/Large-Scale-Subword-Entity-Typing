@@ -1,7 +1,7 @@
 import argparse
 from tqdm import tqdm
 from itertools import chain
-from utils import string_file_io, load_rules, readlines, generic_threading, corpus_cleanup
+from utils import write_to_file, load_rules, readlines, generic_threading, corpus_cleanup
 
 
 # python src/refine_corpus.py data/smaller_preprocessed_cleaned.txt src/refine_rules/ --thread=5
@@ -37,7 +37,7 @@ def refine_corpus(corpus, rule_path, output=None, thread=None):
     result = generic_threading(thread, raw_data, corpus_cleanup, param)
     
     # Write all result to file
-    string_file_io(output, result)
+    write_to_file(output, result)
 
 
 if __name__ == '__main__':

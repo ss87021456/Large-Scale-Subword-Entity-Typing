@@ -3,7 +3,7 @@ import json
 from collections import Counter
 from itertools import chain
 from tqdm import tqdm
-from utils import readlines, load_rules, generic_threading, punctuation_cleanup
+from utils import write_to_file, readlines, load_rules, generic_threading, punctuation_cleanup
 
 
 # python src/extract_vocabulary.py data/smaller_preprocessed.tsv src/refine_rules/voc_cleanup.tsv --thread=5
@@ -26,7 +26,7 @@ def extract_vocabularies(corpus, rule, output=None, thread=None):
     rules = load_rules(rule)
 
     # Acquire the corpus
-    raw_data = readlines(corpus)
+    raw_data = readlines(corpus, limit=None)
 
     # Threading (TO-BE-IMPLEMENTED)
     # param = (rules, "SPLIT_WORDS")
@@ -38,10 +38,7 @@ def extract_vocabularies(corpus, rule, output=None, thread=None):
     voc_list = Counter(result)
 
     # Save vocabulary to file
-    print("Saving vocabulary list to file...")
-    with open(output, 'w') as fp:
-        json.dump(voc_list, fp, sort_keys=True, indent=4)
-    print("File saved in {:s}".format(output))
+    write_to_file(output, voc_list)
 
 
 if __name__ == '__main__':

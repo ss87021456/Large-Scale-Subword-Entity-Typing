@@ -1,4 +1,4 @@
-from utils import readlines, string_file_io
+from utils import readlines, write_to_file
 import argparse
 
 """
@@ -19,7 +19,7 @@ def sample_data_for_demo(files, amount, rand):
     for itr in files:
         output = itr[:-4] + "_sampled" + itr[-4:]
         data = readlines(itr, limit=amount, rand=rand)
-        string_file_io(output, data)
+        write_to_file(output, data)
 
 
 if __name__ == '__main__':
