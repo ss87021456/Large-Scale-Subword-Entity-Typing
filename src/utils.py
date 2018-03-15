@@ -371,6 +371,6 @@ def keywords_as_labels(thread_idx, data, keywords, labels, mode=None):
         else: 
             replace = [str(labels[itr]) for itr in mentions]
         # append to the result list
-        result.append(sentence + "\t" + "\t".join(replace))
+        result.append(mentions[0] + "\t" + sentence + "\t" + "\t".join(replace))
     #
     return result
