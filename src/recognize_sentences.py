@@ -9,7 +9,7 @@ from utils import write_to_file, keyword_in_sentences, readlines, generic_thread
 
 # python src/recognize_sentences.py data/smaller_preprocessed_sentence.txt data/ --thread=10
 
-def recognize_sentences(corpus, keywords_path, mode, validation, testing,
+def recognize_sentences(corpus, keywords_path, mode, split, validation, testing,
                         label=False, output=None, thread=None):
     """
     Arguments:
@@ -48,7 +48,8 @@ def recognize_sentences(corpus, keywords_path, mode, validation, testing,
 
     # Threading
     keywords = list(entity.keys())
-    param = (keywords, mode, label)
+    # param = (keywords, mode, label)
+    param = (keywords, mode)
     result = generic_threading(thread, raw_data, keyword_in_sentences, param)
 
     # write all result to file
@@ -73,7 +74,7 @@ if __name__ == '__main__':
                          end with \"_leaf.json\".")
     # optional arguments
     parser.add_argument("--mode", choices=["SINGLE", "MULTI"], \
-                        const="SINGLE", help="Single mention or \
+                        nargs='?' , const="SINGLE", help="Single mention or \
                         multi-mentions per sentence.")
     parser.add_argument("--split", action="store_true", help="Split the dataset.")
     parser.add_argument("--validation", nargs='?', const=0.1, type=float,
@@ -89,5 +90,5 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     recognize_sentences(args.corpus, args.keywords_path, args.mode, args.split,
-                        args.validation, args.testing, args.label args.output,
+                        args.validation, args.testing, args.label, args.output,
                         args.thread)

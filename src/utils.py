@@ -323,7 +323,7 @@ def keyword_in_sentences(thread_idx, data, keywords, mode="SINGLE"):
         result(list of str): Each elements in the list contains one 
                      sentence with one or more keywords.
     """
-    print("Marking the sentence in {:s} mode.".format(mode))
+    # print("Marking the sentence in {:s} mode.".format(mode))
     desc = "Thread {:2d}".format(thread_idx + 1)
     result = list()
     found, found_sentence = None, None
@@ -346,6 +346,7 @@ def keyword_in_sentences(thread_idx, data, keywords, mode="SINGLE"):
                 set_found_keyword.append(itr)
 
         for itr in set_found_keyword:
+            found_word = None
             len_window = len(itr.split())
             for begin in range(len_sentence - len_window):
                 tmp = " ".join(words[begin:begin + len_window])
@@ -384,11 +385,10 @@ def keywords_as_labels(thread_idx, data, keywords, labels, mode=None):
         # replace mentions by labels
         if mode == "SINGLE":
             entity_types = keywords[mentions[0]]
-            replace = [str(labels[itr]) for itr in entity_types]
+            replace = ['__label__' + str(labels[itr]) for itr in entity_types]
         ### TO-BE-IMPELMENTED ###
         else: 
             replace = [str(labels[itr]) for itr in mentions]
         # append to the result list
-        result.append(mentions[0] + "\t" + sentence + "\t" + "\t".join(replace))
-    #
+        result.append( " , ".join(replace) + " " sentence) # FastText classification form
     return result
