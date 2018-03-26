@@ -45,7 +45,7 @@ def load_rules(file):
     #
     return rules
 
-def readlines(file, begin=None, limit=None, rand=False):
+def readlines(file, begin=None, limit=None, rand=False, skip=False):
     """
     Read and split all content in the files line by line.
 
@@ -59,17 +59,35 @@ def readlines(file, begin=None, limit=None, rand=False):
         raw_data(list of strings): Lines from the files
     """
     print("Loading lines in the file...")
-    with open(file, "r") as f:
-        if rand:
-            print(" - Random sample {:d} entries from data.".format(limit))
-            data = f.read().splitlines()
-            n_data = len(data)
-            index = sorted(random.sample(list(range(n_data)), limit))
-            data = [data[itr] for itr in index]
-        else:
-            data = f.read().splitlines()[begin:limit]
+    if skip:
+        with open(file, "r") as f:
+            if rand:
+                print(" - Random sample {:d} entries from data.".format(limit))
+                data = f.read().splitlines()
+                n_data = len(data)
+                index = sorted(random.sample(list(range(n_data)), limit))
+                data = [data[itr] for itr in index]
+            else:
+                data = f.read().splitlines()[1:limit]
+                result = list()
+                for abstract in data:
+                    tab_index = abstract.find('\t')
+                    abstract = abstract[tab_index+1:] # skip PMID\t
+                    result.append(abstract)
+                data = result
+    else:
+        with open(file, "r") as f:
+            if rand:
+                print(" - Random sample {:d} entries from data.".format(limit))
+                data = f.read().splitlines()
+                n_data = len(data)
+                index = sorted(random.sample(list(range(n_data)), limit))
+                data = [data[itr] for itr in index]
+            else:
+                data = f.read().splitlines()[begin:limit]
     print("Total {0} lines loaded.".format(len(data)))
     return data
+
 
 def write_to_file(file, data):
     """
