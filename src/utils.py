@@ -385,10 +385,12 @@ def keywords_as_labels(thread_idx, data, keywords, labels, mode=None):
         # replace mentions by labels
         if mode == "SINGLE":
             entity_types = keywords[mentions[0]]
-            replace = ['__label__' + str(labels[itr]) for itr in entity_types]
+            #replace = ['__label__' + str(labels[itr]) for itr in entity_types]
+            replace = [str(labels[itr]) for itr in entity_types]
         ### TO-BE-IMPELMENTED ###
         else: 
             replace = [str(labels[itr]) for itr in mentions]
         # append to the result list
-        result.append( " , ".join(replace) + " " sentence) # FastText classification form
+        #result.append( " , ".join(replace) + " " + sentence) # FastText classification form
+        result.append( ",".join(replace) + "\t" + sentence) # normal form
     return result
