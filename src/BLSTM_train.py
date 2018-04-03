@@ -1,6 +1,7 @@
 import pandas as pd
 import numpy as np
 import argparse
+from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import MultiLabelBinarizer
 from fastText_model import fastText # pretrain-model
 from keras.preprocessing import text, sequence
@@ -27,29 +28,33 @@ def run(filename, pre=True, embedding=None):
     # filename = '../input/smaller_preprocessed_sentence_keywords_labeled.tsv'
     print("reading training dataset..")
     dataset = pd.read_csv(filename, sep='\t', names=['label','context'])
-    list_sentences_train = dataset['context'].values[:100000]
-    y_train = dataset['label'].values[:100000]
+    
+    X = dataset['context'].values[:]
+    y = dataset['label'].values[:]
     del dataset # cleanup the memory
     
     print("Creating MultiLabel..")
     temp = list()
-    for element in y_train:
+    for element in y:
         values = element.split(',')
         values = list(map(int, values))
         temp.append(values)
     
     temp = np.array(temp)
     
-    mlb = MultiLabelBinarizer()
-    y_train = mlb.fit_transform(temp)
-    print(y_train.shape, y_train[:5])
+    mlb = MultiLabelBinarizer(sparse_output=True)
+    y = mlb.fit_transform(temp)
+    print(y.shape, y[:5])
     label_num = len(mlb.classes_)
     del temp
-    
+
+    print("split 90% training and 10% testing dataset")
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.1, random_state=None)
+
     print("Tokenize sentences...")
     tokenizer = text.Tokenizer(num_words=MAX_NUM_WORDS)
-    tokenizer.fit_on_texts(list(list_sentences_train))
-    list_tokenized_train = tokenizer.texts_to_sequences(list_sentences_train)
+    tokenizer.fit_on_texts(list(X_train))
+    list_tokenized_train = tokenizer.texts_to_sequences(X_train)
     X_t = sequence.pad_sequences(list_tokenized_train, maxlen=MAX_SEQUENCE_LENGTH)
     
     word_index = tokenizer.word_index
@@ -98,6 +103,7 @@ def run(filename, pre=True, embedding=None):
         return model
     
     model = BLSTM()
+    print(model.summary())
     
     file_path="weights_base.best.hdf5"
     checkpoint = ModelCheckpoint(file_path, monitor='val_loss', verbose=1, save_best_only=True, mode='min')
