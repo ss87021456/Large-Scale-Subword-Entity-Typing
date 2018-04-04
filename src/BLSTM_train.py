@@ -2,6 +2,7 @@ import pandas as pd
 import numpy as np
 import argparse
 import pickle as pkl
+from utils import split_data
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import MultiLabelBinarizer
 from sklearn.metrics import confusion_matrix, f1_score, precision_score, recall_score
@@ -25,41 +26,47 @@ EMBEDDING_DIM = 100
 batch_size = 64
 epochs = 5
 
-def split_data(data, n_slice):
-    """
-    Split data to minibatches with last batch may be larger or smaller.
+def e_precision(y_true, y_pred, mode="NORMAL"):
+    if not mode in ["NORMAL", "INDEX"]:
+        mode = "NORMAL"
 
-    Arguments:
-        data(ndarray): Array of data.
-        n_slice(int): Number of slices to separate the data.
-
-    Return:
-        partitioned_data(list): List of list containing any type of data.
-    """
-    # n_data = len(data)
-    n_data = data.shape[0]
-    # Slice data for each thread
-    print(" - Total number of data: {0}".format(n_data))
-    per_slice = int(n_data / n_slice)
-    partitioned_data = list()
-    for itr in range(n_slice):
-        # Generate indices for each slice
-        idx_begin = itr * per_slice
-        # last slice may be larger or smaller
-        idx_end = (itr + 1) * per_slice if itr != n_slice - 1 else None
-        #
-        partitioned_data.append(data[idx_begin:idx_end])
-    #
-    return partitioned_data
-
-def e_precision(y_true, y_pred):
+    if mode == "NORMAL":
         comparison = np.equal(y_true, y_pred)
         return np.mean(np.sum(y_pred * comparison, axis=1) / np.sum(y_pred, axis=1))
 
-def e_recall(y_true, y_pred):
+    elif mode == "INDEX":
+        prec_list = list()
+        for itr in range(y_pred.shape[0]):
+            indices, _ = np.where(y_pred[itr, :] == 1)
+            # Assign 0. precision if no label is asserted
+            if indices.size == 0:
+                prec_list.append(0.)
+                continue
+            else:
+                prec_list.append(np.average(y_true[itr, indices]))
+        #
+        return np.average(prec_list)
+
+def e_recall(y_true, y_pred, mode="NORMAL"):
+    if not mode in ["NORMAL", "INDEX"]:
+        mode = "NORMAL"
+
+    if mode == "NORMAL":
         comparison = np.equal(y_true, y_pred)
         return np.mean(np.sum(y_true * comparison, axis=1) / np.sum(y_true, axis=1))
 
+    elif mode == "INDEX":
+        recall_list = list()
+        for itr in range(y_true.shape[0]):
+            indices, _ = np.where(y_true[itr, :] == 1)
+            # Assign 0. precision if no label is asserted
+            if indices.size == 0:
+                recall_list.append(0.)
+                continue
+            else:
+                recall_list.append(np.average(y_pred[itr, indices]))
+        #
+        return np.average(recall_list)
 
 class Metrics(Callback):
     def on_train_begin(self, logs={}):
@@ -79,7 +86,7 @@ class Metrics(Callback):
         print(" — F1: {:f} — Precision: {:f} — Recall {:f}".format(_f1, _precision, _recall))
         return
 
-def run(filename, pre=True, embedding=None, testing=0.1, evaluation=False):
+def run(model_dir, filename, pre=True, embedding=None, testing=0.1, evaluation=False):
     # filename = '../input/smaller_preprocessed_sentence_keywords_labeled.tsv'
     # print("Loading dataset..")
     # dataset = pd.read_csv(filename, sep='\t', names=['label','context'])
@@ -135,10 +142,15 @@ def run(filename, pre=True, embedding=None, testing=0.1, evaluation=False):
     X_t = sequence.pad_sequences(list_tokenized_train, maxlen=MAX_SEQUENCE_LENGTH)
     X_te = sequence.pad_sequences(list_tokenized_test, maxlen=MAX_SEQUENCE_LENGTH)
     '''
-    mlb = pkl.load(open('./mlb.pkl', 'rb'))
+    # Parse directory name
+    if not model_dir.endswith("/"):
+        model_dir += "/"
+    # Load models
+    mlb = pkl.load(open(model_dir + "mlb.pkl", 'rb'))
     label_num = len(mlb.classes_)
-    tokenizer = pkl.load(open('./tokenizer.pkl', 'rb'))
+    tokenizer = pkl.load(open(model_dir + "tokenizer.pkl", 'rb'))
     word_index = tokenizer.word_index
+
     if pre:
         print("Loading pre-trained embedding model...")
         embeddings_index = fastText(embedding)
@@ -211,20 +223,20 @@ def run(filename, pre=True, embedding=None, testing=0.1, evaluation=False):
 
     if evaluation:
         print("Loading testing data...")
-        X_test = pkl.load(open('./testing_data.pkl', 'rb'))
-        y_test = pkl.load(open('./testing_label.pkl', 'rb'))
+        X_test = pkl.load(open(model_dir + "testing_data.pkl", 'rb'))
+        y_test = pkl.load(open(model_dir + "testing_label.pkl", 'rb'))
         print("Loading trained weights for predicting...")
         model.load_weights(file_path)
     else:
         print("Loading training data...")
-        X_train = pkl.load(open('./training_data.pkl', 'rb'))
-        y_train = pkl.load(open('./training_label.pkl', 'rb'))
+        X_train = pkl.load(open(model_dir + "training_data.pkl", 'rb'))
+        y_train = pkl.load(open(model_dir + "training_label.pkl", 'rb'))
         print("Begin training...")
         model.fit(X_t, y_train, batch_size=batch_size, epochs=epochs, validation_split=0.1, callbacks=callbacks_list)
         del X_train, y_train # clean up memory
         print("Loading testing data...")
-        X_test = pkl.load(open('./testing_data.pkl', 'rb'))
-        y_test = pkl.load(open('./testing_label.pkl', 'rb'))
+        X_test = pkl.load(open(model_dir + "testing_data.pkl", 'rb'))
+        y_test = pkl.load(open(model_dir + "testing_label.pkl", 'rb'))
 
     print("Predicting...")
     y_pred = model.predict(X_test)
@@ -237,8 +249,8 @@ def run(filename, pre=True, embedding=None, testing=0.1, evaluation=False):
     slice_len = 1000
     #times = len(y_pred)/slice_len
     print("Slicing...")
-    Y_pred = split_data(y_pred, slice_len)
-    Y_test = split_data(y_test, slice_len)
+    Y_pred = split_data(y_pred, slice_len, mode="SINGLE")
+    Y_test = split_data(y_test, slice_len, mode="SINGLE")
     del y_pred, y_test
     p_ = 0.
     r_ = 0.
@@ -248,8 +260,8 @@ def run(filename, pre=True, embedding=None, testing=0.1, evaluation=False):
         print("Processing {0} / {1} ".format(go, slice_len))
         go += 1
         # Implement it using pure numpy method instead of Tensor...
-        p_ += e_precision(y_test.toarray(), y_pred)
-        r_ += e_recall(y_test.toarray(), y_pred)
+        p_ += e_precision(y_test.toarray(), y_pred, mode="INDEX")
+        r_ += e_recall(y_test.toarray(), y_pred, mode="INDEX")
         del y_pred, y_test # clean up mem
         #p = _precision(K.cast(y_test.toarray(), dtype='float32'), y_pred)
         #r = _recall(K.cast(y_test.toarray(), dtype='float32'), y_pred)
@@ -274,5 +286,8 @@ if __name__ == '__main__':
     parser.add_argument("--test", nargs='?', const=0.1, type=float, default=0.1,
                         help="Specify the portion of the testing data to be split.\
                         [Default: 10\% of the entire dataset]")
+    parser.add_argument("--model", nargs='?', type=str, default="model/", 
+                        help="Directory to load models. [Default: \"model/\"]")
     args = parser.parse_args()
-    run(args.corpus, args.pre, args.emb, args.test, args.evaluation)
+
+    run(args.model, args.corpus, args.pre, args.emb, args.test, args.evaluation)

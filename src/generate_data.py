@@ -5,6 +5,7 @@ import pickle as pkl
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import MultiLabelBinarizer
 from keras.preprocessing import text, sequence
+import os
 
 # python ./src/generate_data.py --input=./data/smaller_preprocessed_sentence_keywords_labeled.tsv
 
@@ -13,7 +14,14 @@ MAX_NUM_WORDS = 30000
 MAX_SEQUENCE_LENGTH = 40
 EMBEDDING_DIM = 100
 
-def run(input, testing):
+def run(model_dir, input, testing):
+    # Parse directory name
+    if not model_dir.endswith("/"):
+        model_dir += "/"
+    # Create directory to store model
+    if not os.path.exists(model_dir):
+        os.makedirs(model_dir)
+
     print("Loading dataset..")
     dataset = pd.read_csv(input, sep='\t', names=['label','context'])
     
@@ -63,18 +71,21 @@ def run(input, testing):
     X_t = sequence.pad_sequences(list_tokenized_train, maxlen=MAX_SEQUENCE_LENGTH)
     X_te = sequence.pad_sequences(list_tokenized_test, maxlen=MAX_SEQUENCE_LENGTH)
     print("dumping pickle file of [train/test] X, y, and tokenizer...")
-    pkl.dump(X_t, open("training_data.pkl", 'wb'))
-    pkl.dump(X_te, open("testing_data.pkl", 'wb'))
-    pkl.dump(y_train, open("training_label.pkl", 'wb'))
-    pkl.dump(y_test, open("testing_label.pkl", 'wb'))
-    pkl.dump(tokenizer, open("tokenizer.pkl", 'wb'))
-    pkl.dump(mlb, open("mlb.pkl", 'wb'))
+    pkl.dump(X_t, open(model_dir + "training_data.pkl", 'wb'))
+    pkl.dump(X_te, open(model_dir + "testing_data.pkl", 'wb'))
+    pkl.dump(y_train, open(model_dir + "training_label.pkl", 'wb'))
+    pkl.dump(y_test, open(model_dir + "testing_label.pkl", 'wb'))
+    pkl.dump(tokenizer, open(model_dir + "tokenizer.pkl", 'wb'))
+    pkl.dump(mlb, open(model_dir + "mlb.pkl", 'wb'))
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
+    parser.add_argument("--model", nargs='?', type=str, default="model/", 
+                        help="Directory to store models. [Default: \"model/\"]")
     parser.add_argument("--input", help="Input dataset filename.")
     parser.add_argument("--test", nargs='?', const=0.1, type=float, default=0.1,
                         help="Specify the portion of the testing data to be split.\
                         [Default: 10\% of the entire dataset]")
     args = parser.parse_args()
-    run(args.input, args.test)
+
+    run(args.model, args.input, args.test)

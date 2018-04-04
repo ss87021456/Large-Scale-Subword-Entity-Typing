@@ -123,18 +123,19 @@ def write_to_file(file, data):
             exit()
     print("File saved in {:s}".format(file))
 
-def split_data(data, n_slice):
+def split_data(data, n_slice, mode="TUPLE"):
     """
     Split data to minibatches with last batch may be larger or smaller.
 
     Arguments:
         data(ndarray): Array of data.
         n_slice(int): Number of slices to separate the data.
+        mode(str): ["TUPLE", "SINGLE"]
 
     Return:
         partitioned_data(list): List of list containing any type of data.
     """
-    n_data = len(data)
+    n_data = len(data) if type(data) is list else data.shape[0]
     # Slice data for each thread
     print(" - Slicing data for threading...")
     print(" - Total number of data: {0}".format(n_data))
@@ -146,7 +147,13 @@ def split_data(data, n_slice):
         # last slice may be larger or smaller
         idx_end = (itr + 1) * per_slice if itr != n_slice - 1 else None
         #
-        partitioned_data.append((itr, data[idx_begin:idx_end]))
+        if mode == "TUPLE":
+            partitioned_data.append((itr, data[idx_begin:idx_end]))
+        elif mode == "SINGLE":
+            partitioned_data.append(data[idx_begin:idx_end])
+        else:
+            print("Mode must be choice of [\"TUPLE\", \"SINGLE\"]")
+            return None
     #
     return partitioned_data
 
