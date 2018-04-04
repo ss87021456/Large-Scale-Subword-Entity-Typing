@@ -1,6 +1,7 @@
 import pandas as pd
 import numpy as np
 import argparse
+import pickle as pkl
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import MultiLabelBinarizer
 from sklearn.metrics import confusion_matrix, f1_score, precision_score, recall_score
@@ -13,7 +14,7 @@ from keras.layers import LSTM, Bidirectional, GlobalMaxPool1D, Dropout
 from keras.callbacks import EarlyStopping, ModelCheckpoint, Callback
 
 # CUDA_VISIBLE_DEVICES=6,7 python ./src/BLSTM_train.py --corpus=./data/smaller_preprocessed_sentence_keywords_labeled.tsv --pre=True --emb=./data/model.vec
-
+# CUDA_VISIBLE_DEVICES=6,7 python ./src/BLSTM_train.py --corpus=./data/smaller_preprocessed_sentence_keywords_labeled.tsv --pre=True --emb=./data/model.vec --evaluation
 
 # Feature-parameter
 MAX_NUM_WORDS = 30000
@@ -23,6 +24,42 @@ EMBEDDING_DIM = 100
 # Hyper-parameter
 batch_size = 64
 epochs = 5
+
+def split_data(data, n_slice):
+    """
+    Split data to minibatches with last batch may be larger or smaller.
+
+    Arguments:
+        data(ndarray): Array of data.
+        n_slice(int): Number of slices to separate the data.
+
+    Return:
+        partitioned_data(list): List of list containing any type of data.
+    """
+    # n_data = len(data)
+    n_data = data.shape[0]
+    # Slice data for each thread
+    print(" - Total number of data: {0}".format(n_data))
+    per_slice = int(n_data / n_slice)
+    partitioned_data = list()
+    for itr in range(n_slice):
+        # Generate indices for each slice
+        idx_begin = itr * per_slice
+        # last slice may be larger or smaller
+        idx_end = (itr + 1) * per_slice if itr != n_slice - 1 else None
+        #
+        partitioned_data.append(data[idx_begin:idx_end])
+    #
+    return partitioned_data
+
+def e_precision(y_true, y_pred):
+        comparison = np.equal(y_true, y_pred)
+        return np.mean(np.sum(y_pred * comparison, axis=1) / np.sum(y_pred, axis=1))
+
+def e_recall(y_true, y_pred):
+        comparison = np.equal(y_true, y_pred)
+        return np.mean(np.sum(y_true * comparison, axis=1) / np.sum(y_true, axis=1))
+
 
 class Metrics(Callback):
     def on_train_begin(self, logs={}):
@@ -44,12 +81,16 @@ class Metrics(Callback):
 
 def run(filename, pre=True, embedding=None, testing=0.1, evaluation=False):
     # filename = '../input/smaller_preprocessed_sentence_keywords_labeled.tsv'
-    print("Loading dataset..")
-    dataset = pd.read_csv(filename, sep='\t', names=['label','context'])
+    # print("Loading dataset..")
+    # dataset = pd.read_csv(filename, sep='\t', names=['label','context'])
 
-    X = dataset['context'].values[:]
+
+    
+    # X = dataset['context'].values[:]
+
+    '''
     y = dataset['label'].values[:]
-    total_amt = X.shape[0]
+    total_amt = y.shape[0]
     del dataset # cleanup the memory
 
     # Parsing the labels and convert to integer using comma as separetor
@@ -78,8 +119,11 @@ def run(filename, pre=True, embedding=None, testing=0.1, evaluation=False):
     te_amt = int(total_amt * testing)
     print("- Training Data: {:10d} ({:2.2f}%)".format(tr_amt, 100. * training))
     print("- Testing Data : {:10d} ({:2.2f}%)".format(te_amt, 100. * testing))
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=testing, random_state=None)
+    # X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=testing, random_state=None)
     # X_train = X[:tr_amt, :]
+    y_train = y[:tr_amt]
+    y_test = y[-tr_amt:]
+
 
     print("Tokenize sentences...")
     tokenizer = text.Tokenizer(num_words=MAX_NUM_WORDS)
@@ -90,7 +134,11 @@ def run(filename, pre=True, embedding=None, testing=0.1, evaluation=False):
     print("Padding sentences...")
     X_t = sequence.pad_sequences(list_tokenized_train, maxlen=MAX_SEQUENCE_LENGTH)
     X_te = sequence.pad_sequences(list_tokenized_test, maxlen=MAX_SEQUENCE_LENGTH)
-
+    '''
+    #mlb = pkl.load(open('./mlb.pkl', 'rb'))
+    #label_num = len(mlb.classes_)
+    label_num = 20276
+    tokenizer = pkl.load(open('./tokenizer.pkl', 'rb'))
     word_index = tokenizer.word_index
     if pre:
         print("Loading pre-trained embedding model...")
@@ -163,22 +211,50 @@ def run(filename, pre=True, embedding=None, testing=0.1, evaluation=False):
     callbacks_list = [checkpoint, early] #early
 
     if evaluation:
+        print("Loading testing data...")
+        X_test = pkl.load(open('./testing_data.pkl', 'rb'))
+        y_test = pkl.load(open('./testing_label.pkl', 'rb'))
         print("Loading trained weights for predicting...")
         model.load_weights(file_path)
     else:
+        print("Loading training data...")
+        X_train = pkl.load(open('./training_data.pkl', 'rb'))
+        y_train = pkl.load(open('./training_label.pkl', 'rb'))
         print("Begin training...")
         model.fit(X_t, y_train, batch_size=batch_size, epochs=epochs, validation_split=0.1, callbacks=callbacks_list)
-    
-    # y_pred = model.predict(X_te)
-    y_pred = model.predict(X_t)
-    print(list(y_pred[1, :]))
+        del X_train, y_train # clean up memory
+        print("Loading testing data...")
+        X_test = pkl.load(open('./testing_data.pkl', 'rb'))
+        y_test = pkl.load(open('./testing_label.pkl', 'rb'))
+
+    print("Predicting...")
+    y_pred = model.predict(X_test)
+    del X_test
+    # y_pred = model.predict(X_t)
+    # print(list(y_pred[1, :]))
     y_pred[y_pred >= 0.5] = 1.
     y_pred[y_pred < 0.5] = 0.
     # p = _precision(K.cast(y_test.toarray(), dtype='float32'), y_pred)
-    p = _precision(K.cast(y_train.toarray(), dtype='float32'), y_pred)
-    # r = _recall(K.cast(y_test.toarray(), dtype='float32'), y_pred)
-    r = _recall(K.cast(y_train.toarray(), dtype='float32'), y_pred)
-    print("Precision: {0} | Recall: {1}".format(100. * K.eval(p), 100. * K.eval(r)))
+    slice_len = 1000
+    #times = len(y_pred)/slice_len
+    print("Slicing...")
+    Y_pred = split_data(y_pred, slice_len)
+    Y_test = split_data(y_test, slice_len)
+    del y_pred, y_test
+    p_ = 0.
+    r_ = 0.
+    print("Calculate Precision Recall...")
+    go = 0
+    for (y_pred, y_test) in zip(Y_pred, Y_test):
+        print("Processing {0} / {1} ".format(go, slice_len))
+        go += 1
+        # Implement it using pure numpy method instead of Tensor...
+        p_ += e_precision(y_test.toarray(), y_pred)
+        r_ += e_recall(y_test.toarray(), y_pred)
+        del y_pred, y_test # clean up mem
+        #p = _precision(K.cast(y_test.toarray(), dtype='float32'), y_pred)
+        #r = _recall(K.cast(y_test.toarray(), dtype='float32'), y_pred)
+    print("Precision: {0} | Recall: {1}".format(100. * (p_/slice_len), 100. * (r_/slice_len)))
     # print(list(y_test.toarray()[0, :]))
     # print(list(y_pred[0, :]))
     print(np.sum(y_test.toarray()))
