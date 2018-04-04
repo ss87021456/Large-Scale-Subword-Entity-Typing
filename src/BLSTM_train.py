@@ -42,13 +42,13 @@ class Metrics(Callback):
         print(" — F1: {:f} — Precision: {:f} — Recall {:f}".format(_f1, _precision, _recall))
         return
 
-def run(filename, pre=True, embedding=None, testing=0.1):
+def run(filename, pre=True, embedding=None, testing=0.1, evaluation=False):
     # filename = '../input/smaller_preprocessed_sentence_keywords_labeled.tsv'
     print("Loading dataset..")
     dataset = pd.read_csv(filename, sep='\t', names=['label','context'])
 
-    X = dataset['context'].values[:90000]
-    y = dataset['label'].values[:90000]
+    X = dataset['context'].values[:]
+    y = dataset['label'].values[:]
     total_amt = X.shape[0]
     del dataset # cleanup the memory
 
@@ -161,10 +161,14 @@ def run(filename, pre=True, embedding=None, testing=0.1):
     # early = EarlyStopping(mode="min", patience=20)
     
     callbacks_list = [checkpoint, early] #early
-    print("Begin training...")
-    model.fit(X_t, y_train, batch_size=batch_size, epochs=epochs, validation_split=0.1, callbacks=callbacks_list)
+
+    if evaluation:
+        print("Loading trained weights for predicting...")
+        model.load_weights(file_path)
+    else:
+        print("Begin training...")
+        model.fit(X_t, y_train, batch_size=batch_size, epochs=epochs, validation_split=0.1, callbacks=callbacks_list)
     
-    #model.load_weights(file_path)
     # y_pred = model.predict(X_te)
     y_pred = model.predict(X_t)
     print(list(y_pred[1, :]))
@@ -191,8 +195,9 @@ if __name__ == '__main__':
     parser.add_argument("--corpus", help="Input training data.")
     parser.add_argument("--pre", type=bool, help="Use pretrained embedding Model or not")
     parser.add_argument("--emb", help="please provide pretrained Embedding Model.")
+    parser.add_argument("--evaluation", action="store_true", help="Evaluation mode.")
     parser.add_argument("--test", nargs='?', const=0.1, type=float, default=0.1,
                         help="Specify the portion of the testing data to be split.\
                         [Default: 10\% of the entire dataset]")
     args = parser.parse_args()
-    run(args.corpus, args.pre, args.emb, args.test)
+    run(args.corpus, args.pre, args.emb, args.test, args.evaluation)
