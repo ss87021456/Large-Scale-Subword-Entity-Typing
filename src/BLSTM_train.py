@@ -22,7 +22,7 @@ EMBEDDING_DIM = 100
 
 # Hyper-parameter
 batch_size = 64
-epochs = 2
+epochs = 5
 
 class Metrics(Callback):
     def on_train_begin(self, logs={}):
@@ -47,8 +47,8 @@ def run(filename, pre=True, embedding=None, testing=0.1):
     print("Loading dataset..")
     dataset = pd.read_csv(filename, sep='\t', names=['label','context'])
 
-    X = dataset['context'].values[:]
-    y = dataset['label'].values[:]
+    X = dataset['context'].values[:90000]
+    y = dataset['label'].values[:90000]
     total_amt = X.shape[0]
     del dataset # cleanup the memory
 
@@ -66,25 +66,31 @@ def run(filename, pre=True, embedding=None, testing=0.1):
     print("Binarizering labels..")
     mlb = MultiLabelBinarizer(sparse_output=True)
     y = mlb.fit_transform(temp)
-    print(y.shape, y[:5])
+    # print(y.shape, y[:5])
     label_num = len(mlb.classes_)
     del temp
+    print(" - Total number of labels: {:10d}".format(y.shape[1]))
 
     # Spliting training and testing data
     print("Spliting the dataset:")
     training = 1. - testing
-    print("- Training Data: {:10d} ({:2.2f}%)".format(int(total_amt * training), 100. * training))
-    print("- Testing Data : {:10d} ({:2.2f}%)".format(int(total_amt * testing), 100. * testing))
+    tr_amt = int(total_amt * training)
+    te_amt = int(total_amt * testing)
+    print("- Training Data: {:10d} ({:2.2f}%)".format(tr_amt, 100. * training))
+    print("- Testing Data : {:10d} ({:2.2f}%)".format(te_amt, 100. * testing))
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=testing, random_state=None)
+    # X_train = X[:tr_amt, :]
 
     print("Tokenize sentences...")
     tokenizer = text.Tokenizer(num_words=MAX_NUM_WORDS)
     tokenizer.fit_on_texts(list(X_train))
     list_tokenized_train = tokenizer.texts_to_sequences(X_train)
+    list_tokenized_test = tokenizer.texts_to_sequences(X_test)
     # Padding sentences
     print("Padding sentences...")
     X_t = sequence.pad_sequences(list_tokenized_train, maxlen=MAX_SEQUENCE_LENGTH)
-    
+    X_te = sequence.pad_sequences(list_tokenized_test, maxlen=MAX_SEQUENCE_LENGTH)
+
     word_index = tokenizer.word_index
     if pre:
         print("Loading pre-trained embedding model...")
@@ -119,11 +125,11 @@ def run(filename, pre=True, embedding=None, testing=0.1):
         return
     def _precision(y_true, y_pred):
         comparison = K.cast(K.equal(y_true, y_pred), dtype='float32')
-        return K.sum(comparison) # K.sum(y_pred * comparison) / K.sum(y_pred)
+        return K.mean(K.sum(y_pred * comparison, axis=1) / K.sum(y_pred, axis=1))
 
     def _recall(y_true, y_pred):
         comparison = K.cast(K.equal(y_true, y_pred), dtype='float32')
-        return K.sum(y_true * comparison) / K.sum(y_true)
+        return K.mean(K.sum(y_true * comparison, axis=1) / K.sum(y_true, axis=1))
 
     def BLSTM():
         inp = Input(shape=(MAX_SEQUENCE_LENGTH, ))
@@ -148,20 +154,31 @@ def run(filename, pre=True, embedding=None, testing=0.1):
     print(model.summary())
     
     file_path="weights_base.best.hdf5"
-    # checkpoint = ModelCheckpoint(file_path, monitor='val_loss', verbose=1, save_best_only=True, mode='min')
-    checkpoint = ModelCheckpoint(file_path, verbose=1, save_best_only=True, mode='min')
+    checkpoint = ModelCheckpoint(file_path, monitor='val_loss', verbose=1, save_best_only=True, mode='min')
+    # checkpoint = ModelCheckpoint(file_path, verbose=1, save_best_only=True, mode='min')
     
-    # early = EarlyStopping(monitor="val_loss", mode="min", patience=20)
-    early = EarlyStopping(mode="min", patience=20)
+    early = EarlyStopping(monitor="val_loss", mode="min", patience=20)
+    # early = EarlyStopping(mode="min", patience=20)
     
     callbacks_list = [checkpoint, early] #early
     print("Begin training...")
     model.fit(X_t, y_train, batch_size=batch_size, epochs=epochs, validation_split=0.1, callbacks=callbacks_list)
     
     #model.load_weights(file_path)
-    
-    #y_test = model.predict(X_te)
-    
+    # y_pred = model.predict(X_te)
+    y_pred = model.predict(X_t)
+    print(list(y_pred[1, :]))
+    y_pred[y_pred >= 0.5] = 1.
+    y_pred[y_pred < 0.5] = 0.
+    # p = _precision(K.cast(y_test.toarray(), dtype='float32'), y_pred)
+    p = _precision(K.cast(y_train.toarray(), dtype='float32'), y_pred)
+    # r = _recall(K.cast(y_test.toarray(), dtype='float32'), y_pred)
+    r = _recall(K.cast(y_train.toarray(), dtype='float32'), y_pred)
+    print("Precision: {0} | Recall: {1}".format(100. * K.eval(p), 100. * K.eval(r)))
+    # print(list(y_test.toarray()[0, :]))
+    # print(list(y_pred[0, :]))
+    print(np.sum(y_test.toarray()))
+    print(np.sum(y_pred))
     ''' Evaluation
     y_test = model.predict(X_te)
     y_test[y_test>=0.5] = 1
