@@ -135,9 +135,8 @@ def run(filename, pre=True, embedding=None, testing=0.1, evaluation=False):
     X_t = sequence.pad_sequences(list_tokenized_train, maxlen=MAX_SEQUENCE_LENGTH)
     X_te = sequence.pad_sequences(list_tokenized_test, maxlen=MAX_SEQUENCE_LENGTH)
     '''
-    #mlb = pkl.load(open('./mlb.pkl', 'rb'))
-    #label_num = len(mlb.classes_)
-    label_num = 20276
+    mlb = pkl.load(open('./mlb.pkl', 'rb'))
+    label_num = len(mlb.classes_)
     tokenizer = pkl.load(open('./tokenizer.pkl', 'rb'))
     word_index = tokenizer.word_index
     if pre:
