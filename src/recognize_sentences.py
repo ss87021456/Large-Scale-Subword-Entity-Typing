@@ -35,12 +35,6 @@ def recognize_sentences(corpus, keywords_path, mode, split, validation, testing,
 
     # Merge the keywords
     keywords_file = "data/keywords.json"
-    """
-    print("Saving keywords to file...")
-    with open(keywords_file, 'w') as fp:
-        json.dump(entity, fp, sort_keys=True, indent=4)
-    print("File saved in {:s}".format(keywords_file))
-    """
     write_to_file(keywords_file, entity)
 
     # Load lines from corpus
@@ -83,7 +77,7 @@ if __name__ == '__main__':
                         help="The ratio of testing dataset when --split is given.")
     parser.add_argument("--output", help="Sentences with key words")
     parser.add_argument("--thread", type=int, help="Number of threads \
-                        to run, default: 2 * number_of_cores") 
+                        to run, default: 2 * number_of_cores")
     parser.add_argument("--label", action="store_true", \
                         help="Replace entity name with labels.")
 

@@ -43,6 +43,7 @@
         "MENTION": [
             "Amino Acid",
             "Peptide",
+            "",
             " Protein"
         ],
         "TYPE": [
@@ -196,6 +197,7 @@
         "MENTION": [
             "Body Part",
             "Organ",
+            "",
             " Organ Component"
         ],
         "TYPE": [
@@ -430,6 +432,7 @@
         "MENTION": [
             "Element",
             "Ion",
+            "",
             " Isotope"
         ],
         "TYPE": [
@@ -719,7 +722,9 @@
     "Indicator, Reagent, or Diagnostic Aid": {
         "MENTION": [
             "Indicat",
+            "",
             "Reagent",
+            "",
             " Diagnostic Aid"
         ],
         "TYPE": [
@@ -911,6 +916,7 @@
         "MENTION": [
             "Nucleic Acid",
             "Nucleoside",
+            "",
             " Nucleotide"
         ],
         "TYPE": [

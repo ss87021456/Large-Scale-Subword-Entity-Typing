@@ -195,6 +195,34 @@ def generic_threading(n_jobs, data, method, param=None, shared=False):
     print("All threads completed.")
     return result if not shared else None
 
+def multi_mentions(name):
+    """
+
+    Argument:
+        name(str):
+
+    Return:
+        synonym(list of str): List of all synonyms.
+    """
+    synonym = None
+    # A, B, or C
+    if ", or " in name:
+        parsed = name.replace(" or", "")
+        synonym = parsed.split(", ")
+    # A or B
+    elif " or " in name:
+        synonym = name.split(" or ")
+    # A, B -> A, BA
+    # A, B, C -> A, BA, CBA
+    elif ", " in name:
+        parsed = name.split(", ")
+        synonym = [" ".join(reversed(parsed[: i + 1]))
+                   for i in range(len(parsed))]
+    # normal (no synonyms)
+    else:
+        synonym = [name]
+
+    return synonym
 
 def punctuation_cleanup(thread_idx, data, rules, mode):
     """
@@ -218,7 +246,6 @@ def punctuation_cleanup(thread_idx, data, rules, mode):
     ########### EXCEPTION HANDLING ########### (TO-BE-IMPELMENTED)
     # assert mode 
 
-    # global rules
     linewords = list()
     for article in tqdm(data, position=thread_idx, desc=desc):
     # for article in data:

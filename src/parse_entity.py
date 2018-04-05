@@ -4,28 +4,19 @@ import argparse
 import numpy as np
 import seaborn as sns
 import matplotlib.pyplot as plt
-from pprint import pprint
-from utils import write_to_file
+from utils import multi_mentions, write_to_file, vpprint, vprint
 from collections import Counter
 from itertools import chain
 from tqdm import tqdm
+from pprint import pprint
 
-
-
-# python src/parse_entity.py data/MeSH_type_hierarchy.txt --trim
-# python src/parse_entity.py data/UMLS_type_hierarchy.txt --trim
+# python src/parse_entity.py data/MeSH_type_hierarchy.txt --trim --threshold=3
+# python src/parse_entity.py data/UMLS_type_hierarchy.txt --trim --threshold=3
 
 
 def entity_parser(file, trim=True, threshold=2, verbose=False):
-
-    def vprint(msg):
-        if verbose:
-            print(msg)
-
-    def vpprint(msg):
-        if verbose:
-            pprint(msg)
-
+    """
+    """
     # parsing file
     with open(file, 'r') as f:
         dataset = f.read().splitlines()[1:]
@@ -37,18 +28,17 @@ def entity_parser(file, trim=True, threshold=2, verbose=False):
         temp = re.split(r"[\t]", data)
         keys.append(temp[0])
         value.append(temp[1])
-    print("Length of keys {:3d}".format(len(keys)))
+    print()
+    print("Number of nodes in the hierarchy: {:3d}".format(len(keys)))
 
     # initialize dictionary with keys as key and empty list as value
     entity = {k: [] for k in keys}
-    print("Start appending...")
+    print("Initializing hierarchy tree with indices...")
     total_len = len(keys)
     #
     leaf = list()
     depth = 0
     for idx, k in enumerate(keys):
-        if idx % 100 == 0:
-            vprint("step {:3d} / {:3d}".format(idx + 1, total_len))
         # Add root type
         entity[k].append(k[0])
         # hierarchy path
@@ -91,10 +81,8 @@ def entity_parser(file, trim=True, threshold=2, verbose=False):
             del leaf[:]
         else:
             continue
-    #
-    # vpprint(entity)
-    # exit()
 
+    print()
     print("Filling entity names...")
     # Filling the entity with there names according to the hierarchy
     for key in tqdm(entity):
@@ -135,6 +123,7 @@ def entity_parser(file, trim=True, threshold=2, verbose=False):
         """
         return list(np.unique(arr))
 
+    print()
     print("Replacing key names and merge duplicated names...")
     # check duplicated key
     for i in tqdm(range(len(keys))):
@@ -161,11 +150,11 @@ def entity_parser(file, trim=True, threshold=2, verbose=False):
         # Replace names
         else:
             entity[name] = entity.pop(keys[i])
-    # vpprint(entity)
     # Save
     save_name = file[:-4] + "_index.json"
     write_to_file(save_name, entity)
 
+    print()
     print("Generating leaf node file...")
     leaf_info = dict()
     # Output only leaf node dictionary
@@ -173,41 +162,21 @@ def entity_parser(file, trim=True, threshold=2, verbose=False):
     for entry in tqdm(entity):
         # print(entry)
         if type(entity[entry]) == dict:
-            # A, B, or C
-            if ", or " in entry:
-                deduced = entry.replace(" or", "")
-                A, B, C = deduced.split(", ")
-                leaf_info[A] = entity[entry]["TYPE"]
-                leaf_info[B] = entity[entry]["TYPE"]
-                leaf_info[C] = entity[entry]["TYPE"]
-                pass
-            # A or B
-            elif " or " in entry:
-                A, B = entry.split(" or ")
-                leaf_info[A] = entity[entry]["TYPE"]
-                leaf_info[B] = entity[entry]["TYPE"]
-                pass
-            # A, B -> A, BA
-            # A, B, C -> A, BA, CBA
-            elif ", " in entry:
-                word = entry.split(", ")
-                combination = [" ".join(reversed(word[: i + 1])) 
-                               for i in range(len(word))]
-                for itr in combination:
-                    leaf_info[itr] = entity[entry]["TYPE"]
-            # normal one
-            else:
-                leaf_info[entry] = entity[entry]["TYPE"]
+            synonym = multi_mentions(entry)
+            for itr in synonym:
+                leaf_info[itr] = entity[entry]["TYPE"]
         else:
             pass
-    # vpprint(leaf_info)
     # Save leaf node file
     write_to_file(leaf_name, leaf_info)
+
     # Trim the hierarchy tree
     if trim:
-        print("Trimming hierarchy trees...")
+        print()
+        print("Counting occurance of all labels...")
         all_types = list(leaf_info.values())
         all_types = list(chain.from_iterable(all_types))
+        n_org_labels = len(uni_list(all_types))
         occurance = dict(Counter(all_types))
         # pprint(occurance)
 
@@ -215,12 +184,18 @@ def entity_parser(file, trim=True, threshold=2, verbose=False):
         frequency = list(occurance.values())
         statistics = dict(Counter(frequency))
         n_total_types = sum(list(statistics.values()))
-        # pprint(statistics)
+        pprint(statistics)
 
-        x = list(statistics.keys())[:100]
+        x = list(statistics.keys())
         y = list(statistics.values())
-        y[99] = sum(y[99:])
-        y = y[:100]
+        # sort x, y
+        y = [y[itr] for itr in list(np.argsort(x))]
+        x = sorted(x)
+
+        if len(x) >= 100:
+            x = x[:100]
+            y[99] = sum(y[99:])
+            y = y[:100]
         # normalize
         total_labels = sum(y)
         y = [100. * itr / total_labels for itr in y]
@@ -234,26 +209,45 @@ def entity_parser(file, trim=True, threshold=2, verbose=False):
         # plt.show()
         img_name = "{0}_occurance.png".format(file[:-4])
         plt.savefig(img_name, dpi=300)
-        print("Statistics saved in {0}".format(img_name))
+        print(" - Statistics saved in {0}".format(img_name))
 
-        for itr_key, itr_val in occurance.items():
-            if itr_val < threshold:
-                del leaf_info[itr_key]
-        #
-        print("Trimmed labels from {0} to {1} with occurance threshold = {2}"
-              .format(n_total_types, len(all_types), threshold))
+        # Removing infrequent labels
+        print("Trimming infrequent labels in the hierarchy tree...")
+        # label_to_del = list()
+        trimmed_labels = list(leaf_info.values())
+        for itr_label, itr_occ in tqdm(occurance.items()):
+            if itr_occ < threshold:
+                vprint(" - Removing infrequent label: {0}".format(itr_label), verbose)
+                for idx in range(len(trimmed_labels)):
+                    if itr_label in trimmed_labels[idx]:
+                        trimmed_labels[idx].remove(itr_label)
+            # skip if occurance >= threshold
+            else:
+                pass
+        trimmed_leaf = dict(zip(leaf_info.keys(), trimmed_labels))
+        # Calculate some triming figures
+        n_trim_labels = len(uni_list(trimmed_labels))
+        reduced = (n_org_labels - n_trim_labels)
+        reduced_per = 100. * reduced / n_org_labels
+
+        print("Trimmed labels from {:8d} to {:8d} with occurance threshold = {:3d}"
+              .format(n_org_labels, n_trim_labels, threshold))
+        print(" - Reduced labels by {:2.2f}% ({:5d} labels)"
+              .format(reduced_per, reduced))
+
+        # Save trimmed labels to file
         trimmed = file[:-4] + "_trimmed.json"
-        write_to_file(trimmed, occurance)
+        write_to_file(trimmed, trimmed_leaf)
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("file", help="File to be parsed.")
-    parser.add_argument("-t", "--trim", action="store_true",
+    parser.add_argument("--trim", action="store_true",
                         help="Trim the hierarchy tree.")
     parser.add_argument("--threshold", nargs='?', type=int, default=2, 
-                        help="Threshold to filter infrequent types.")
-    parser.add_argument("-v", "--verbose", action="store_true",
+                        help="Occurance below threshold would be filtered out.")
+    parser.add_argument("--verbose", action="store_true",
                         help="Verbose output")
 
     args = parser.parse_args()
