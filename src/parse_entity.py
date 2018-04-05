@@ -1,216 +1,261 @@
 import re
-import pprint
 import json
-import numpy as np
 import argparse
+import numpy as np
+import seaborn as sns
+import matplotlib.pyplot as plt
+from pprint import pprint
+from utils import write_to_file
+from collections import Counter
+from itertools import chain
+from tqdm import tqdm
 
 
-def entity_parser(args):
+
+# python src/parse_entity.py data/MeSH_type_hierarchy.txt --trim
+# python src/parse_entity.py data/UMLS_type_hierarchy.txt --trim
+
+
+def entity_parser(file, trim=True, threshold=2, verbose=False):
 
     def vprint(msg):
-        if args.verbose:
+        if verbose:
             print(msg)
 
     def vpprint(msg):
-        if args.verbose:
-            pprint.pprint(msg)
+        if verbose:
+            pprint(msg)
 
     # parsing file
-    with open(args.file, 'r') as f:
+    with open(file, 'r') as f:
         dataset = f.read().splitlines()[1:]
 
-        keys = list()
-        value = list()
-        for data in dataset:
-            # split line: [hierarchy_index] [entity_name]
-            temp = re.split(r"[\t]", data)
-            keys.append(temp[0])
-            value.append(temp[1])
-        print("Length of keys {:3d}".format(len(keys)))
+    keys = list()
+    value = list()
+    for data in dataset:
+        # split line: [hierarchy_index] [entity_name]
+        temp = re.split(r"[\t]", data)
+        keys.append(temp[0])
+        value.append(temp[1])
+    print("Length of keys {:3d}".format(len(keys)))
 
-        # initialize dictionary with keys as key and empty list as value
-        entity = {k: [] for k in keys}
-        print("Start append...")
-        total_len = len(keys)
-        #
-        leaf = list()
-        depth = 0
-        for idx, k in enumerate(keys):
-            if idx % 100 == 0:
-                vprint("step {:3d} / {:3d}".format(idx + 1, total_len))
-            # Add root type
-            entity[k].append(k[0])
-            # hierarchy path
-            path = k.split('.')
-            # Append all indice along the path
-            entity[k] += ['.'.join(path[:i + 1]) for i in range(len(path))]
-            # Check leaf nodes
-            if depth < len(entity[k]):
-                # print(" - Update depth to {:d}".format(len(entity[k])))
-                for itr_leaf in leaf:
-                    if keys[itr_leaf] not in k:
-                        entity[keys[itr_leaf]].append('*')
-                    else:
-                        continue
-                # clear leaf list
-                del leaf[:]
-            # node of the same depth: just append to the leaf list
-            elif depth == len(entity[k]):
-                # print(" - Found same depth")
-                pass
-            # mark leaf nodes and clear leaf list
-            else:
-                # If the depth is larger than the current node
-                # all the nodes in the list must be leaves
-                # print(" - Leaves: {:s}".format([keys[i] for i in leaf]))
-                # add indicator to the node
-                for itr_leaf in leaf:
+    # initialize dictionary with keys as key and empty list as value
+    entity = {k: [] for k in keys}
+    print("Start appending...")
+    total_len = len(keys)
+    #
+    leaf = list()
+    depth = 0
+    for idx, k in enumerate(keys):
+        if idx % 100 == 0:
+            vprint("step {:3d} / {:3d}".format(idx + 1, total_len))
+        # Add root type
+        entity[k].append(k[0])
+        # hierarchy path
+        path = k.split('.')
+        # Append all indice along the path
+        entity[k] += ['.'.join(path[:i + 1]) for i in range(len(path))]
+        # Check leaf nodes
+        if depth < len(entity[k]):
+            # print(" - Update depth to {:d}".format(len(entity[k])))
+            for itr_leaf in leaf:
+                if keys[itr_leaf] not in k:
                     entity[keys[itr_leaf]].append('*')
-                # clear the leaf list
-                del leaf[:]
-            # update depth
-            depth = len(entity[k])
-            # add node to leaf list
-            leaf.append(idx)
-            # Final adjustment on last group of leaves
-            if k == keys[-1]:
-                for itr_leaf in leaf:
-                    entity[keys[itr_leaf]].append('*')
-                # Clear up the list
-                del leaf[:]
+                else:
+                    continue
+            # clear leaf list
+            del leaf[:]
+        # node of the same depth: just append to the leaf list
+        elif depth == len(entity[k]):
+            # print(" - Found same depth")
+            pass
+        # mark leaf nodes and clear leaf list
+        else:
+            # If the depth is larger than the current node
+            # all the nodes in the list must be leaves
+            # print(" - Leaves: {:s}".format([keys[i] for i in leaf]))
+            # add indicator to the node
+            for itr_leaf in leaf:
+                entity[keys[itr_leaf]].append('*')
+            # clear the leaf list
+            del leaf[:]
+        # update depth
+        depth = len(entity[k])
+        # add node to leaf list
+        leaf.append(idx)
+        # Final adjustment on last group of leaves
+        if k == keys[-1]:
+            for itr_leaf in leaf:
+                entity[keys[itr_leaf]].append('*')
+            # Clear up the list
+            del leaf[:]
+        else:
+            continue
+    #
+    # vpprint(entity)
+    # exit()
+
+    print("Filling entity names...")
+    # Filling the entity with there names according to the hierarchy
+    for key in tqdm(entity):
+        # Leaf node correspond to a entity
+        if entity[key][-1] == '*':
+            # copy the types
+            type_list = [value[keys.index(itr)]
+                         for itr in entity[key][:-1]]
+            # parsing the mentions (TBC)
+            mention = type_list[-1]
+            # print("{0}".format(mention))
+            if ", " in mention:
+                if ' or ' in mention:
+                    # mention = mention.replace('or', '')
+                    mention = mention.replace('or', ', ')
+                # synonym = mention.split(',')
+                mention = mention.split(', ')
+                # print("*** {0} ***".format(mention + synonym))
+            # no different mentions
             else:
-                continue
+                mention = [mention]
+                pass
+            # create a dictionary with types and mentions
+            entity[key] = {"TYPE": type_list, "MENTION": mention}
+            # print(mention)
+            pass
+        else:
+            for idx, element in enumerate(entity[key]):
+                # lookup the hierarchy index in the key list
+                # element: hierarchy index iterator
+                index = keys.index(element)
+                # fill in the names
+                entity[key][idx] = value[index]
+
+    def uni_list(arr):
+        """
+        Generate unique list
+        """
+        return list(np.unique(arr))
+
+    print("Replacing key names and merge duplicated names...")
+    # check duplicated key
+    for i in tqdm(range(len(keys))):
+        # Merge leaves
+        name = value[i]
+        if name in entity:
+            duplicate = entity.pop(keys[i])
+            # print(duplicate)
+            # print(entity[name])
+            #
+            if type(entity[name]) == dict:
+                if type(duplicate) == dict:
+                    entity[name]["TYPE"] += duplicate["TYPE"]
+                    entity[name]["MENTION"] += duplicate["MENTION"]
+                else:
+                    entity[name]["TYPE"] += duplicate
+                    # entity[name]["MENTION"] += duplicate
+                # convert to unique list
+                entity[name]["TYPE"] = uni_list(entity[name]["TYPE"])
+                entity[name]["MENTION"] = uni_list(entity[name]["MENTION"])
+            else:
+                entity[name] += duplicate
+                entity[name] = uni_list(entity[name])
+        # Replace names
+        else:
+            entity[name] = entity.pop(keys[i])
+    # vpprint(entity)
+    # Save
+    save_name = file[:-4] + "_index.json"
+    write_to_file(save_name, entity)
+
+    print("Generating leaf node file...")
+    leaf_info = dict()
+    # Output only leaf node dictionary
+    leaf_name = file[:-4] + "_leaf.json"
+    for entry in tqdm(entity):
+        # print(entry)
+        if type(entity[entry]) == dict:
+            # A, B, or C
+            if ", or " in entry:
+                deduced = entry.replace(" or", "")
+                A, B, C = deduced.split(", ")
+                leaf_info[A] = entity[entry]["TYPE"]
+                leaf_info[B] = entity[entry]["TYPE"]
+                leaf_info[C] = entity[entry]["TYPE"]
+                pass
+            # A or B
+            elif " or " in entry:
+                A, B = entry.split(" or ")
+                leaf_info[A] = entity[entry]["TYPE"]
+                leaf_info[B] = entity[entry]["TYPE"]
+                pass
+            # A, B -> A, BA
+            # A, B, C -> A, BA, CBA
+            elif ", " in entry:
+                word = entry.split(", ")
+                combination = [" ".join(reversed(word[: i + 1])) 
+                               for i in range(len(word))]
+                for itr in combination:
+                    leaf_info[itr] = entity[entry]["TYPE"]
+            # normal one
+            else:
+                leaf_info[entry] = entity[entry]["TYPE"]
+        else:
+            pass
+    # vpprint(leaf_info)
+    # Save leaf node file
+    write_to_file(leaf_name, leaf_info)
+    # Trim the hierarchy tree
+    if trim:
+        print("Trimming hierarchy trees...")
+        all_types = list(leaf_info.values())
+        all_types = list(chain.from_iterable(all_types))
+        occurance = dict(Counter(all_types))
+        # pprint(occurance)
+
+        # print("Type frequencies and their corresponding amount:")
+        frequency = list(occurance.values())
+        statistics = dict(Counter(frequency))
+        n_total_types = sum(list(statistics.values()))
+        # pprint(statistics)
+
+        x = list(statistics.keys())[:100]
+        y = list(statistics.values())
+        y[99] = sum(y[99:])
+        y = y[:100]
+        # normalize
+        total_labels = sum(y)
+        y = [100. * itr / total_labels for itr in y]
+        y = list(np.cumsum(y))
         #
-        vpprint(entity)
-        # exit()
+        plt.plot(x, y)
+        plt.title("Cumulative label occurances (Total: {0})".format(n_total_types))
+        plt.xlabel("Occurance (occurance > 100 are treated as 100)")
+        # plt.ylabel("# of labels")
+        plt.ylabel("Percentage of all labels(%)")
+        # plt.show()
+        img_name = "{0}_occurance.png".format(file[:-4])
+        plt.savefig(img_name, dpi=300)
+        print("Statistics saved in {0}".format(img_name))
 
-        print("Filling entity names...")
-        # Filling the entity with there names according to the hierarchy
-        for key in entity:
-            # Leaf node correspond to a entity
-            if entity[key][-1] == '*':
-                # copy the types
-                type_list = [value[keys.index(itr)]
-                             for itr in entity[key][:-1]]
-                # parsing the mentions (TBC)
-                mention = type_list[-1]
-                # print("{0}".format(mention))
-                if ", " in mention:
-                    if ' or ' in mention:
-                        # mention = mention.replace('or', '')
-                        mention = mention.replace('or', ', ')
-                    # synonym = mention.split(',')
-                    mention = mention.split(', ')
-                    # print("*** {0} ***".format(mention + synonym))
-                # no different mentions
-                else:
-                    mention = [mention]
-                    pass
-                # create a dictionary with types and mentions
-                entity[key] = {"TYPE": type_list, "MENTION": mention}
-                # print(mention)
-                pass
-            else:
-                for idx, element in enumerate(entity[key]):
-                    # lookup the hierarchy index in the key list
-                    # element: hierarchy index iterator
-                    index = keys.index(element)
-                    # fill in the names
-                    entity[key][idx] = value[index]
-
-        def uni_list(arr):
-            """
-            Generate unique list
-            """
-            return list(np.unique(arr))
-
-        save_name = args.file[:-4] + "_index.json"
-        print("Replacing key names and merge duplicated names...")
-        # check duplicated key
-        for i in range(len(keys)):
-            # Merge leaves
-            name = value[i]
-            if name in entity:
-                duplicate = entity.pop(keys[i])
-                print(duplicate)
-                print(entity[name])
-                #
-                if type(entity[name]) == dict:
-                    if type(duplicate) == dict:
-                        entity[name]["TYPE"] += duplicate["TYPE"]
-                        entity[name]["MENTION"] += duplicate["MENTION"]
-                    else:
-                        entity[name]["TYPE"] += duplicate
-                        # entity[name]["MENTION"] += duplicate
-                    # convert to unique list
-                    entity[name]["TYPE"] = uni_list(entity[name]["TYPE"])
-                    entity[name]["MENTION"] = uni_list(entity[name]["MENTION"])
-                else:
-                    entity[name] += duplicate
-                    entity[name] = uni_list(entity[name])
-            # Replace names
-            else:
-                entity[name] = entity.pop(keys[i])
-
-        vpprint(entity)
-        # Save
-        with open(save_name, 'w') as fp:
-            json.dump(entity, fp, sort_keys=True, indent=4)
-        print("File saved in {:s}".format(save_name))
-
-        leaf_info = dict()
-        print("Generating leaf node file...")
-        # Output only leaf node dictionary
-        leaf_name = args.file[:-4] + "_leaf.json"
-        for entry in entity:
-            print(entry)
-            if type(entity[entry]) == dict:
-                # A, B, or C
-                if ", or " in entry:
-                    deduced = entry.replace(" or", "")
-                    A, B, C = deduced.split(", ")
-                    leaf_info[A] = entity[entry]["TYPE"]
-                    leaf_info[B] = entity[entry]["TYPE"]
-                    leaf_info[C] = entity[entry]["TYPE"]
-                    pass
-                # A or B
-                elif " or " in entry:
-                    A, B = entry.split(" or ")
-                    leaf_info[A] = entity[entry]["TYPE"]
-                    leaf_info[B] = entity[entry]["TYPE"]
-                    pass
-                # A, B -> A, BA
-                # A, B, C -> A, BA, CBA
-                elif ", " in entry:
-                    word = entry.split(", ")
-                    combination = [" ".join(reversed(word[: i + 1])) 
-                                   for i in range(len(word))]
-                    for itr in combination:
-                        leaf_info[itr] = entity[entry]["TYPE"]
-                # normal one
-                else:
-                    leaf_info[entry] = entity[entry]["TYPE"]
-            else:
-                pass
-        vpprint(leaf_info)
-        # Save leaf node file
-        with open(leaf_name, 'w') as fp:
-            json.dump(leaf_info, fp, sort_keys=True, indent=4)
-        print("File saved in {:s}".format(leaf_name))
+        for itr_key, itr_val in occurance.items():
+            if itr_val < threshold:
+                del leaf_info[itr_key]
+        #
+        print("Trimmed labels from {0} to {1} with occurance threshold = {2}"
+              .format(n_total_types, len(all_types), threshold))
+        trimmed = file[:-4] + "_trimmed.json"
+        write_to_file(trimmed, occurance)
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("file", help="File to be parsed.")
-    parser.add_argument("-o", "--output", help="Output file name, postfix \
-                        \"_index\" would be added if this argument is not \
-                        given. [file_type: .json]")
-    parser.add_argument("-l", "--leaf", help="Output leaf node file name \
-                        \"\" would be added if this argument is not given \
-                        . [file_type: .json]")
+    parser.add_argument("-t", "--trim", action="store_true",
+                        help="Trim the hierarchy tree.")
+    parser.add_argument("--threshold", nargs='?', type=int, default=2, 
+                        help="Threshold to filter infrequent types.")
     parser.add_argument("-v", "--verbose", action="store_true",
                         help="Verbose output")
 
     args = parser.parse_args()
 
-    entity_parser(args)
+    entity_parser(args.file, args.trim, args.threshold, args.verbose)
