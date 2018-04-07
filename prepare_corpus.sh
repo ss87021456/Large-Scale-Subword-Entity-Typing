@@ -1,3 +1,8 @@
+# Prepare keyword
+echo "trimming out low frequent label in hierarchy tree"
+python src/parse_entity.py data/MeSH_type_hierarchy.txt --trim --threshold=3
+python src/parse_entity.py data/UMLS_type_hierarchy.txt --trim --threshold=3
+
 # Preliminary
 echo "Preliminary cleanup the corpus"
 python src/preliminary.py data/smaller.tsv src/refine_rules/preliminary.tsv --thread=10
