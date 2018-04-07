@@ -9,7 +9,7 @@ import os
 
 # python ./src/generate_data.py --input=./data/smaller_preprocessed_sentence_keywords_labeled.tsv
 
-# Feature-parameter
+# Feature-parameter..
 MAX_NUM_WORDS = 30000
 MAX_NUM_MENTION_WORDS = 20000
 MAX_SEQUENCE_LENGTH = 40

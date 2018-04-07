@@ -14,6 +14,7 @@ from keras.layers import Dense, Embedding, Input, concatenate
 from keras.layers import LSTM, Bidirectional, GlobalMaxPool1D, Dropout
 from keras.callbacks import EarlyStopping, ModelCheckpoint, Callback
 
+# haha
 # CUDA_VISIBLE_DEVICES=6,7 python ./src/BLSTM_train.py --corpus=./data/smaller_preprocessed_sentence_keywords_labeled.tsv --pre=False 
 # CUDA_VISIBLE_DEVICES=6,7 python ./src/BLSTM_train.py --corpus=./data/smaller_preprocessed_sentence_keywords_labeled.tsv --pre=True --emb=./data/model.vec
 # CUDA_VISIBLE_DEVICES=6,7 python ./src/BLSTM_train.py --corpus=./data/smaller_preprocessed_sentence_keywords_labeled.tsv --pre=True --emb=./data/model.vec --evaluation
