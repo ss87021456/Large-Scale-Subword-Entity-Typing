@@ -134,11 +134,12 @@
         "Carbohydrate Sequence"
     ],
     "Cell": [
-        "Entity",
-        "Physical Object",
-        "Anatomical Structure",
-        "Fully Formed Anatomical Structure",
-        "Cell"
+        "Event",
+        "Phenomenon or Process",
+        "Natural Phenomenon or Process",
+        "Biologic Function",
+        "Pathologic Function",
+        "Cell or Molecular Dysfunction"
     ],
     "Cell Component": [
         "Entity",

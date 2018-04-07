@@ -1,5 +1,6 @@
 import argparse
 import nltk.data
+from tqdm import tqdm
 from utils import readlines, write_to_file, generic_threading
 
 # python parse_sentence.py data/smaller_preprocessed.tsv --thread=10

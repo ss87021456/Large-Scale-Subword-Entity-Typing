@@ -58,8 +58,6 @@ def run(model_dir, input, testing):
     print("- Testing Data : {:10d} ({:2.2f}%)".format(te_amt, 100. * testing))
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=testing, random_state=None)
     
-    #X_train = X[:tr_amt]
-    #X_test = X[-tr_amt:]
     
     print("Tokenize sentences...")
     tokenizer = text.Tokenizer(num_words=MAX_NUM_WORDS)

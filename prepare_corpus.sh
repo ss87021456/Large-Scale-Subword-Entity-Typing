@@ -4,7 +4,7 @@ python src/preliminary.py data/smaller.tsv src/refine_rules/preliminary.tsv --th
 
 # Parse sentences
 echo "Parse and split the sentences in the corpus"
-python parse_sentence.py data/smaller_preprocessed.tsv --thread=10
+python src/parse_sentence.py data/smaller_preprocessed.tsv --thread=10
 
 # Recognize sentences
 echo "Recognize all sentences in the corpus containing the mentions in given entity hierarchy tree"

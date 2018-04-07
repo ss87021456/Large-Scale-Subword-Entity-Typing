@@ -37,7 +37,7 @@ def e_precision(y_true, y_pred, mode="NORMAL"):
     elif mode == "INDEX":
         prec_list = list()
         for itr in range(y_pred.shape[0]):
-            indices, _ = np.where(y_pred[itr, :] == 1)
+            indices,  = np.where(y_pred[itr, :] == 1)
             # Assign 0. precision if no label is asserted
             if indices.size == 0:
                 prec_list.append(0.)
@@ -58,7 +58,7 @@ def e_recall(y_true, y_pred, mode="NORMAL"):
     elif mode == "INDEX":
         recall_list = list()
         for itr in range(y_true.shape[0]):
-            indices, _ = np.where(y_true[itr, :] == 1)
+            indices,  = np.where(y_true[itr, :] == 1)
             # Assign 0. precision if no label is asserted
             if indices.size == 0:
                 recall_list.append(0.)
@@ -87,61 +87,6 @@ class Metrics(Callback):
         return
 
 def run(model_dir, filename, pre=True, embedding=None, testing=0.1, evaluation=False):
-    # filename = '../input/smaller_preprocessed_sentence_keywords_labeled.tsv'
-    # print("Loading dataset..")
-    # dataset = pd.read_csv(filename, sep='\t', names=['label','context'])
-
-
-    
-    # X = dataset['context'].values[:]
-
-    '''
-    y = dataset['label'].values[:]
-    total_amt = y.shape[0]
-    del dataset # cleanup the memory
-
-    # Parsing the labels and convert to integer using comma as separetor
-    print("Creating MultiLabel..")
-    temp = list()
-    for element in y:
-        values = element.split(',')
-        values = list(map(int, values))
-        temp.append(values)
-    # Convert to np.array
-    temp = np.array(temp)
-
-    # Binarizer the labels
-    print("Binarizering labels..")
-    mlb = MultiLabelBinarizer(sparse_output=True)
-    y = mlb.fit_transform(temp)
-    # print(y.shape, y[:5])
-    label_num = len(mlb.classes_)
-    del temp
-    print(" - Total number of labels: {:10d}".format(y.shape[1]))
-
-    # Spliting training and testing data
-    print("Spliting the dataset:")
-    training = 1. - testing
-    tr_amt = int(total_amt * training)
-    te_amt = int(total_amt * testing)
-    print("- Training Data: {:10d} ({:2.2f}%)".format(tr_amt, 100. * training))
-    print("- Testing Data : {:10d} ({:2.2f}%)".format(te_amt, 100. * testing))
-    # X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=testing, random_state=None)
-    # X_train = X[:tr_amt, :]
-    y_train = y[:tr_amt]
-    y_test = y[-tr_amt:]
-
-
-    print("Tokenize sentences...")
-    tokenizer = text.Tokenizer(num_words=MAX_NUM_WORDS)
-    tokenizer.fit_on_texts(list(X_train))
-    list_tokenized_train = tokenizer.texts_to_sequences(X_train)
-    list_tokenized_test = tokenizer.texts_to_sequences(X_test)
-    # Padding sentences
-    print("Padding sentences...")
-    X_t = sequence.pad_sequences(list_tokenized_train, maxlen=MAX_SEQUENCE_LENGTH)
-    X_te = sequence.pad_sequences(list_tokenized_test, maxlen=MAX_SEQUENCE_LENGTH)
-    '''
     # Parse directory name
     if not model_dir.endswith("/"):
         model_dir += "/"
