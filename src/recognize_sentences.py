@@ -10,7 +10,7 @@ from utils import write_to_file, keyword_in_sentences, readlines, generic_thread
 # python src/recognize_sentences.py data/smaller_preprocessed_sentence.txt data/ --thread=10
 
 def recognize_sentences(corpus, keywords_path, mode, split, validation, testing,
-                        label=False, output=None, thread=None):
+                        trim=True, label=False, output=None, thread=None):
     """
     Arguments:
         corpus(str): Path to the corpus file.
@@ -26,9 +26,13 @@ def recognize_sentences(corpus, keywords_path, mode, split, validation, testing,
     # *** TO BE REVISED ***
     if not keywords_path.endswith("/"):
         keywords_path += "/"
-    files = [itr for itr in os.listdir(keywords_path) if itr.endswith("_leaf.json")]
-    # Open and merge all dictionaries
+    # 
+    label_type = "_trimmed.json" if trim else "_leaf.json"
+    files = [itr for itr in os.listdir(keywords_path) if itr.endswith(label_type)]
+    # Load and merge all dictionaries
     print("Loading keywords from {:d} dictionaries".format(len(files)))
+    for itr in files:
+        print("- {:s}".format(itr))
     entity = dict()
     for itr in files:
         entity.update(json.load(open(keywords_path + itr, "r")))
@@ -78,11 +82,13 @@ if __name__ == '__main__':
     parser.add_argument("--output", help="Sentences with key words")
     parser.add_argument("--thread", type=int, help="Number of threads \
                         to run, default: 2 * number_of_cores")
-    parser.add_argument("--label", action="store_true", \
+    parser.add_argument("--label", action="store_true",
                         help="Replace entity name with labels.")
+    parser.add_argument("--trim", action="store_true", 
+                        help="Use trimmed hierarchy tree labels.")
 
     args = parser.parse_args()
 
     recognize_sentences(args.corpus, args.keywords_path, args.mode, args.split,
-                        args.validation, args.testing, args.label, args.output,
-                        args.thread)
+                        args.validation, args.testing, args.trim, args.label,
+                        args.output, args.thread)
