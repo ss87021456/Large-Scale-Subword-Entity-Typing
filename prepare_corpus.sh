@@ -17,4 +17,5 @@ python src/recognize_sentences.py data/smaller_preprocessed_sentence.txt data/ -
 
 # add labels to the dataset
 echo "Adding labels to the dataset"
+python src/label.py data/keywords.json
 python src/label.py data/keywords.json --labels=data/label.json --replace --corpus=data/smaller_preprocessed_sentence_keywords.tsv --thread=10

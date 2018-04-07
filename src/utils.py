@@ -426,5 +426,5 @@ def keywords_as_labels(thread_idx, data, keywords, labels, mode=None):
             replace = [str(labels[itr]) for itr in mentions]
         # append to the result list
         #result.append( " , ".join(replace) + " " + sentence) # FastText classification form
-        result.append( ",".join(replace) + "\t" + sentence) # normal form
+        result.append( ",".join(replace) + "\t" + sentence + "\t" + mentions[0]) # label \t sentence \t mention
     return result
