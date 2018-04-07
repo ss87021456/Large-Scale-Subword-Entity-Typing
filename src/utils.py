@@ -363,36 +363,44 @@ def keyword_in_sentences(thread_idx, data, keywords, mode="SINGLE"):
     found, found_sentence = None, None
     #
     for line in tqdm(data, position=thread_idx, desc=desc):
-        # split words
+        # split sentences into word-level
         words = nltk.word_tokenize(line)
-        len_sentence = len(words)
-        found_keyword = list()
-        found_sentence = False
 
         ### TO-BE-REVISED ###
-        # Faster partial matching using "in" and tokenization together
-
         # Conduct preliminary partial matching for keywords
-        set_found_keyword = list()
+        # Create a subset of keywords that partially matched.
+        found_keyword = list()
+        found_sentence = False
+        partial_matched = list()
         for itr in keywords:
-            # Append condidate to the list
+            # Append candidate to the list
             if itr.lower() in line.lower():
-                set_found_keyword.append(itr)
+                partial_matched.append(itr)
 
-        for itr in set_found_keyword:
+        # Complete keyword matching on partial matched keywords
+        # Length of the sentence of interest
+        len_sentence = len(words)
+        # Use sliding windows according to the keyword size
+        for itr in partial_matched:
             found_word = None
+            # Sliding window size = number of words in the keyword
             len_window = len(itr.split())
+            # Slide the window through the entire sentence
             for begin in range(len_sentence - len_window):
+                # Reconstruct the sentence for matching keywords
                 tmp = " ".join(words[begin:begin + len_window])
+                # Matched if the window contains the keyword
                 if tmp.lower() == itr.lower():
                     found_word, found_sentence = True, True
                     found_keyword.append(itr)
+                    # Next keyword
                     break
                 else:
                     pass
             if mode == "SINGLE" and found_word:
                 break
 
+        # Remove duplicate matching
         if found_sentence:
             found_keyword = list(np.unique(found_keyword))
             result.append(line + "\t" + "\t".join(found_keyword))

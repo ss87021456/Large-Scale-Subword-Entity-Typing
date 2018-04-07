@@ -184,7 +184,7 @@ def entity_parser(file, trim=True, threshold=2, verbose=False):
         frequency = list(occurance.values())
         statistics = dict(Counter(frequency))
         n_total_types = sum(list(statistics.values()))
-        pprint(statistics)
+        # pprint(statistics)
 
         x = list(statistics.keys())
         y = list(statistics.values())
