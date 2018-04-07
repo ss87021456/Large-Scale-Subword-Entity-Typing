@@ -10,16 +10,19 @@ from fastText_model import fastText # pretrain-model
 from keras.preprocessing import text, sequence
 from keras import backend as K
 from keras.models import Model
-from keras.layers import Dense, Embedding, Input
+from keras.layers import Dense, Embedding, Input, concatenate
 from keras.layers import LSTM, Bidirectional, GlobalMaxPool1D, Dropout
 from keras.callbacks import EarlyStopping, ModelCheckpoint, Callback
 
+# CUDA_VISIBLE_DEVICES=6,7 python ./src/BLSTM_train.py --corpus=./data/smaller_preprocessed_sentence_keywords_labeled.tsv --pre=False 
 # CUDA_VISIBLE_DEVICES=6,7 python ./src/BLSTM_train.py --corpus=./data/smaller_preprocessed_sentence_keywords_labeled.tsv --pre=True --emb=./data/model.vec
 # CUDA_VISIBLE_DEVICES=6,7 python ./src/BLSTM_train.py --corpus=./data/smaller_preprocessed_sentence_keywords_labeled.tsv --pre=True --emb=./data/model.vec --evaluation
 
 # Feature-parameter
 MAX_NUM_WORDS = 30000
+MAX_NUM_MENTION_WORDS = 20000
 MAX_SEQUENCE_LENGTH = 40
+MAX_MENTION_LENGTH = 5
 EMBEDDING_DIM = 100
 
 # Hyper-parameter
@@ -120,7 +123,7 @@ def run(model_dir, filename, pre=True, embedding=None, testing=0.1, evaluation=F
                                     input_length=MAX_SEQUENCE_LENGTH,
                                     trainable=True)
     else:
-        embedding_layer = Embedding(num_words,
+        embedding_layer = Embedding(MAX_NUM_WORDS,
                                     EMBEDDING_DIM,
                                     input_length=MAX_SEQUENCE_LENGTH,
                                     )
@@ -136,15 +139,24 @@ def run(model_dir, filename, pre=True, embedding=None, testing=0.1, evaluation=F
         return K.mean(K.sum(y_true * comparison, axis=1) / K.sum(y_true, axis=1))
 
     def BLSTM():
-        inp = Input(shape=(MAX_SEQUENCE_LENGTH, ))
-        x = embedding_layer(inp)
+        sentence = Input(shape=(MAX_SEQUENCE_LENGTH, ), name='sentence')        
+        x = embedding_layer(sentence)
         x = Bidirectional(LSTM(50, return_sequences=True))(x)
         x = GlobalMaxPool1D()(x)
+
+        mention = Input(shape=(MAX_MENTION_LENGTH, ), name='mention')
+        x_2 = Embedding(MAX_NUM_MENTION_WORDS,
+                            EMBEDDING_DIM,
+                            input_length=MAX_MENTION_LENGTH)(mention)
+        x_2 = Bidirectional(LSTM(50, return_sequences=True))(x_2)
+        x_2 = GlobalMaxPool1D()(x_2)
+
+        x = concatenate([x, x_2])
         x = Dropout(0.1)(x)
-        x = Dense(50, activation="relu")(x)
+        x = Dense(200, activation="relu")(x)
         x = Dropout(0.1)(x)
         x = Dense(label_num, activation="sigmoid")(x)
-        model = Model(inputs=inp, outputs=x)
+        model = Model(inputs=[sentence, mention], outputs=x)
         model.compile(loss='binary_crossentropy',
                       optimizer='adam',
                       metrics=[_precision, _recall])
@@ -169,29 +181,31 @@ def run(model_dir, filename, pre=True, embedding=None, testing=0.1, evaluation=F
     if evaluation:
         print("Loading testing data...")
         X_test = pkl.load(open(model_dir + "testing_data.pkl", 'rb'))
+        X_test_mention = pkl.load(open(model_dir + "testing_mention.pkl", 'rb'))
         y_test = pkl.load(open(model_dir + "testing_label.pkl", 'rb'))
         print("Loading trained weights for predicting...")
         model.load_weights(file_path)
     else:
         print("Loading training data...")
         X_train = pkl.load(open(model_dir + "training_data.pkl", 'rb'))
+        X_train_mention = pkl.load(open(model_dir + "training_mention.pkl", 'rb'))
         y_train = pkl.load(open(model_dir + "training_label.pkl", 'rb'))
         print("Begin training...")
-        model.fit(X_t, y_train, batch_size=batch_size, epochs=epochs, validation_split=0.1, callbacks=callbacks_list)
+        model.fit([X_train, X_train_mention], y_train, batch_size=batch_size, epochs=epochs, validation_split=0.1, callbacks=callbacks_list)
         del X_train, y_train # clean up memory
         print("Loading testing data...")
         X_test = pkl.load(open(model_dir + "testing_data.pkl", 'rb'))
         y_test = pkl.load(open(model_dir + "testing_label.pkl", 'rb'))
 
     print("Predicting...")
-    y_pred = model.predict(X_test)
+    y_pred = model.predict([X_test, X_test_mention])
     del X_test
     # y_pred = model.predict(X_t)
     # print(list(y_pred[1, :]))
     y_pred[y_pred >= 0.5] = 1.
     y_pred[y_pred < 0.5] = 0.
     # p = _precision(K.cast(y_test.toarray(), dtype='float32'), y_pred)
-    slice_len = 1000
+    slice_len = 100
     #times = len(y_pred)/slice_len
     print("Slicing...")
     Y_pred = split_data(y_pred, slice_len, mode="SINGLE")
