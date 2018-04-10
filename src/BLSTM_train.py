@@ -1,11 +1,12 @@
 import pandas as pd
 import numpy as np
+from scipy import sparse
 import argparse
 import pickle as pkl
 from utils import split_data
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import MultiLabelBinarizer
-from sklearn.metrics import confusion_matrix, f1_score, precision_score, recall_score
+from sklearn.metrics import precision_recall_fscore_support 
 from fastText_model import fastText # pretrain-model
 from keras.preprocessing import text, sequence
 from keras import backend as K
@@ -14,8 +15,11 @@ from keras.layers import Dense, Embedding, Input, concatenate
 from keras.layers import LSTM, Bidirectional, GlobalMaxPool1D, Dropout
 from keras.callbacks import EarlyStopping, ModelCheckpoint, Callback
 
-# haha
+# w/o pretrain
 # CUDA_VISIBLE_DEVICES=6,7 python ./src/BLSTM_train.py --corpus=./data/smaller_preprocessed_sentence_keywords_labeled.tsv --pre=False 
+# CUDA_VISIBLE_DEVICES=6,7 python ./src/BLSTM_train.py --corpus=./data/smaller_preprocessed_sentence_keywords_labeled.tsv --pre=False --evaluation
+
+# w/ pretrain
 # CUDA_VISIBLE_DEVICES=6,7 python ./src/BLSTM_train.py --corpus=./data/smaller_preprocessed_sentence_keywords_labeled.tsv --pre=True --emb=./data/model.vec
 # CUDA_VISIBLE_DEVICES=6,7 python ./src/BLSTM_train.py --corpus=./data/smaller_preprocessed_sentence_keywords_labeled.tsv --pre=True --emb=./data/model.vec --evaluation
 
@@ -167,13 +171,10 @@ def run(model_dir, filename, pre=True, embedding=None, testing=0.1, evaluation=F
     # Building Model
     print("Building computational graph...")
     model = BLSTM()
-    # metrics = Metrics()
     print(model.summary())
     
     file_path="weights_base.best.hdf5"
     checkpoint = ModelCheckpoint(file_path, monitor='val_loss', verbose=1, save_best_only=True, mode='min')
-    # checkpoint = ModelCheckpoint(file_path, verbose=1, save_best_only=True, mode='min')
-    
     early = EarlyStopping(monitor="val_loss", mode="min", patience=20)
     # early = EarlyStopping(mode="min", patience=20)
     
@@ -197,44 +198,21 @@ def run(model_dir, filename, pre=True, embedding=None, testing=0.1, evaluation=F
         print("Loading testing data...")
         X_test = pkl.load(open(model_dir + "testing_data.pkl", 'rb'))
         y_test = pkl.load(open(model_dir + "testing_label.pkl", 'rb'))
+        X_test_mention = pkl.load(open(model_dir + "testing_mention.pkl", 'rb'))
 
     print("Predicting...")
     y_pred = model.predict([X_test, X_test_mention])
     del X_test
-    # y_pred = model.predict(X_t)
-    # print(list(y_pred[1, :]))
+
     y_pred[y_pred >= 0.5] = 1.
     y_pred[y_pred < 0.5] = 0.
-    # p = _precision(K.cast(y_test.toarray(), dtype='float32'), y_pred)
-    slice_len = 100
-    #times = len(y_pred)/slice_len
-    print("Slicing...")
-    Y_pred = split_data(y_pred, slice_len, mode="SINGLE")
-    Y_test = split_data(y_test, slice_len, mode="SINGLE")
-    del y_pred, y_test
-    p_ = 0.
-    r_ = 0.
-    print("Calculate Precision Recall...")
-    go = 0
-    for (y_pred, y_test) in zip(Y_pred, Y_test):
-        print("Processing {0} / {1} ".format(go, slice_len))
-        go += 1
-        # Implement it using pure numpy method instead of Tensor...
-        p_ += e_precision(y_test.toarray(), y_pred, mode="INDEX")
-        r_ += e_recall(y_test.toarray(), y_pred, mode="INDEX")
-        del y_pred, y_test # clean up mem
-        #p = _precision(K.cast(y_test.toarray(), dtype='float32'), y_pred)
-        #r = _recall(K.cast(y_test.toarray(), dtype='float32'), y_pred)
-    print("Precision: {0} | Recall: {1}".format(100. * (p_/slice_len), 100. * (r_/slice_len)))
-    # print(list(y_test.toarray()[0, :]))
-    # print(list(y_pred[0, :]))
-    print(np.sum(y_test.toarray()))
-    print(np.sum(y_pred))
-    ''' Evaluation
-    y_test = model.predict(X_te)
-    y_test[y_test>=0.5] = 1
-    y_test[y_test<0.5] = 0
-    '''
+    y_pred = sparse.csr_matrix(y_pred)
+
+    eval_types = ['micro','macro','weighted']
+    for eval_type in eval_types:
+        p, r, f, _ = precision_recall_fscore_support(y_test, y_pred, average=eval_type)
+        print("[{}] Precision: {:3.3f} | Recall: {:3.3f} | F-1: {:3.3f}".format(eval_type, p, r, f))
+
     K.clear_session()
 
 if __name__ == '__main__':

@@ -4,7 +4,7 @@ import json
 from pprint import pprint
 from tqdm import tqdm
 from itertools import chain
-from utils import write_to_file, keyword_in_sentences, readlines, generic_threading
+from utils import write_to_file, keyword_in_sentences, readlines, generic_threading, merge_dict
 
 
 # python src/recognize_sentences.py data/smaller_preprocessed_sentence.txt data/ --thread=10
@@ -22,24 +22,7 @@ def recognize_sentences(corpus, keywords_path, mode, split, validation, testing,
     if output is None:
         output = corpus[:-4] + "_keywords.tsv"
 
-    # Fetch all dictionaries names
-    # *** TO BE REVISED ***
-    if not keywords_path.endswith("/"):
-        keywords_path += "/"
-    # 
-    label_type = "_trimmed.json" if trim else "_leaf.json"
-    files = [itr for itr in os.listdir(keywords_path) if itr.endswith(label_type)]
-    # Load and merge all dictionaries
-    print("Loading keywords from {:d} dictionaries".format(len(files)))
-    for itr in files:
-        print("- {:s}".format(itr))
-    entity = dict()
-    for itr in files:
-        entity.update(json.load(open(keywords_path + itr, "r")))
-
-    # Merge the keywords
-    keywords_file = "data/keywords.json"
-    write_to_file(keywords_file, entity)
+    entity = merge_dict(keywords_path, trim)
 
     # Load lines from corpus
     raw_data = readlines(corpus, limit=None)

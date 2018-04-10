@@ -3,16 +3,16 @@ import json
 import numpy as np
 from itertools import chain
 from sklearn.preprocessing import LabelEncoder
-from utils import write_to_file, readlines, generic_threading, keywords_as_labels
+from utils import write_to_file, readlines, generic_threading, keywords_as_labels, merge_dict
 
 
-# python src/label.py data/keywords.json
-# python src/label.py data/keywords.json --labels=data/label.json --replace --corpus=data/smaller_preprocessed_sentence_keywords.tsv --thread=10
+# python src/label.py data/ --as_dict
+# python src/label.py data/ --labels=data/label.json --replace --corpus=data/smaller_preprocessed_sentence_keywords.tsv --thread=10
 
 def fit_encoder(keywords, model=None, output=None, as_dict=False):
     """
     Arguments:
-        keywords(str): Path to keywords dictionary.
+        keywords(str): Path to directory of keywords dictionary.
         one_hot(bool): Use one-hot encoding.
         model(str): Label Encoder save filename.
         output(str): Path to the output file.
@@ -25,7 +25,8 @@ def fit_encoder(keywords, model=None, output=None, as_dict=False):
 
     # Load keywords
     print("Loading keywords from file: {:s}".format(keywords))
-    contents = json.load(open(keywords, "r"))
+    contents = merge_dict(keywords)
+    # contents = json.load(open(keywords, "r"))
     print("{0} keywords are loaded".format(len(contents)))
 
     # Unique the mentions
@@ -70,7 +71,8 @@ def replace_labels(keywords, labels, output, replace, corpus, thread):
         output = corpus[:-4] + "_labeled.tsv"
     # Load keywords and labels
     print("Loading mentions dictionary from file: {:s}".format(keywords))
-    mentions = json.load(open(keywords, "r"))
+    #mentions = json.load(open(keywords, "r"))
+    mentions = merge_dict(keywords)
     print("{0} mentions are loaded".format(len(mentions)))
 
     print("Loading labels dictionary from file: {:s}".format(labels))
@@ -89,7 +91,7 @@ def replace_labels(keywords, labels, output, replace, corpus, thread):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument("keywords", help="Points to data/keywords.json")
+    parser.add_argument("keywords", help="Points to data/")
     parser.add_argument("--model", help="Output encoder name.")
     parser.add_argument("--output", help="Sentences with key words")
     parser.add_argument("-d", "--as_dict", action="store_true",

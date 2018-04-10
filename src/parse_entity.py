@@ -10,11 +10,11 @@ from itertools import chain
 from tqdm import tqdm
 from pprint import pprint
 
-# python src/parse_entity.py data/MeSH_type_hierarchy.txt --trim --threshold=3
-# python src/parse_entity.py data/UMLS_type_hierarchy.txt --trim --threshold=3
+# python src/parse_entity.py data/MeSH_type_hierarchy.txt --trim --threshold=1
+# python src/parse_entity.py data/UMLS_type_hierarchy.txt --trim --threshold=1
 
 
-def entity_parser(file, trim=True, threshold=2, verbose=False):
+def entity_parser(file, trim=True, threshold=2, plot=False, verbose=False):
     """
     """
     # parsing file
@@ -171,73 +171,82 @@ def entity_parser(file, trim=True, threshold=2, verbose=False):
     write_to_file(leaf_name, leaf_info)
 
     # Trim the hierarchy tree
-    if trim:
+    if trim and threshold > 0:
         print()
-        print("Counting occurance of all labels...")
+        print("Counting occurence of all labels...")
         all_types = list(leaf_info.values())
         all_types = list(chain.from_iterable(all_types))
         n_org_labels = len(uni_list(all_types))
-        occurance = dict(Counter(all_types))
-        # pprint(occurance)
+        occurence = dict(Counter(all_types))
+        # pprint(occurence)
 
-        # print("Type frequencies and their corresponding amount:")
-        frequency = list(occurance.values())
-        statistics = dict(Counter(frequency))
-        n_total_types = sum(list(statistics.values()))
-        # pprint(statistics)
+        if plot:
+            # print("Type frequencies and their corresponding amount:")
+            frequency = list(occurence.values())
+            statistics = dict(Counter(frequency))
+            n_total_types = sum(list(statistics.values()))
+            # pprint(statistics)
 
-        x = list(statistics.keys())
-        y = list(statistics.values())
-        # sort x, y
-        y = [y[itr] for itr in list(np.argsort(x))]
-        x = sorted(x)
+            x = list(statistics.keys())
+            y = list(statistics.values())
+            # sort x, y
+            y = [y[itr] for itr in list(np.argsort(x))]
+            x = sorted(x)
 
-        if len(x) >= 100:
-            x = x[:100]
-            y[99] = sum(y[99:])
-            y = y[:100]
-        # normalize
-        total_labels = sum(y)
-        y = [100. * itr / total_labels for itr in y]
-        y = list(np.cumsum(y))
-        #
-        plt.plot(x, y)
-        plt.title("Cumulative label occurances (Total: {0})".format(n_total_types))
-        plt.xlabel("Occurance (occurance > 100 are treated as 100)")
-        # plt.ylabel("# of labels")
-        plt.ylabel("Percentage of all labels(%)")
-        # plt.show()
-        img_name = "{0}_occurance.png".format(file[:-4])
-        plt.savefig(img_name, dpi=300)
-        print(" - Statistics saved in {0}".format(img_name))
+            if len(x) >= 100:
+                x = x[:100]
+                y[99] = sum(y[99:])
+                y = y[:100]
+            # normalize
+            total_labels = sum(y)
+            y = [100. * itr / total_labels for itr in y]
+            y = list(np.cumsum(y))
+            #
+            plt.plot(x, y)
+            plt.title("Cumulative label occurences (Total: {0})".format(n_total_types))
+            plt.xlabel("occurence (occurence > 100 are treated as 100)")
+            # plt.ylabel("# of labels")
+            plt.ylabel("Percentage of all labels(%)")
+            # plt.show()
+            img_name = "{0}_occurence.png".format(file[:-4])
+            plt.savefig(img_name, dpi=300)
+            print(" - Statistics saved in {0}".format(img_name))
 
         # Removing infrequent labels
-        print("Trimming infrequent labels in the hierarchy tree...")
+        print("Trimming infrequent labels with occurence threshold = {:3d}"
+              .format(threshold))
         # label_to_del = list()
+        a = 0
         trimmed_labels = list(leaf_info.values())
-        for itr_label, itr_occ in tqdm(occurance.items()):
-            if itr_occ < threshold:
-                vprint(" - Removing infrequent label: {0}".format(itr_label), verbose)
+        for itr_label, itr_occ in tqdm(occurence.items()):
+            if itr_occ <= threshold:
+                vprint(" - Removing infrequent label: {0} (occurence = {1})"
+                       .format(itr_label, itr_occ), verbose)
                 for idx in range(len(trimmed_labels)):
                     if itr_label in trimmed_labels[idx]:
+                        a += 1
                         trimmed_labels[idx].remove(itr_label)
-            # skip if occurance >= threshold
+            # skip if occurence > threshold
             else:
                 pass
         trimmed_leaf = dict(zip(leaf_info.keys(), trimmed_labels))
         # Calculate some triming figures
-        n_trim_labels = len(uni_list(trimmed_labels))
+        flatten_trim = list(chain.from_iterable(trimmed_labels))
+        n_trim_labels = len(uni_list(flatten_trim))
         reduced = (n_org_labels - n_trim_labels)
         reduced_per = 100. * reduced / n_org_labels
 
-        print("Trimmed labels from {:8d} to {:8d} with occurance threshold = {:3d}"
+        print("Trimmed labels from {:8d} to {:8d} (threshold = {:3d})"
               .format(n_org_labels, n_trim_labels, threshold))
         print(" - Reduced labels by {:2.2f}% ({:5d} labels)"
               .format(reduced_per, reduced))
+        print(a)
 
         # Save trimmed labels to file
         trimmed = file[:-4] + "_trimmed.json"
         write_to_file(trimmed, trimmed_leaf)
+    else:
+        print("Threshold = 0, no trimming.")
 
 
 if __name__ == '__main__':
@@ -246,10 +255,12 @@ if __name__ == '__main__':
     parser.add_argument("--trim", action="store_true",
                         help="Trim the hierarchy tree.")
     parser.add_argument("--threshold", nargs='?', type=int, default=2, 
-                        help="Occurance below threshold would be filtered out.")
+                        help="occurence below threshold would be filtered out.")
     parser.add_argument("--verbose", action="store_true",
                         help="Verbose output")
+    parser.add_argument("--plot", action="store_true", 
+                        help="Plot statistics if the argument is given.")
 
     args = parser.parse_args()
 
-    entity_parser(args.file, args.trim, args.threshold, args.verbose)
+    entity_parser(args.file, args.trim, args.threshold, args.plot, args.verbose)

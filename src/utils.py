@@ -3,6 +3,7 @@ import re
 import random
 import nltk
 import multiprocessing
+import os
 import numpy as np
 from multiprocessing import Pool, cpu_count
 from pprint import pprint
@@ -436,3 +437,25 @@ def keywords_as_labels(thread_idx, data, keywords, labels, mode=None):
         #result.append( " , ".join(replace) + " " + sentence) # FastText classification form
         result.append( ",".join(replace) + "\t" + sentence + "\t" + mentions[0]) # label \t sentence \t mention
     return result
+
+def merge_dict(keywords_path, trim=True):
+    # Fetch all dictionaries names
+    # *** TO BE REVISED ***
+    if not keywords_path.endswith("/"):
+        keywords_path += "/"
+    # 
+    label_type = "_trimmed.json" if trim else "_leaf.json"
+    files = [itr for itr in os.listdir(keywords_path) if itr.endswith(label_type)]
+    # Load and merge all dictionaries
+    print("Loading keywords from {:d} dictionaries".format(len(files)))
+    for itr in files:
+        print("- {:s}".format(itr))
+    entity = dict()
+    for itr in files:
+        entity.update(json.load(open(keywords_path + itr, "r")))
+
+    # Merge the keywords
+    # keywords_file = "data/keywords.json"
+    # write_to_file(keywords_file, entity)
+
+    return entity
