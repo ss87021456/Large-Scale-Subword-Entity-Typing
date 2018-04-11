@@ -99,9 +99,9 @@ def run(model_dir, filename, pre=True, embedding=None, testing=0.1, evaluation=F
     if not model_dir.endswith("/"):
         model_dir += "/"
     # Load models
-    mlb = pkl.load(open(model_dir + "mlb.pkl", 'rb'))
+    mlb = pkl.load(open(model_dir + "mlb_v2.pkl", 'rb'))
     label_num = len(mlb.classes_)
-    tokenizer = pkl.load(open(model_dir + "tokenizer.pkl", 'rb'))
+    tokenizer = pkl.load(open(model_dir + "tokenizer_v2.pkl", 'rb'))
     word_index = tokenizer.word_index
 
     if pre:
@@ -182,23 +182,23 @@ def run(model_dir, filename, pre=True, embedding=None, testing=0.1, evaluation=F
 
     if evaluation:
         print("Loading testing data...")
-        X_test = pkl.load(open(model_dir + "testing_data.pkl", 'rb'))
-        X_test_mention = pkl.load(open(model_dir + "testing_mention.pkl", 'rb'))
-        y_test = pkl.load(open(model_dir + "testing_label.pkl", 'rb'))
+        X_test = pkl.load(open(model_dir + "testing_data_v2.pkl", 'rb'))
+        X_test_mention = pkl.load(open(model_dir + "testing_mention_v2.pkl", 'rb'))
+        y_test = pkl.load(open(model_dir + "testing_label_v2.pkl", 'rb'))
         print("Loading trained weights for predicting...")
         model.load_weights(file_path)
     else:
         print("Loading training data...")
-        X_train = pkl.load(open(model_dir + "training_data.pkl", 'rb'))
-        X_train_mention = pkl.load(open(model_dir + "training_mention.pkl", 'rb'))
-        y_train = pkl.load(open(model_dir + "training_label.pkl", 'rb'))
+        X_train = pkl.load(open(model_dir + "training_data_v2.pkl", 'rb'))
+        X_train_mention = pkl.load(open(model_dir + "training_mention_v2.pkl", 'rb'))
+        y_train = pkl.load(open(model_dir + "training_label_v2.pkl", 'rb'))
         print("Begin training...")
         model.fit([X_train, X_train_mention], y_train, batch_size=batch_size, epochs=epochs, validation_split=0.1, callbacks=callbacks_list)
         del X_train, y_train # clean up memory
         print("Loading testing data...")
-        X_test = pkl.load(open(model_dir + "testing_data.pkl", 'rb'))
-        y_test = pkl.load(open(model_dir + "testing_label.pkl", 'rb'))
-        X_test_mention = pkl.load(open(model_dir + "testing_mention.pkl", 'rb'))
+        X_test = pkl.load(open(model_dir + "testing_data_v2.pkl", 'rb'))
+        y_test = pkl.load(open(model_dir + "testing_label_v2.pkl", 'rb'))
+        X_test_mention = pkl.load(open(model_dir + "testing_mention_v2.pkl", 'rb'))
 
     print("Predicting...")
     y_pred = model.predict([X_test, X_test_mention])

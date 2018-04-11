@@ -29,7 +29,7 @@ def run(model_dir, input, testing):
     
     X = dataset['context'].values
     y = dataset['label'].values
-    mentions = dataset['label'].values
+    mentions = dataset['mention'].values
 
     X = np.array([(a, b) for a, b in zip(X, mentions)]) # create a structure numpy contain [(sentence, mention),...]
 
