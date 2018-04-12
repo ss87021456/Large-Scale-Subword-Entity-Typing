@@ -433,29 +433,47 @@ def keywords_as_labels(thread_idx, data, keywords, labels, mode=None):
         ### TO-BE-IMPELMENTED ###
         else: 
             replace = [str(labels[itr]) for itr in mentions]
-        # append to the result list
+        # Append to the result list
         #result.append( " , ".join(replace) + " " + sentence) # FastText classification form
         result.append( ",".join(replace) + "\t" + sentence + "\t" + mentions[0]) # label \t sentence \t mention
     return result
 
-def merge_dict(keywords_path, trim=True):
-    # Fetch all dictionaries names
-    # *** TO BE REVISED ***
-    if not keywords_path.endswith("/"):
-        keywords_path += "/"
-    # 
+def merge_dict(path, trim=True, save_to_file=False):
+    """
+    Args:
+        path(str): Path to where the dictionaries are saved.
+        trim(bool): Use trimmed labels or not.
+        save_to_file(bool): Save merged dictionaries to file if asserted.
+
+    Returns:
+        entity(dict): Merged keywords dictionaries.
+    """
+    # Parse directory name
+    if not path.endswith("/"):
+        path += "/"
+
+    # File postfix
     label_type = "_trimmed.json" if trim else "_leaf.json"
-    files = [itr for itr in os.listdir(keywords_path) if itr.endswith(label_type)]
+
+    print("Loading dictionaries from directory: {:s}".format(path))
+    print(" - Use {:s}trimmed labels".format("" if trim else "un-"))
+    files = [itr for itr in os.listdir(path) if itr.endswith(label_type)]
     # Load and merge all dictionaries
-    print("Loading keywords from {:d} dictionaries".format(len(files)))
+    print("Found {:d} keywords dictionaries:".format(len(files)))
     for itr in files:
         print("- {:s}".format(itr))
+    print()
+
+    # Load and merge dictionaries
     entity = dict()
     for itr in files:
-        entity.update(json.load(open(keywords_path + itr, "r")))
+        entity.update(json.load(open(path + itr, "r")))
+    print("{0} entities loaded from dictionaries".format(len(entity)))
 
-    # Merge the keywords
-    # keywords_file = "data/keywords.json"
-    # write_to_file(keywords_file, entity)
+    # Save merged dictionaries to file
+    if save_to_file:
+        file = "data/keywords.json"
+        write_to_file(file, entity)
 
+    print()
     return entity
