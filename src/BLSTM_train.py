@@ -15,8 +15,8 @@ from keras.callbacks import EarlyStopping, ModelCheckpoint, Callback
 from nn_model import BLSTM, CNN
 
 # w/o pretrain
-# CUDA_VISIBLE_DEVICES=6,7 python ./src/BLSTM_train.py --pre=False --mode=CNN
-# CUDA_VISIBLE_DEVICES=6,7 python ./src/BLSTM_train.py --pre=False --evaluation
+# CUDA_VISIBLE_DEVICES=6,7 python ./src/BLSTM_train.py --pre=False --mode=CNN 
+# CUDA_VISIBLE_DEVICES=6,7 python ./src/BLSTM_train.py --mode=CNN --pre=False --evaluation
 
 # w/ pretrain
 # CUDA_VISIBLE_DEVICES=6,7 python ./src/BLSTM_train.py --pre=True --emb=./data/model.vec
@@ -33,7 +33,8 @@ EMBEDDING_DIM = 100
 batch_size = 64
 epochs = 5
 
-def run(model_dir, model_type, filename, pre=True, embedding=None, evaluation=False):
+def run(model_dir, model_type, pre=True, embedding=None, evaluation=False):
+
     # Parse directory name
     if not model_dir.endswith("/"):
         model_dir += "/"
