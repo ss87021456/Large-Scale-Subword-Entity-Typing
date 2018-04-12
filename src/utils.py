@@ -403,6 +403,8 @@ def keyword_in_sentences(thread_idx, data, keywords, mode="SINGLE"):
 
         # Remove duplicate matching
         if found_sentence:
+            if len(found_keyword) > 1:
+                print("found {:d}".format(len(found_keyword)))
             found_keyword = list(np.unique(found_keyword))
             result.append(line + "\t" + "\t".join(found_keyword))
     return result

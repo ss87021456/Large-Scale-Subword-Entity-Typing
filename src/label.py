@@ -5,10 +5,14 @@ from itertools import chain
 from sklearn.externals import joblib
 from sklearn.preprocessing import LabelEncoder
 from utils import write_to_file, readlines, generic_threading, keywords_as_labels, merge_dict
-
+import pandas as pd
+from collections import Counter
 
 # python src/label.py data/
 # python src/label.py data/ --labels=data/label.json --replace --corpus=data/smaller_preprocessed_sentence_keywords.tsv --thread=10
+
+# python src/label.py data/ --corpus=data/smaller_preprocessed_sentence_keywords.tsv --stat
+
 
 def fit_encoder(keywords_path, model=None, output=None):
     """
@@ -85,6 +89,25 @@ def replace_labels(keywords_path, labels, output, replace, corpus, thread):
     # Write result to file
     write_to_file(output, result)
 
+def acquire_statistic(corpus, keywords_path, output=None):
+    """
+    """
+    if output is None:
+        output = corpus[:-4] + "_stat.json"
+
+    # Load lines from corpus
+    raw_data = readlines(corpus, limit=None)
+    raw_data = [[itr[:itr.find("\t")], itr[itr.find("\t") + 1:]]
+                for itr in raw_data]
+    df = pd.DataFrame(raw_data, columns=["CORPUS", "MENTIONS"])
+    mentions = [itr.split("\t") for itr in df["MENTIONS"].as_matrix()]
+    mentions = list(chain.from_iterable(mentions))
+    del df
+    stat = Counter(mentions)
+
+    # Save statistics to file
+    write_to_file(output, stat)
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("keywords_path", type=str,
@@ -92,9 +115,14 @@ if __name__ == '__main__':
     parser.add_argument("--model", help="Output encoder name.")
     parser.add_argument("--output", help="Sentences with key words")
     #
+    parser.add_argument("--stat", action="store_true",
+                        help="Acquire statistic about the amount of data in mentions.")
+    #
+    parser.add_argument("--replace", action="store_true", help="Replace labels.")
     parser.add_argument("--labels", help="Points to data/label.json \
                         (when replacing labels).")
-    parser.add_argument("--replace", action="store_true", help="Replace labels.")
+    parser.add_argument("--duplicate", action="store_true",
+                        help="Duplicate sentences if multiple mentions are found.")
     parser.add_argument("--corpus", help="Input labeled sentences to be replaced.")
     parser.add_argument("--thread", type=int, help="Number of threads \
                         to run, default: 2 * number_of_cores") 
@@ -103,5 +131,7 @@ if __name__ == '__main__':
 
     if args.replace:
         replace_labels(args.keywords_path, args.labels, args.output, args.replace, args.corpus, args.thread)
-    elif args.fit:
+    elif args.stat:
+        acquire_statistic(args.corpus, args.keywords_path, args.output)
+    else:
         fit_encoder(args.keywords_path, args.model, args.output)

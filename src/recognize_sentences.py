@@ -7,7 +7,7 @@ from itertools import chain
 from utils import write_to_file, keyword_in_sentences, readlines, generic_threading, merge_dict
 
 
-# python src/recognize_sentences.py data/smaller_preprocessed_sentence.txt data/ --thread=10
+# python src/recognize_sentences.py data/smaller_preprocessed_sentence.txt data/ --trim --mode=MULTI --thread=10
 
 def recognize_sentences(corpus, keywords_path, mode, split, validation, testing,
                         trim=True, label=False, output=None, thread=None):
@@ -18,21 +18,23 @@ def recognize_sentences(corpus, keywords_path, mode, split, validation, testing,
         thread(int): Number of thread to process.
         output(str): Path to the output file.
     """
+    print("Recognize mentions in sentences (mode: {:s})".format(mode))
     # output name
     if output is None:
         output = corpus[:-4] + "_keywords.tsv"
 
-    entity = merge_dict(keywords_path, trim)
+    # Load all mentions
+    entity = merge_dict(keywords_path, trim=trim)
 
     # Load lines from corpus
     raw_data = readlines(corpus, limit=None)
 
     # Threading
     keywords = list(entity.keys())
-    # param = (keywords, mode, label)
     param = (keywords, mode)
     result = generic_threading(thread, raw_data, keyword_in_sentences, param)
 
+    """
     # write all result to file
     if split:
         amount = sum([len(itr) for itr in result])
@@ -46,6 +48,8 @@ def recognize_sentences(corpus, keywords_path, mode, split, validation, testing,
         write_to_file(output[:-4] + "_test.tsv", result[valid_amt:test_amt])
     else:
         write_to_file(output, result)
+    """
+    write_to_file(output, result)
 
 
 if __name__ == '__main__':
@@ -55,7 +59,7 @@ if __name__ == '__main__':
                          end with \"_leaf.json\".")
     # optional arguments
     parser.add_argument("--mode", choices=["SINGLE", "MULTI"], \
-                        nargs='?' , const="SINGLE", help="Single mention or \
+                        nargs='?' , default="MULTI", help="Single mention or \
                         multi-mentions per sentence.")
     parser.add_argument("--split", action="store_true", help="Split the dataset.")
     parser.add_argument("--validation", nargs='?', const=0.1, type=float,
@@ -69,6 +73,8 @@ if __name__ == '__main__':
                         help="Replace entity name with labels.")
     parser.add_argument("--trim", action="store_true", 
                         help="Use trimmed hierarchy tree labels.")
+    parser.add_argument("--disjoint", action="store_true",
+                        help="Make the mentions exclusive between partitions.")
 
     args = parser.parse_args()
 
