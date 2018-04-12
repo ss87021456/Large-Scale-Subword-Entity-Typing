@@ -12,10 +12,10 @@ from keras.preprocessing import text, sequence
 from keras import backend as K
 from keras.layers import Embedding
 from keras.callbacks import EarlyStopping, ModelCheckpoint, Callback
-from nn_model import BLSTM
+from nn_model import BLSTM, CNN
 
 # w/o pretrain
-# CUDA_VISIBLE_DEVICES=6,7 python ./src/BLSTM_train.py --pre=False 
+# CUDA_VISIBLE_DEVICES=6,7 python ./src/BLSTM_train.py --pre=False --mode=CNN
 # CUDA_VISIBLE_DEVICES=6,7 python ./src/BLSTM_train.py --pre=False --evaluation
 
 # w/ pretrain
@@ -33,7 +33,7 @@ EMBEDDING_DIM = 100
 batch_size = 64
 epochs = 5
 
-def run(model_dir, filename, pre=True, embedding=None, evaluation=False):
+def run(model_dir, model_type, filename, pre=True, embedding=None, evaluation=False):
     # Parse directory name
     if not model_dir.endswith("/"):
         model_dir += "/"
@@ -66,10 +66,16 @@ def run(model_dir, filename, pre=True, embedding=None, evaluation=False):
     
     # Building Model
     print("Building computational graph...")
-    model = BLSTM(label_num=label_num, sentence_emb=None, mention_emb=None, mode='dot', dropout=0.1)
+    if model_type == "BLSTM":
+        print("Building default BLSTM model..")
+        model = BLSTM(label_num=label_num, sentence_emb=None, mention_emb=None, mode='concatenate', dropout=0.1)
+    elif model_type == "CNN":
+        print("Building CNN model..")
+        model = CNN(label_num=label_num, sentence_emb=None, mention_emb=None, mode='concatenate', dropout=0.1)
+
     print(model.summary())
     
-    file_path="weights_base.best.hdf5"
+    file_path="weights_base.best." + model_type + ".hdf5"
     checkpoint = ModelCheckpoint(file_path, monitor='val_loss', verbose=1, save_best_only=True, mode='min')
     early = EarlyStopping(monitor="val_loss", mode="min", patience=20)
     
@@ -117,9 +123,11 @@ if __name__ == '__main__':
     parser.add_argument("--evaluation", action="store_true", help="Evaluation mode.")
     parser.add_argument("--model", nargs='?', type=str, default="model/", 
                         help="Directory to load models. [Default: \"model/\"]")
+    parser.add_argument("--mode", nargs='?', type=str, default="BLSTM",
+                        help="different model architecture BLTSM or CNN [Default: \"BLSTM/\"]")
     args = parser.parse_args()
 
-    run(args.model, args.pre, args.emb, args.evaluation)
+    run(args.model, args.mode, args.pre, args.emb, args.evaluation)
 
 
 """
