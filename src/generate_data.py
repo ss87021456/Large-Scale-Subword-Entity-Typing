@@ -1,7 +1,10 @@
 import pandas as pd
 import numpy as np
 import argparse
+import itertools
+from tqdm import tqdm
 import pickle as pkl
+from utils import generic_threading
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import MultiLabelBinarizer
 from keras.preprocessing import text, sequence
@@ -16,6 +19,17 @@ MAX_SEQUENCE_LENGTH = 40
 MAX_MENTION_LENGTH = 5
 EMBEDDING_DIM = 100
 
+def parallel_index(thread_idx, mention_count, mentions):
+    desc = "Thread {:2d}".format(thread_idx + 1)
+    result = list()
+    for key in tqdm(mention_count, position=thread_idx, desc=desc):
+        index = np.where(mentions == key)[0]
+        temp = [key]
+        temp.append(index.tolist())
+        result.append(temp)
+
+    return result
+
 def run(model_dir, input, testing):
     # Parse directory name
     if not model_dir.endswith("/"):
@@ -26,53 +40,65 @@ def run(model_dir, input, testing):
 
     print("Loading dataset..")
     dataset = pd.read_csv(input, sep='\t', names=['label','context','mention'])
-    
+
     X = dataset['context'].values
     y = dataset['label'].values
     mentions = dataset['mention'].values
-
-    X = np.array([(a, b) for a, b in zip(X, mentions)]) # create a structure numpy contain [(sentence, mention),...]
-
-    total_amt = X.shape[0]
-    del dataset, mentions # cleanup the memory
     
-    # Parsing the labels and convert to integer using comma as separetor
-    print("Creating MultiLabel..")
-    temp = list()
-    for element in y:
-        values = element.split(',')
-        values = list(map(int, values))
-        temp.append(values)
-    # Convert to np.array
-    temp = np.array(temp)
-
-    # Binarizer the labels
-    print("Binarizering labels..")
-    mlb = MultiLabelBinarizer(sparse_output=True)
-    y = mlb.fit_transform(temp)
-    print("MultiLable y shape:",y.shape)
-    label_num = len(mlb.classes_)
-    del temp
-    print(" - Total number of labels: {:10d}".format(y.shape[1]))
-
-    # Spliting training and testing data
-    print("Spliting the dataset:")
-    training = 1. - testing
-    tr_amt = int(total_amt * training)
-    te_amt = int(total_amt * testing)
-    print("- Training Data: {:10d} ({:2.2f}%)".format(tr_amt, 100. * training))
-    print("- Testing Data : {:10d} ({:2.2f}%)".format(te_amt, 100. * testing))
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=testing, random_state=None)
     
-    del X, y
-    pkl.dump(y_train, open(model_dir + "training_label.pkl", 'wb'))
-    pkl.dump(y_test, open(model_dir + "testing_label.pkl", 'wb'))
-    del y_train, y_test
+    print("{0} unique mentions...".format(len(set(mentions))))
+    unique, counts = np.unique(mentions, return_counts=True)
+    mention_count = dict(zip(unique, counts))
+    #mention_index = list()
 
-    X_train_mention = X_train[:, 1] # extract mention
-    X_train = X_train[:, 0] # extract sentence
-    X_test_mention = X_test[:, 1] # extract mention
-    X_test = X_test[:, 0] # extract sentence
+    # need parallel
+    print("processing mention_index...")
+    param = (mentions, )
+    key_list = list(mention_count.keys())
+    # [['mention1',[idxes]],['mention2',[idxes]],...]
+    mention_index = generic_threading(20, key_list, parallel_index, param) 
+    mention = []
+    indices = []
+
+    for metion_pair_thread in mention_index:
+        for metion_pair in metion_pair_thread:
+            mention.append(metion_pair[0])
+            indices.append(metion_pair[1])
+
+    mention_index = dict(zip(mention, indices))
+
+
+
+    #mention_index = dict(zip(unique, mention_index))
+
+    total_length = mentions.shape[0]
+    test_len     = total_length * testing
+    train_len    = total_length - test_len
+    train_index  = []
+    count = 0
+    print("processing training_index...")
+    print("training size: {0}, testing size: {1}, total size: {2}".format(train_len, test_len, total_length))
+    for mention in tqdm(key_list):
+        count += mention_count[mention]
+        if count < train_len:
+            train_index.append(mention_index[mention])
+
+    # flatten list
+    print("flatten train_index...")
+    dataset_index = set([i for i in range(total_length)])
+    train_index = set(list(itertools.chain.from_iterable(train_index)))
+    test_index = dataset_index - train_index  # use set property to extract index of testing
+    print("train size:",len(train_index))
+    train_index = np.array(list(train_index)) # transfer back to numpy array for further index
+    test_index = np.array(list(test_index))   # transfer back to numpy array for further index
+
+    # shuffle the index
+    np.random.shuffle(train_index)
+    np.random.shuffle(test_index)
+    
+    X_train, X_test = X[train_index], X[test_index]
+    X_train_mention, X_test_mention = mentions[train_index], mentions[test_index]
+    del X, mentions
     
     print("Tokenize sentences...")
     tokenizer = text.Tokenizer(num_words=MAX_NUM_WORDS)
@@ -106,10 +132,38 @@ def run(model_dir, input, testing):
     pkl.dump(X_m_t, open(model_dir + "training_mention.pkl", 'wb'))
     pkl.dump(X_m_te, open(model_dir + "testing_mention.pkl", 'wb'))
     del X_m_t, X_m_te
+    
+    # Parsing the labels and convert to integer using comma as separetor
+    print("Creating MultiLabel..")
+    temp = list()
+    for element in y:
+        values = element.split(',')
+        values = list(map(int, values))
+        temp.append(values)
+    # Convert to np.array
+    del y
+    temp = np.array(temp)
+    print(len(temp), len(temp[0]))
+    print(type(temp), type(temp[0]))
+    y_train = temp[train_index]
+    y_test = temp[test_index]
+    # Binarizer the labels
+    print("Binarizering labels..")
+    mlb = MultiLabelBinarizer(sparse_output=True)
+    mlb.fit(temp)
+    #y = mlb.fit_transform(temp)
+    del temp
+    y_train = mlb.transform(y_train)
+    y_test = mlb.transform(y_test)
+    print(" shape of training labels:",y_train.shape)
+    print(" shape of testing labels:",y_test.shape)
 
+    # dumping training and testing label
+    pkl.dump(y_train, open(model_dir + "training_label.pkl", 'wb'))
+    pkl.dump(y_test, open(model_dir + "testing_label.pkl", 'wb'))
+    del y_train, y_test
 
     print("dumping pickle file of tokenizer/m_tokenizer/mlb...")
-    
     # dumping model
     pkl.dump(tokenizer, open(model_dir + "tokenizer.pkl", 'wb'))
     pkl.dump(m_tokenizer, open(model_dir + "m_tokenizer.pkl", 'wb'))
