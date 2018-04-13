@@ -92,9 +92,9 @@ def run(model_dir, input, testing):
     train_index = np.array(list(train_index)) # transfer back to numpy array for further index
     test_index = np.array(list(test_index))   # transfer back to numpy array for further index
 
-    #print("Creating [(sentence, mention),...] structure..")
-    #X = np.array([(a, b) for a, b in zip(X, mentions)]) # create a structure numpy contain [(sentence, mention),...]
-    #del dataset, mentions # cleanup the memory
+    # shuffle the index
+    np.random.shuffle(train_index)
+    np.random.shuffle(test_index)
     
     X_train, X_test = X[train_index], X[test_index]
     X_train_mention, X_test_mention = mentions[train_index], mentions[test_index]
