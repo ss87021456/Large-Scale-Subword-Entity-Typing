@@ -19,7 +19,7 @@ def entity_parser(file, trim=True, threshold=2, plot=False, verbose=False):
     """
     # parsing file
     with open(file, 'r') as f:
-        dataset = f.read().splitlines()[1:50]
+        dataset = f.read().splitlines()[1:]
 
     keys = list()
     value = list()
@@ -144,8 +144,8 @@ def entity_parser(file, trim=True, threshold=2, plot=False, verbose=False):
                 if type(duplicate) == dict:
                     entity[name]["TYPE"] += duplicate["TYPE"]
                     entity[name]["MENTION"] += duplicate["MENTION"]
-                    entity[name]["PATHS"].append(entity[name]["TYPE"])
-                    entity[name]["PATHS"].append(duplicate["TYPE"])
+                    # entity[name]["PATHS"].append(entity[name]["TYPE"])
+                    # entity[name]["PATHS"].append(duplicate["TYPE"])
                 else:
                     entity[name]["TYPE"] += duplicate
                     # entity[name]["MENTION"] += duplicate
@@ -158,11 +158,7 @@ def entity_parser(file, trim=True, threshold=2, plot=False, verbose=False):
         # Replace names
         else:
             entity[name] = entity.pop(keys[i])
-            print(entity[name])
-            exit()
-            entity[name]["PATHS"] = list()
-    pprint(entity)
-    exit()
+            # entity[name]["PATHS"] = list()
     # Save
     save_name = file[:-4] + "_index.json"
     write_to_file(save_name, entity)
