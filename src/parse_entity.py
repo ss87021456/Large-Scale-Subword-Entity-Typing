@@ -19,7 +19,7 @@ def entity_parser(file, trim=True, threshold=2, plot=False, verbose=False):
     """
     # parsing file
     with open(file, 'r') as f:
-        dataset = f.read().splitlines()[1:]
+        dataset = f.read().splitlines()[1:50]
 
     keys = list()
     value = list()
@@ -116,7 +116,15 @@ def entity_parser(file, trim=True, threshold=2, plot=False, verbose=False):
                 index = keys.index(element)
                 # fill in the names
                 entity[key][idx] = value[index]
-
+    #
+    """
+    nodes = list(entity.values())
+    leaf_nodes = list()
+    for itr in nodes:
+        if type(itr) == dict:
+            leaf_nodes.append(itr)
+    pprint(leaf_nodes)
+    """
     def uni_list(arr):
         """
         Generate unique list
@@ -131,13 +139,13 @@ def entity_parser(file, trim=True, threshold=2, plot=False, verbose=False):
         name = value[i]
         if name in entity:
             duplicate = entity.pop(keys[i])
-            # print(duplicate)
-            # print(entity[name])
             #
             if type(entity[name]) == dict:
                 if type(duplicate) == dict:
                     entity[name]["TYPE"] += duplicate["TYPE"]
                     entity[name]["MENTION"] += duplicate["MENTION"]
+                    entity[name]["PATHS"].append(entity[name]["TYPE"])
+                    entity[name]["PATHS"].append(duplicate["TYPE"])
                 else:
                     entity[name]["TYPE"] += duplicate
                     # entity[name]["MENTION"] += duplicate
@@ -150,6 +158,11 @@ def entity_parser(file, trim=True, threshold=2, plot=False, verbose=False):
         # Replace names
         else:
             entity[name] = entity.pop(keys[i])
+            print(entity[name])
+            exit()
+            entity[name]["PATHS"] = list()
+    pprint(entity)
+    exit()
     # Save
     save_name = file[:-4] + "_index.json"
     write_to_file(save_name, entity)

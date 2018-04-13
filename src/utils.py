@@ -403,13 +403,11 @@ def keyword_in_sentences(thread_idx, data, keywords, mode="SINGLE"):
 
         # Remove duplicate matching
         if found_sentence:
-            if len(found_keyword) > 1:
-                print("found {:d}".format(len(found_keyword)))
             found_keyword = list(np.unique(found_keyword))
             result.append(line + "\t" + "\t".join(found_keyword))
     return result
 
-def keywords_as_labels(thread_idx, data, keywords, labels, mode=None):
+def keywords_as_labels(thread_idx, data, keywords, labels, mode=None, duplicate=True):
     """
     Arguments:
         thread_idx():
@@ -429,15 +427,26 @@ def keywords_as_labels(thread_idx, data, keywords, labels, mode=None):
         mentions = line[split_point + 1:].split("\t")
         # replace mentions by labels
         if mode == "SINGLE":
+            # single mentions
             entity_types = keywords[mentions[0]]
             #replace = ['__label__' + str(labels[itr]) for itr in entity_types]
             replace = [str(labels[itr]) for itr in entity_types]
-        ### TO-BE-IMPELMENTED ###
-        else: 
-            replace = [str(labels[itr]) for itr in mentions]
+            # SINGLE MENTION
+            result.append(",".join(replace) + "\t" + sentence + "\t" + mentions[0])
+            # FastText classification form
+            #result.append( " , ".join(replace) + " " + sentence)
+        else:
+            if duplicate:
+                for itr_mention in mentions:
+                    entity_types = keywords[itr_mention]
+                    # Convert entity types to labels
+                    replace = [str(labels[itr]) for itr in entity_types]
+                    # [LABELS] \t [SENTENCE] \t [MENTION]
+                    result.append(",".join(replace) + "\t" + sentence + "\t" + itr_mention)
+            else:
+                pass
+            # replace = [str(labels[itr]) for itr in mentions]
         # Append to the result list
-        #result.append( " , ".join(replace) + " " + sentence) # FastText classification form
-        result.append( ",".join(replace) + "\t" + sentence + "\t" + mentions[0]) # label \t sentence \t mention
     return result
 
 def merge_dict(path, trim=True, save_to_file=False):
