@@ -16,7 +16,7 @@ import os
 MAX_NUM_WORDS = 30000
 MAX_NUM_MENTION_WORDS = 20000
 MAX_SEQUENCE_LENGTH = 40
-MAX_MENTION_LENGTH = 5
+MAX_MENTION_LENGTH = 15
 EMBEDDING_DIM = 100
 
 def parallel_index(thread_idx, mention_count, mentions):
@@ -112,8 +112,8 @@ def run(model_dir, input, testing):
     X_te = sequence.pad_sequences(list_tokenized_test, maxlen=MAX_SEQUENCE_LENGTH)
     del list_tokenized_train, list_tokenized_test
 
-    pkl.dump(X_t, open(model_dir + "training_data.pkl", 'wb'))
-    pkl.dump(X_te, open(model_dir + "testing_data.pkl", 'wb'))
+    pkl.dump(X_t, open(model_dir + "training_data_aug_subword.pkl", 'wb'))
+    pkl.dump(X_te, open(model_dir + "testing_data_aug_subword.pkl", 'wb'))
     del X_t, X_te
 
     print("Tokenize mentions...")
@@ -129,8 +129,8 @@ def run(model_dir, input, testing):
     X_m_te = sequence.pad_sequences(m_list_tokenized_test, maxlen=MAX_MENTION_LENGTH)
     del m_list_tokenized_train, m_list_tokenized_test
 
-    pkl.dump(X_m_t, open(model_dir + "training_mention.pkl", 'wb'))
-    pkl.dump(X_m_te, open(model_dir + "testing_mention.pkl", 'wb'))
+    pkl.dump(X_m_t, open(model_dir + "training_mention_aug_subword.pkl", 'wb'))
+    pkl.dump(X_m_te, open(model_dir + "testing_mention_aug_subword.pkl", 'wb'))
     del X_m_t, X_m_te
     
     # Parsing the labels and convert to integer using comma as separetor
@@ -159,15 +159,15 @@ def run(model_dir, input, testing):
     print(" shape of testing labels:",y_test.shape)
 
     # dumping training and testing label
-    pkl.dump(y_train, open(model_dir + "training_label.pkl", 'wb'))
-    pkl.dump(y_test, open(model_dir + "testing_label.pkl", 'wb'))
+    pkl.dump(y_train, open(model_dir + "training_label_aug_subword.pkl", 'wb'))
+    pkl.dump(y_test, open(model_dir + "testing_label_aug_subword.pkl", 'wb'))
     del y_train, y_test
 
     print("dumping pickle file of tokenizer/m_tokenizer/mlb...")
     # dumping model
-    pkl.dump(tokenizer, open(model_dir + "tokenizer.pkl", 'wb'))
-    pkl.dump(m_tokenizer, open(model_dir + "m_tokenizer.pkl", 'wb'))
-    pkl.dump(mlb, open(model_dir + "mlb.pkl", 'wb'))
+    pkl.dump(tokenizer, open(model_dir + "tokenizer_aug_subword.pkl", 'wb'))
+    pkl.dump(m_tokenizer, open(model_dir + "m_tokenizer_aug_subword.pkl", 'wb'))
+    pkl.dump(mlb, open(model_dir + "mlb_aug_subword.pkl", 'wb'))
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()

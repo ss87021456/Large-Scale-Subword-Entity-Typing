@@ -15,12 +15,12 @@ from keras.callbacks import EarlyStopping, ModelCheckpoint, Callback
 from nn_model import BLSTM, CNN
 
 # w/o pretrain
-# CUDA_VISIBLE_DEVICES=6,7 python ./src/BLSTM_train.py --pre=False --mode=CNN 
-# CUDA_VISIBLE_DEVICES=6,7 python ./src/BLSTM_train.py --mode=CNN --pre=False --evaluation
+# CUDA_VISIBLE_DEVICES=0 python ./src/BLSTM_train.py --pre=False --mode=[CNN,BLSTM]
+# CUDA_VISIBLE_DEVICES=0 python ./src/BLSTM_train.py --mode=CNN --pre=False --evaluation --mode=[CNN,BLSTM]
 
 # w/ pretrain
-# CUDA_VISIBLE_DEVICES=6,7 python ./src/BLSTM_train.py --pre=True --emb=./data/model.vec
-# CUDA_VISIBLE_DEVICES=6,7 python ./src/BLSTM_train.py --pre=True --emb=./data/model.vec --evaluation
+# CUDA_VISIBLE_DEVICES=0 python ./src/BLSTM_train.py --pre=True --emb=./data/model.vec --mode=[CNN,BLSTM]
+# CUDA_VISIBLE_DEVICES=0 python ./src/BLSTM_train.py --pre=True --emb=./data/model.vec --evaluation --mode=[CNN,BLSTM]
 
 # Feature-parameter
 MAX_NUM_WORDS = 30000
@@ -39,9 +39,9 @@ def run(model_dir, model_type, pre=True, embedding=None, evaluation=False):
     if not model_dir.endswith("/"):
         model_dir += "/"
     # Load models
-    mlb = pkl.load(open(model_dir + "mlb.pkl", 'rb'))
+    mlb = pkl.load(open(model_dir + "mlb_aug.pkl", 'rb'))
     label_num = len(mlb.classes_)
-    tokenizer = pkl.load(open(model_dir + "tokenizer.pkl", 'rb'))
+    tokenizer = pkl.load(open(model_dir + "tokenizer_aug.pkl", 'rb'))
     word_index = tokenizer.word_index
 
     if pre:
@@ -69,51 +69,51 @@ def run(model_dir, model_type, pre=True, embedding=None, evaluation=False):
     print("Building computational graph...")
     if model_type == "BLSTM":
         print("Building default BLSTM model..")
-        model = BLSTM(label_num=label_num, sentence_emb=None, mention_emb=None, mode='concatenate', dropout=0.1)
+        model = BLSTM(label_num=label_num, sentence_emb=None, mention_emb=None, attention=True, mode='concatenate', dropout=0.1)
     elif model_type == "CNN":
         print("Building CNN model..")
-        model = CNN(label_num=label_num, sentence_emb=None, mention_emb=None, mode='concatenate', dropout=0.1)
+        model = CNN(label_num=label_num, sentence_emb=None, mention_emb=None, attention=True, mode='concatenate', dropout=0.1)
 
     print(model.summary())
     
-    file_path="weights_base.best." + model_type + ".hdf5"
-    checkpoint = ModelCheckpoint(file_path, monitor='val_loss', verbose=1, save_best_only=True, mode='min')
+    #file_path="weights_base.best." + model_type + ".hdf5"
+    file_path = "Attention-" + model_type + "-weights-{epoch:02d}-{val_loss:.4f}.hdf5"
+
+    checkpoint = ModelCheckpoint(file_path, monitor='val_loss', verbose=1, save_best_only=False, mode='min') # Save every epoch
     early = EarlyStopping(monitor="val_loss", mode="min", patience=20)
-    
     callbacks_list = [checkpoint, early] #early
 
+    print("Loading testing data...")
+    X_test = pkl.load(open(model_dir + "testing_data_aug.pkl", 'rb'))
+    X_test_mention = pkl.load(open(model_dir + "testing_mention_aug.pkl", 'rb'))
+    y_test = pkl.load(open(model_dir + "testing_label_aug.pkl", 'rb'))
+
     if evaluation:
-        print("Loading testing data...")
-        X_test = pkl.load(open(model_dir + "testing_data.pkl", 'rb'))
-        X_test_mention = pkl.load(open(model_dir + "testing_mention.pkl", 'rb'))
-        y_test = pkl.load(open(model_dir + "testing_label.pkl", 'rb'))
         print("Loading trained weights for predicting...")
-        model.load_weights(file_path)
+        file_path = ['Attention-CNN-weights-01-0.0000.hdf5','Attention-CNN-weights-02-0.0000.hdf5','Attention-CNN-weights-03-0.0000.hdf5','Attention-CNN-weights-04-0.0000.hdf5']
+        for file in file_path:
+            model.load_weights(file)
+            print("Predicting...",file)
+            y_pred = model.predict([X_test, X_test_mention])
+            #del X_test
+        
+            y_pred[y_pred >= 0.5] = 1.
+            y_pred[y_pred < 0.5] = 0.
+            y_pred = sparse.csr_matrix(y_pred)
+        
+            eval_types = ['micro','macro','weighted']
+            for eval_type in eval_types:
+                p, r, f, _ = precision_recall_fscore_support(y_test, y_pred, average=eval_type)
+                print("[{}] Precision: {:3.3f} | Recall: {:3.3f} | F-1: {:3.3f}".format(eval_type, p, r, f))
     else:
         print("Loading training data...")
-        X_train = pkl.load(open(model_dir + "training_data.pkl", 'rb'))
-        X_train_mention = pkl.load(open(model_dir + "training_mention.pkl", 'rb'))
-        y_train = pkl.load(open(model_dir + "training_label.pkl", 'rb'))
+        X_train = pkl.load(open(model_dir + "training_data_aug.pkl", 'rb'))
+        X_train_mention = pkl.load(open(model_dir + "training_mention_aug.pkl", 'rb'))
+        y_train = pkl.load(open(model_dir + "training_label_aug.pkl", 'rb'))
         print("Begin training...")
         model.fit([X_train, X_train_mention], y_train, batch_size=batch_size, epochs=epochs, validation_split=0.1, callbacks=callbacks_list)
-        del X_train, y_train # clean up memory
-        print("Loading testing data...")
-        X_test = pkl.load(open(model_dir + "testing_data.pkl", 'rb'))
-        y_test = pkl.load(open(model_dir + "testing_label.pkl", 'rb'))
-        X_test_mention = pkl.load(open(model_dir + "testing_mention.pkl", 'rb'))
 
-    print("Predicting...")
-    y_pred = model.predict([X_test, X_test_mention])
-    del X_test
-
-    y_pred[y_pred >= 0.5] = 1.
-    y_pred[y_pred < 0.5] = 0.
-    y_pred = sparse.csr_matrix(y_pred)
-
-    eval_types = ['micro','macro','weighted']
-    for eval_type in eval_types:
-        p, r, f, _ = precision_recall_fscore_support(y_test, y_pred, average=eval_type)
-        print("[{}] Precision: {:3.3f} | Recall: {:3.3f} | F-1: {:3.3f}".format(eval_type, p, r, f))
+    
 
     K.clear_session()
 
