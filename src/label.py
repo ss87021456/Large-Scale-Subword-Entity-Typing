@@ -78,7 +78,7 @@ def replace_labels(keywords_path, corpus, labels, output, subwords=None, mode="M
     print(" - Duplicate: {0}".format(duplicate))
     print()
     # Load lines from corpus
-    raw_data = readlines(corpus, limit=20)
+    raw_data = readlines(corpus, limit=None)
 
     print()
     # Load keywords and labels
