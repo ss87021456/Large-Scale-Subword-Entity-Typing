@@ -407,7 +407,8 @@ def keyword_in_sentences(thread_idx, data, keywords, mode="SINGLE"):
             result.append(line + "\t" + "\t".join(found_keyword))
     return result
 
-def keywords_as_labels(thread_idx, data, keywords, labels, mode=None, duplicate=True):
+def keywords_as_labels(thread_idx, data, keywords, labels, subwords=None,
+                       mode=None, duplicate=True):
     """
     Arguments:
         thread_idx():
@@ -442,7 +443,19 @@ def keywords_as_labels(thread_idx, data, keywords, labels, mode=None, duplicate=
                     # Convert entity types to labels
                     replace = [str(labels[itr]) for itr in entity_types]
                     # [LABELS] \t [SENTENCE] \t [MENTION]
-                    result.append(",".join(replace) + "\t" + sentence + "\t" + itr_mention)
+                    if subwords is not None:
+                        long_mention = multi_mentions(itr_mention)[-1]
+                        # Tokenize mention with more than one words
+                        words = nltk.word_tokenize(long_mention.lower())
+                        # Acquire all subwords for each word in mentions
+                        subword_list = [subwords[itr] for itr in words]
+                        subword_list = list(chain.from_iterable(subword_list))
+                        # Sort all subwords in decending length order
+                        subword_list = sorted(subword_list, key=len, reverse=True)
+
+                        result.append(",".join(replace) + "\t" + sentence + "\t" + itr_mention + " " + " ".join(subword_list))
+                    else:
+                        result.append(",".join(replace) + "\t" + sentence + "\t" + itr_mention)
             else:
                 pass
             # replace = [str(labels[itr]) for itr in mentions]

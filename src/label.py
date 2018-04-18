@@ -10,7 +10,7 @@ from collections import Counter
 
 # python src/label.py data/
 # python src/label.py data/ --labels=data/label.json --replace \
-# --corpus=data/smaller_preprocessed_sentence_keywords.tsv --thread=10
+# --corpus=data/smaller_preprocessed_sentence_keywords.tsv --subwords=data/subwords.json --thread=10
 
 # python src/label.py data/ --corpus=data/smaller_preprocessed_sentence_keywords.tsv --stat
 
@@ -59,25 +59,26 @@ def fit_encoder(keywords_path, model=None, output=None):
     output_dict = dict(zip(unique_types, [int(itr) for itr in codes]))
     write_to_file(output, output_dict)
 
-def replace_labels(keywords_path, labels, output, mode, duplicate, replace, corpus, thread):
+def replace_labels(keywords_path, corpus, labels, output, subwords=None, mode="MULTI",
+                   duplicate=True, thread=5):
     """
 
     Arguments:
         keywords_path():
         output():
-        replace():
         corpus():
         thread():
     """
     if output is None:
-        output = corpus[:-4] + "_labeled.tsv"
+        output = corpus[:-4] + "_labeled{0}.tsv"\
+        .format("_subwords" if subwords is not None else "")
 
     print("Replacing mentions with their labels:")
     print(" - Mention: {:s}".format(mode))
     print(" - Duplicate: {0}".format(duplicate))
     print()
     # Load lines from corpus
-    raw_data = readlines(corpus, limit=None)
+    raw_data = readlines(corpus, limit=20)
 
     print()
     # Load keywords and labels
@@ -89,8 +90,17 @@ def replace_labels(keywords_path, labels, output, mode, duplicate, replace, corp
     print(" - Total number of labels: {0}".format(len(contents)))
     print()
 
+    if subwords is not None:
+        # Used for matching each type to its corresponding labels (int)
+        print("Loading labels dictionary from file: {:s}".format(labels))
+        subword_dict = json.load(open(subwords, "r"))
+        print(" - Total number of labels: {0}".format(len(contents)))
+        print()
+    else:
+        subword_dict = None
+
     # Threading
-    param = (mentions, contents, mode, duplicate)
+    param = (mentions, contents, subword_dict, mode, duplicate)
     result = generic_threading(thread, raw_data, keywords_as_labels, param)
 
     # Write result to file
@@ -123,6 +133,7 @@ def acquire_statistic(corpus, keywords_path, output=None):
 def find_type_parents():
     pass
 
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("keywords_path", type=str,
@@ -145,15 +156,15 @@ if __name__ == '__main__':
     parser.add_argument("--no_duplicate", action="store_false",
                         help="Do not duplicate sentences if multiple mentions are found.")
     parser.add_argument("--corpus", help="Input labeled sentences to be replaced.")
+    parser.add_argument("--subwords", help="Subword information to be added.")
     parser.add_argument("--thread", type=int, help="Number of threads \
                         to run, default: 2 * number_of_cores") 
 
     args = parser.parse_args()
 
     if args.replace:
-        replace_labels(args.keywords_path, args.labels, args.output,
-                       args.mode, args.no_duplicate, args.replace, args.corpus,
-                       args.thread)
+        replace_labels(args.keywords_path, args.corpus, args.labels, args.output,
+                       args.subwords, args.mode, args.no_duplicate, args.thread)
     elif args.stat:
         acquire_statistic(args.corpus, args.keywords_path, args.output)
     else:
