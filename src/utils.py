@@ -448,7 +448,13 @@ def keywords_as_labels(thread_idx, data, keywords, labels, subwords=None,
                         # Tokenize mention with more than one words
                         words = nltk.word_tokenize(long_mention.lower())
                         # Acquire all subwords for each word in mentions
-                        subword_list = [subwords[itr] for itr in words]
+                        subword_list = []
+                        #subword_list = [subwords[itr] for itr in words]
+                        for itr in words:
+                            try:
+                                subword_list.append(subwords[itr])
+                            except:
+                                pass
                         subword_list = list(chain.from_iterable(subword_list))
                         # Sort all subwords in decending length order
                         subword_list = sorted(subword_list, key=len, reverse=True)
