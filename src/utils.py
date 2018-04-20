@@ -348,7 +348,7 @@ def keyword_in_sentences(thread_idx, data, keywords, mode="SINGLE"):
     Sentence keyword search (called by threads or used normally)
 
     Arguments:
-        thread_idx(int): Order of threads, used to align progressbar.
+        thread_idx(int): Order of threads, used to align progressbars.
         data(list of str): Each elements in the list contains one sentence
                           of raw corpus.
         keywords(list of str): Contains all the keywords.
@@ -411,61 +411,113 @@ def keywords_as_labels(thread_idx, data, keywords, labels, subwords=None,
                        mode=None, duplicate=True):
     """
     Arguments:
-        thread_idx():
-        data():
-        labels():
-        mode():
+        thread_idx(int): Order of threads, used to align progressbars.
+        data(list): List of data.
+        keywords(dict): Dictionary that contains all mentions in interest.
+        labels(dict): Dictionary that contains the mapping of types to int.
+        subwords(dict): Dictionary that contains the subwords of all mentions in interest.
+        mode(str): Choice ["SINGLE", "MULTI"].
+        duplicate(bool): Whether to duplicate the sentence if it contains
+                         multiple mentions.
     
     Returns:
-        result():
+        result(list of str): List of strings that are to be written to files.
     """
     desc = "Thread {:2d}".format(thread_idx + 1)
     result = list()
     #
     for line in tqdm(data, position=thread_idx, desc=desc):
+        # Find split point and partition the string
         split_point = line.find("\t")
         sentence = line[:split_point]
         mentions = line[split_point + 1:].split("\t")
-        # replace mentions by labels
+
+        # Add types (labels) of mentions to the data
+        # [LABELS] \t [SENTENCE] \t [MENTION + SUBWORDS]
+        # Single-Mention Mode (SMM)
         if mode == "SINGLE":
-            # single mentions
+            # Fetch the first found mention
             entity_types = keywords[mentions[0]]
-            #replace = ['__label__' + str(labels[itr]) for itr in entity_types]
+
+            # Retrived the types of the mentions
+            # replace = ["__label__" + str(labels[itr]) for itr in entity_types]
             replace = [str(labels[itr]) for itr in entity_types]
             # SINGLE MENTION
-            result.append(",".join(replace) + "\t" + sentence + "\t" + mentions[0])
+            content = [",".join(replace), sentence, mentions[0]]
+            result.append("\t".join(content))
             # FastText classification form
-            #result.append( " , ".join(replace) + " " + sentence)
-        else:
+            # result.append( " , ".join(replace) + " " + sentence)
+
+        # Multi-Mention Mode (MMM)
+        elif mode == "MULTI"
+            # Duplicate the sentence if the sentence contains more than one mentions
             if duplicate:
+                # Fetch all mentions
                 for itr_mention in mentions:
+                    # Lookup the types of the mention in interest
                     entity_types = keywords[itr_mention]
+
                     # Convert entity types to labels
                     replace = [str(labels[itr]) for itr in entity_types]
-                    # [LABELS] \t [SENTENCE] \t [MENTION]
+
+                    # Concatenate subwords information with the mentions
                     if subwords is not None:
+                        # Find the longest synonym given a set of mentions
                         long_mention = multi_mentions(itr_mention)[-1]
-                        # Tokenize mention with more than one words
+                        # Tokenize + lower case the mentions with more than one words
                         words = nltk.word_tokenize(long_mention.lower())
+                        # tmp = words.copy()
+
+                        # Remove punctuations which SHOULD BE CONSISTENT with that used in subword model
+                        # ***TO-BE-IMPLEMENTED AS LOADING RULES FROM EXTERNAL FILE***
+                        words = [re.sub("[" + punctuation + "0-9]", "", itr) for itr in words]
+
                         # Acquire all subwords for each word in mentions
-                        subword_list = []
-                        #subword_list = [subwords[itr] for itr in words]
+                        subword_list = list()
                         for itr in words:
+                            # Retrive subword information from given dictionary
                             try:
                                 subword_list.append(subwords[itr])
+                            # Skip words that do not exist in the subword dictionary
+                            # Cause:
+                            #   1. words with unfiltered or mis-filtered punctuation
+                            #   2. empty string (produced by filtering figures)
+                            #   3. TO-BE-DISCOVERED
                             except:
+                                # Debugging
+                                # print("{0} | {1} | *{2}*".format(tmp, words, itr))
+                                # print("*{0}*".format(itr))
                                 pass
+
+                        # Unpack the subword list [list of subwords for each mention]
                         subword_list = list(chain.from_iterable(subword_list))
+
                         # Sort all subwords in decending length order
+                        # ***The filtering criteria should not be heuristic***
                         subword_list = sorted(subword_list, key=len, reverse=True)
 
-                        result.append(",".join(replace) + "\t" + sentence + "\t" + itr_mention + " " + " ".join(subword_list))
+                        # Mention Features: [mention _ subwords]
+                        mention_features = itr_mention + " " + " ".join(subword_list)
+
+                    # If no subword information is given, then the feature is just the mentions
                     else:
-                        result.append(",".join(replace) + "\t" + sentence + "\t" + itr_mention)
+                        mention_features = itr_mention
+
+                    # Add content to list
+                    # [LABELS] \t [SENTENCE] \t [MENTION + SUBWORDS]
+                    content = [",".join(replace), sentence, mention_features]
+                    result.append("\t".join(content))
+
+            # ***NOT DUPLICATING THE SENTENCE IF THERE ARE MORE THAN ONE MENTIONS***
+            # Multi-Mention not duplicating (TO-BE-IMPLEMENTED)
             else:
                 pass
             # replace = [str(labels[itr]) for itr in mentions]
-        # Append to the result list
+
+        # Undefined mode
+        else:
+            pass
+
     return result
 
 def merge_dict(path, trim=True, save_to_file=False):

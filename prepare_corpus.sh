@@ -1,8 +1,9 @@
 # Prepare keyword
 echo ""
-echo "[STAGE 1/5] Parsing and trimming infrequent labels in given hierarchy tree"
+echo "[STAGE 1/5] Parsing and trimming infrequent labels in given hierarchy tree, parsing subwords information"
 python src/parse_entity.py data/MeSH_type_hierarchy.txt --trim --threshold=1
 python src/parse_entity.py data/UMLS_type_hierarchy.txt --trim --threshold=1
+python src/parse_entity.py data/custom_subwords_v2.txt --subword
 
 # Preliminary
 echo ""
@@ -22,5 +23,7 @@ python src/recognize_sentences.py data/smaller_preprocessed_sentence.txt data/ -
 # add labels to the dataset
 echo ""
 echo "[STAGE 5/5] Adding labels to the dataset"
-python src/label.py
-python src/label.py --labels=data/label.json --replace --corpus=data/smaller_preprocessed_sentence_keywords.tsv --thread=10
+python src/label.py data/
+
+python src/label.py data/ --labels=data/label.json --replace --corpus=data/smaller_preprocessed_sentence_keywords.tsv --subwords=data/subwords.json --thread=10
+

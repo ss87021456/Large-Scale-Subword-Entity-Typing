@@ -1,1 +1,0 @@
-python src/refine_corpus.py data/smaller.tsv data/Pubmed_cleaned.txt src/refine_rules/ --thread=40

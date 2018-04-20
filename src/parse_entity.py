@@ -14,7 +14,7 @@ from copy import copy
 
 # python src/parse_entity.py data/MeSH_type_hierarchy.txt --trim --threshold=1
 # python src/parse_entity.py data/UMLS_type_hierarchy.txt --trim --threshold=1
-# python src/parse_entity.py data/custom_subwords.txt --subword
+# python src/parse_entity.py data/custom_subwords_v2.txt --subword
 
 def entity_parser(file, trim=True, threshold=1, plot=False, verbose=False):
     """

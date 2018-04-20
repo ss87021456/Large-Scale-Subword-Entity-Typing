@@ -12,6 +12,9 @@ from collections import Counter
 # python src/label.py data/ --labels=data/label.json --replace \
 # --corpus=data/smaller_preprocessed_sentence_keywords.tsv --subwords=data/subwords.json --thread=10
 
+# python src/label.py data/ --labels=data/label.json --replace \
+# --corpus=data/smaller_preprocessed_sentence_keywords.tsv --subwords=data/subwords.json --thread=10 --limit=100
+
 # python src/label.py data/ --corpus=data/smaller_preprocessed_sentence_keywords.tsv --stat
 
 
@@ -60,7 +63,7 @@ def fit_encoder(keywords_path, model=None, output=None):
     write_to_file(output, output_dict)
 
 def replace_labels(keywords_path, corpus, labels, output, subwords=None, mode="MULTI",
-                   duplicate=True, thread=5):
+                   duplicate=True, thread=5, limit=None):
     """
 
     Arguments:
@@ -78,7 +81,7 @@ def replace_labels(keywords_path, corpus, labels, output, subwords=None, mode="M
     print(" - Duplicate: {0}".format(duplicate))
     print()
     # Load lines from corpus
-    raw_data = readlines(corpus, limit=None)
+    raw_data = readlines(corpus, limit=limit)
 
     print()
     # Load keywords and labels
@@ -159,12 +162,14 @@ if __name__ == '__main__':
     parser.add_argument("--subwords", help="Subword information to be added.")
     parser.add_argument("--thread", type=int, help="Number of threads \
                         to run, default: 2 * number_of_cores") 
+    parser.add_argument("--limit", type=int, help="Number of maximum lines to load.")
 
     args = parser.parse_args()
 
     if args.replace:
         replace_labels(args.keywords_path, args.corpus, args.labels, args.output,
-                       args.subwords, args.mode, args.no_duplicate, args.thread)
+                       args.subwords, args.mode, args.no_duplicate, args.thread,
+                       args.limit)
     elif args.stat:
         acquire_statistic(args.corpus, args.keywords_path, args.output)
     else:
