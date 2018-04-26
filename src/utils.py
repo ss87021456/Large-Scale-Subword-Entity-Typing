@@ -524,7 +524,7 @@ def keywords_as_labels(thread_idx, data, keywords, labels, subwords=None,
 
     return result
 
-def merge_dict(path, trim=True, save_to_file=False):
+def merge_dict(path, trim=True, save_to_file=False, postfix=None):
     """
     Args:
         path(str): Path to where the dictionaries are saved.
@@ -539,10 +539,12 @@ def merge_dict(path, trim=True, save_to_file=False):
         path += "/"
 
     # File postfix
-    label_type = "_trimmed.json" if trim else "_leaf.json"
+    label_type = postfix if postfix is not None else \
+                 "_trimmed.json" if trim else "_leaf.json"
 
     print("Loading dictionaries from directory: {:s}".format(path))
-    print(" - Use {:s}trimmed labels".format("" if trim else "un-"))
+    print(" - Use {:s} labels".format(postfix if postfix is not None else \
+                                             "trimmed" if trim else "un-trimmed"))
     files = [itr for itr in os.listdir(path) if itr.endswith(label_type)]
     # Load and merge all dictionaries
     print("Found {:d} keywords dictionaries:".format(len(files)))

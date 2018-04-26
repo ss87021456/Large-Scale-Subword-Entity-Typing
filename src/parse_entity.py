@@ -186,7 +186,14 @@ def entity_parser(file, trim=True, threshold=1, plot=False, verbose=False):
     # pprint(leaf_info)
     # Save leaf node file
     write_to_file(leaf_name, leaf_info)
-
+    #
+    print("Building k-parents tree")
+    tmp_key = list(leaf_info.keys())
+    tmp_val = [itr["PATH"] for itr in leaf_info.values()]
+    c = [len(itr) for itr in chain.from_iterable(tmp_val)]
+    print(" - Tree Depth: MIN={:2d} | MAX={:2d}".format(np.min(c), np.max(c)))
+    kptree = dict(zip(tmp_key, tmp_val))
+    write_to_file(file[:-4] + "_kptree.json", kptree)
     # Trim the hierarchy tree
     if trim and threshold > 0:
         print()
@@ -265,6 +272,8 @@ def entity_parser(file, trim=True, threshold=1, plot=False, verbose=False):
         print("Threshold = 0, no trimming.")
 
 def extract_mentions(path, trim=True):
+    """
+    """
     entities = merge_dict(path, trim=trim)
 
     mentions = list(entities.keys())

@@ -18,7 +18,7 @@ from collections import Counter
 # python src/label.py data/ --corpus=data/smaller_preprocessed_sentence_keywords.tsv --stat
 
 
-def fit_encoder(keywords_path, model=None, output=None):
+def fit_encoder(keywords_path, model=None, trim=True, output=None):
     """
     Arguments:
         keywords(str): Path to directory of keywords dictionary.
@@ -30,9 +30,10 @@ def fit_encoder(keywords_path, model=None, output=None):
         model = "model/label_encoder.pkl"
     if output is None:
         output = "data/label.json"
+        r_output = "data/label_lookup.json"
 
     # Load keywords
-    contents = merge_dict(keywords_path)
+    contents = merge_dict(keywords_path, trim=trim)
     # contents = json.load(open(keywords, "r"))
 
     # LabelEncoder
@@ -61,6 +62,9 @@ def fit_encoder(keywords_path, model=None, output=None):
     # Save the labels and names as json
     output_dict = dict(zip(unique_types, [int(itr) for itr in codes]))
     write_to_file(output, output_dict)
+    # Reversed lookup table
+    output_dict = dict(zip([int(itr) for itr in codes], unique_types))
+    write_to_file(r_output, output_dict)
 
 def replace_labels(keywords_path, corpus, labels, output, subwords=None, mode="MULTI",
                    duplicate=True, thread=5, limit=None):
@@ -156,6 +160,7 @@ if __name__ == '__main__':
     parser.add_argument("--replace", action="store_true", help="Replace labels.")
     parser.add_argument("--labels", help="Points to data/label.json \
                         (when replacing labels).")
+    parser.add_argument("--trim", action="store_true", help="Use trimmed hierarchy tree.")
     parser.add_argument("--no_duplicate", action="store_false",
                         help="Do not duplicate sentences if multiple mentions are found.")
     parser.add_argument("--corpus", help="Input labeled sentences to be replaced.")
@@ -173,4 +178,4 @@ if __name__ == '__main__':
     elif args.stat:
         acquire_statistic(args.corpus, args.keywords_path, args.output)
     else:
-        fit_encoder(args.keywords_path, args.model, args.output)
+        fit_encoder(args.keywords_path, args.model, args.trim, args.output)
