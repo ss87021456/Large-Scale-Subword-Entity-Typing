@@ -7,17 +7,21 @@ import pickle as pkl
 from utils import generic_threading
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import MultiLabelBinarizer
+from sklearn.feature_extraction.text import CountVectorizer
 from keras.preprocessing import text, sequence
 import os
 
 # python ./src/generate_data.py --input=./data/smaller_preprocessed_sentence_keywords_labeled.tsv
+# python ./src/generate_data.py --input=./data/smaller_preprocessed_sentence_keywords_labeled_subwords.tsv --subword --feature=bow
 
 # Feature-parameter..
 MAX_NUM_WORDS = 30000
 MAX_NUM_MENTION_WORDS = 20000
 MAX_SEQUENCE_LENGTH = 40
-MAX_MENTION_LENGTH = 15
+MAX_MENTION_LENGTH = 5
 EMBEDDING_DIM = 100
+
+np.random.seed(0)
 
 def parallel_index(thread_idx, mention_count, mentions):
     desc = "Thread {:2d}".format(thread_idx + 1)
@@ -30,7 +34,8 @@ def parallel_index(thread_idx, mention_count, mentions):
 
     return result
 
-def run(model_dir, input, testing):
+def run(model_dir, input, testing, feature='emb', subword='False'):
+    MAX_MENTION_LENGTH = 5 if not subword else 15
     # Parse directory name
     if not model_dir.endswith("/"):
         model_dir += "/"
@@ -45,7 +50,7 @@ def run(model_dir, input, testing):
     y = dataset['label'].values
     mentions = dataset['mention'].values
     
-    
+    '''
     print("{0} unique mentions...".format(len(set(mentions))))
     unique, counts = np.unique(mentions, return_counts=True)
     mention_count = dict(zip(unique, counts))
@@ -66,9 +71,6 @@ def run(model_dir, input, testing):
             indices.append(metion_pair[1])
 
     mention_index = dict(zip(mention, indices))
-
-
-
     #mention_index = dict(zip(unique, mention_index))
 
     total_length = mentions.shape[0]
@@ -95,6 +97,14 @@ def run(model_dir, input, testing):
     # shuffle the index
     np.random.shuffle(train_index)
     np.random.shuffle(test_index)
+    print("train_index:",train_index)
+    print("test_index:",test_index)
+    pkl.dump(train_index, open(model_dir + "train_index.pkl", 'wb'))
+    pkl.dump(test_index, open(model_dir + "test_index.pkl", 'wb'))
+    exit()
+    '''
+    train_index = pkl.load(open(model_dir + "train_index.pkl", 'rb'))
+    test_index = pkl.load(open(model_dir + "test_index.pkl", 'rb'))
     
     X_train, X_test = X[train_index], X[test_index]
     X_train_mention, X_test_mention = mentions[train_index], mentions[test_index]
@@ -112,26 +122,39 @@ def run(model_dir, input, testing):
     X_te = sequence.pad_sequences(list_tokenized_test, maxlen=MAX_SEQUENCE_LENGTH)
     del list_tokenized_train, list_tokenized_test
 
-    pkl.dump(X_t, open(model_dir + "training_data_aug_subword.pkl", 'wb'))
-    pkl.dump(X_te, open(model_dir + "testing_data_aug_subword.pkl", 'wb'))
+    pkl.dump(X_t, open(model_dir + "training_data_w_subword.pkl", 'wb'))
+    pkl.dump(X_te, open(model_dir + "testing_data_w_subword.pkl", 'wb'))
     del X_t, X_te
 
-    print("Tokenize mentions...")
-    m_tokenizer = text.Tokenizer(num_words=MAX_NUM_MENTION_WORDS)
-    m_tokenizer.fit_on_texts(list(X_train_mention))
-    m_list_tokenized_train = m_tokenizer.texts_to_sequences(X_train_mention)
-    m_list_tokenized_test = m_tokenizer.texts_to_sequences(X_test_mention)
-    del X_train_mention, X_test_mention
+    if feature == 'emb':
+        print("Tokenize mentions...")
+        m_tokenizer = text.Tokenizer(num_words=MAX_NUM_MENTION_WORDS)
+        m_tokenizer.fit_on_texts(list(X_train_mention))
+        m_list_tokenized_train = m_tokenizer.texts_to_sequences(X_train_mention)
+        m_list_tokenized_test = m_tokenizer.texts_to_sequences(X_test_mention)
+        del X_train_mention, X_test_mention
+    
+        # Padding mentions
+        print("Padding mentions vector...")
+        X_m_t = sequence.pad_sequences(m_list_tokenized_train, maxlen=MAX_MENTION_LENGTH)
+        X_m_te = sequence.pad_sequences(m_list_tokenized_test, maxlen=MAX_MENTION_LENGTH)
+        del m_list_tokenized_train, m_list_tokenized_test
+    
+        pkl.dump(X_m_t, open(model_dir + "training_mention_w_subword.pkl", 'wb'))
+        pkl.dump(X_m_te, open(model_dir + "testing_mention_w_subword.pkl", 'wb'))
+        del X_m_t, X_m_te
+    elif feature == 'bow':
+        vectorizer = CountVectorizer(analyzer = "word",   \
+                                     tokenizer = None,    \
+                                     preprocessor = None, \
+                                     stop_words = None)
+        vectorizer = vectorizer.fit(X_train_mention)
+        X_train_mention = vectorizer.transform(X_train_mention)
+        X_test_mention = vectorizer.transform(X_test_mention)
+        pkl.dump(X_train_mention, open(model_dir + "training_mention_bow_w_subword.pkl", 'wb'))
+        pkl.dump(X_test_mention, open(model_dir + "testing_mention_bow_w_subword.pkl", 'wb'))
+        pkl.dump(vectorizer, open(model_dir + "bag-of-word_w_subword.pkl", 'wb'))
 
-    # Padding mentions
-    print("Padding mentions vector...")
-    X_m_t = sequence.pad_sequences(m_list_tokenized_train, maxlen=MAX_MENTION_LENGTH)
-    X_m_te = sequence.pad_sequences(m_list_tokenized_test, maxlen=MAX_MENTION_LENGTH)
-    del m_list_tokenized_train, m_list_tokenized_test
-
-    pkl.dump(X_m_t, open(model_dir + "training_mention_aug_subword.pkl", 'wb'))
-    pkl.dump(X_m_te, open(model_dir + "testing_mention_aug_subword.pkl", 'wb'))
-    del X_m_t, X_m_te
     
     # Parsing the labels and convert to integer using comma as separetor
     print("Creating MultiLabel..")
@@ -159,15 +182,15 @@ def run(model_dir, input, testing):
     print(" shape of testing labels:",y_test.shape)
 
     # dumping training and testing label
-    pkl.dump(y_train, open(model_dir + "training_label_aug_subword.pkl", 'wb'))
-    pkl.dump(y_test, open(model_dir + "testing_label_aug_subword.pkl", 'wb'))
+    pkl.dump(y_train, open(model_dir + "training_label_w_subword.pkl", 'wb'))
+    pkl.dump(y_test, open(model_dir + "testing_label_w_subword.pkl", 'wb'))
     del y_train, y_test
 
     print("dumping pickle file of tokenizer/m_tokenizer/mlb...")
     # dumping model
-    pkl.dump(tokenizer, open(model_dir + "tokenizer_aug_subword.pkl", 'wb'))
-    pkl.dump(m_tokenizer, open(model_dir + "m_tokenizer_aug_subword.pkl", 'wb'))
-    pkl.dump(mlb, open(model_dir + "mlb_aug_subword.pkl", 'wb'))
+    pkl.dump(tokenizer, open(model_dir + "tokenizer_w_subword.pkl", 'wb'))
+    pkl.dump(m_tokenizer, open(model_dir + "m_tokenizer_w_subword.pkl", 'wb'))
+    pkl.dump(mlb, open(model_dir + "mlb_w_subword.pkl", 'wb'))
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -177,6 +200,8 @@ if __name__ == '__main__':
     parser.add_argument("--test", nargs='?', const=0.1, type=float, default=0.1,
                         help="Specify the portion of the testing data to be split.\
                         [Default: 10\% of the entire dataset]")
+    parser.add_argument("--feature", help="Use embbeding mention or bag-of-word mention [emb, bow]" )
+    parser.add_argument("--subword", action="store_true" , help="Use subword or not")
     args = parser.parse_args()
 
-    run(args.model, args.input, args.test)
+    run(args.model, args.input, args.test, args.feature, args.subword)
