@@ -31,7 +31,7 @@ def BLSTM(label_num, sentence_emb=None, mention_emb=None, attention=False, mode=
             MAX_MENTION_LENGTH = 5
         EMBEDDING_DIM = 100
 
-        sentence = Input(shape=(MAX_SEQUENCE_LENGTH, ), name='sentence')        
+        sentence = Input(shape=(MAX_SEQUENCE_LENGTH, ), name='sentence')
         
         # Pretrain sentence_embedding
         if sentence_emb is not None:
@@ -65,8 +65,7 @@ def BLSTM(label_num, sentence_emb=None, mention_emb=None, attention=False, mode=
         x = Dropout(dropout)(x)
         x = Dense(label_num, activation="sigmoid")(x)
         model = Model(inputs=[sentence, mention], outputs=x)
-        model.compile(loss='binary_crossentropy',
-                      optimizer='adam')
+        model.compile(loss='binary_crossentropy', optimizer='adam')
         return model
 
 def CNN(label_num, sentence_emb=None, mention_emb=None, attention=False, mode='concatenate', dropout=0.1, subword=False):
@@ -119,6 +118,5 @@ def CNN(label_num, sentence_emb=None, mention_emb=None, attention=False, mode='c
         x = Dropout(dropout)(x)
         x = Dense(label_num, activation="sigmoid")(x)
         model = Model(inputs=[sentence, mention], outputs=x)
-        model.compile(loss='binary_crossentropy',
-                      optimizer='adam')
-        return mode
+        model.compile(loss='binary_crossentropy', optimizer='adam')
+        return model
