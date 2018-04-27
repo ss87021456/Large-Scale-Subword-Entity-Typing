@@ -70,8 +70,8 @@ def run(model_dir, input, test_size, train_idx, test_idx, subword=False):
     X_te = sequence.pad_sequences(list_tokenized_test, maxlen=MAX_SEQUENCE_LENGTH)
     del list_tokenized_train, list_tokenized_test
 
-    #pkl.dump(X_t, open(model_dir + "training_data_w_subword.pkl", 'wb'))
-    #pkl.dump(X_te, open(model_dir + "testing_data_w_subword.pkl", 'wb'))
+    pkl.dump(X_t, open(model_dir + "training_data_w_subword.pkl", 'wb'))
+    pkl.dump(X_te, open(model_dir + "testing_data_w_subword.pkl", 'wb'))
     del X_t, X_te
 
     print("Tokenize mentions...")
@@ -111,7 +111,7 @@ def run(model_dir, input, test_size, train_idx, test_idx, subword=False):
     mlb = MultiLabelBinarizer(sparse_output=True)
     mlb.fit(temp)
     del temp
-    
+
     y_train = mlb.transform(y_train)
     y_test = mlb.transform(y_test)
     print(" shape of training labels:",y_train.shape)

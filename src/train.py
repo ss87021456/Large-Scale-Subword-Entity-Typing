@@ -19,9 +19,6 @@ from nn_model import BLSTM, CNN
 # Training w/ pretrained
 # CUDA_VISIBLE_DEVICES=0 python ./src/BLSTM_train.py --pre=True --emb=emb_path --mode=[CNN,BLSTM]
 
-# Evaluation
-# CUDA_VISIBLE_DEVICES=0 python ./src/BLSTM_train.py --pre=False --evaluation --mode=[CNN,BLSTM] 
-
 # Additional option --subword --attention
 
 
@@ -43,7 +40,7 @@ config = tf.ConfigProto()
 config.gpu_options.per_process_gpu_memory_fraction = 0.3
 set_session(tf.Session(config=config))
 
-def run(model_dir, model_type, pre=True, embedding=None, evaluation=False, subword=False, attention=False):
+def run(model_dir, model_type, pre=True, embedding=None, subword=False, attention=False):
     # Parse directory name
     if not model_dir.endswith("/"):
         model_dir += "/"
@@ -168,4 +165,4 @@ if __name__ == '__main__':
                         help="different model architecture BLTSM or CNN [Default: \"BLSTM/\"]")
     args = parser.parse_args()
 
-    run(args.model, args.mode, args.pre, args.emb, args.evaluation, args.subword, args.attention)
+    run(args.model, args.mode, args.pre, args.emb, args.subword, args.attention)
