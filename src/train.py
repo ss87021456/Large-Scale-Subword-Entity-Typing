@@ -95,8 +95,8 @@ def run(model_dir, model_type, pre=True, embedding=None, evaluation=False, subwo
 
     print(model.summary())
 
-    file_path =  model_type + "-weights-{epoch:02d}.hdf5"
-    model_name = model_type + "-weights-00.hdf5"
+    file_path =  model_type + "-weights-{epoch:02d}.hdf5"   # for keras to save model each epoch
+    model_name = model_type + "-weights-00.hdf5"            # deal with model_name   
     if attention:
         file_path = "Attention-" + file_path
         model_name = "Attention-" + model_name
@@ -118,6 +118,7 @@ def run(model_dir, model_type, pre=True, embedding=None, evaluation=False, subwo
         X_test_mention = pkl.load(open(model_dir + "testing_mention_wo_subword.pkl", 'rb'))
         y_test = pkl.load(open(model_dir + "testing_label_wo_subword.pkl", 'rb'))
 
+    # Training
     if not evaluation:
         print("Loading training data...")
         if subword:

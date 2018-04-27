@@ -15,8 +15,8 @@ from keras.callbacks import EarlyStopping, ModelCheckpoint, Callback
 from nn_model import BLSTM, CNN
 from tqdm import tqdm
 
-# CUDA_VISIBLE_DEVICES=1 python ./src/test.py --model_path=wo_pretrained/ --model_type=[BLSTM,CNN] [--subword] [--attention]
-# CUDA_VISIBLE_DEVICES=1 python ./src/test.py --model_path=wo_pretrained/ --model_type=[BLSTM,CNN] [--subword] [--attention] --visualize > visualize.txt
+# CUDA_VISIBLE_DEVICES=1 python ./src/test.py --model_path=wo_pretrained/... --model_type=[BLSTM,CNN] [--subword] [--attention]
+# CUDA_VISIBLE_DEVICES=1 python ./src/test.py --model_path=wo_pretrained/... --model_type=[BLSTM,CNN] [--subword] [--attention] --visualize > visualize.txt
 
 
 # Feature-parameter
