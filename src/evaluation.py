@@ -15,7 +15,8 @@ from keras.callbacks import EarlyStopping, ModelCheckpoint, Callback
 from nn_model import BLSTM, CNN
 from tqdm import tqdm
 
-# CUDA_VISIBLE_DEVICES=1 python ./src/test.py --model_path=wo_pretrained/ --model_type=[BLSTM,CNN] --evaluation [--subword] [--attention] [--visualization]
+# CUDA_VISIBLE_DEVICES=1 python ./src/test.py --model_path=wo_pretrained/ --model_type=[BLSTM,CNN] [--subword] [--attention]
+# CUDA_VISIBLE_DEVICES=1 python ./src/test.py --model_path=wo_pretrained/ --model_type=[BLSTM,CNN] [--subword] [--attention] --visualize > visualize.txt
 
 
 # Feature-parameter
@@ -69,7 +70,7 @@ config = tf.ConfigProto()
 config.gpu_options.per_process_gpu_memory_fraction = 0.3
 set_session(tf.Session(config=config))
 
-def run(model_dir, model_type, model_path, evaluation=False, subword=False, attention=False, visualize=False):
+def run(model_dir, model_type, model_path, subword=False, attention=False, visualize=False):
     print(model_dir, model_type, model_path)
     # Parse directory name
     if not model_dir.endswith("/"):
@@ -119,20 +120,6 @@ def run(model_dir, model_type, model_path, evaluation=False, subword=False, atte
         X_test_mention = pkl.load(open(model_dir + "testing_mention_wo_subword.pkl", 'rb'))
         y_test = pkl.load(open(model_dir + "testing_label_wo_subword.pkl", 'rb'))
 
-    if not evaluation:
-        print("Loading training data...")
-        if subword:
-            X_train = pkl.load(open(model_dir + "training_data_w_subword.pkl", 'rb'))
-            X_train_mention = pkl.load(open(model_dir + "training_mention_w_subword.pkl", 'rb'))
-            y_train = pkl.load(open(model_dir + "training_label_w_subword.pkl", 'rb'))
-        else:
-            X_train = pkl.load(open(model_dir + "training_data_wo_subword.pkl", 'rb'))
-            X_train_mention = pkl.load(open(model_dir + "training_mention_wo_subword.pkl", 'rb'))
-            y_train = pkl.load(open(model_dir + "training_label_wo_subword.pkl", 'rb'))
-
-        print("Begin training...")
-        model.fit([X_train, X_train_mention], y_train, batch_size=batch_size, epochs=epochs, validation_split=0.1, callbacks=callbacks_list)
-
     print("loading file..")
     if subword:
         dataset = pd.read_csv("./data/smaller_preprocessed_sentence_keywords_labeled_subwords.tsv", sep='\t', names=['label','context','mention'])
@@ -148,56 +135,59 @@ def run(model_dir, model_type, model_path, evaluation=False, subword=False, atte
     X_train_mention_text, X_test_mention_text = mentions[train_index], mentions[test_index]
     del X, mentions
     
-    test_size = None
+    # Visualize number of rows
+    test_size = 2000 if visualize else None
+
     trained_weight_file = model_path
     model.load_weights(trained_weight_file)
     y_pred = model.predict([X_test[:test_size], X_test_mention[:test_size]])
-    #print(y_pred)
     y_pred[y_pred >= 0.5] = 1.
     y_pred[y_pred < 0.5] = 0.
     y_pred = sparse.csr_matrix(y_pred)
-    #print(y_pred)
-    #print(mlb.inverse_transform(y_pred), mlb.inverse_transform(y_test[:test_size]))
+
     print("inverse_transform result...")
     y_pred = mlb.inverse_transform(y_pred)
     y_test_ = mlb.inverse_transform(y_test[:test_size])
 
     label_dict = json.load(open('data/label.json', "r"))
     inv_label_dict = {v: k for k, v in label_dict.items()}
-    if visualize:
-        filename = trained_weight_file[:-5]+"_visualize_result.txt"
-    else:
-        filename = trained_weight_file[:-5]+"_result.txt"
+    
+    filename = trained_weight_file[:-5]+"_result.txt"
 
     print("Start output result...")
-    with open(filename, "w") as f:
-        for prediction, lab in tqdm(zip(y_pred, y_test_)):
-            pred = list(prediction)
-            pred.sort()
-            label = list(lab)
-            label.sort()
-            pred = list(map(str, pred))
-            pred = ",".join(pred)
-            label = list(map(str, label))
-            label = ",".join(label)
-            if not visualize:
+    if not visualize:
+        with open(filename, "w") as f:
+            for prediction, lab in tqdm(zip(y_pred, y_test_)):
+                pred = list(prediction)
+                pred.sort()
+                label = list(lab)
+                label.sort()
+                pred = list(map(str, pred))
+                pred = ",".join(pred)
+                label = list(map(str, label))
+                label = ",".join(label)
                 f.write(pred + '\t')
                 f.write(label + '\n')
-            else:
-                precision, recall, f1 = p_r_f(pred, label)
-                prediction = [inv_label_dict[i] for i in pred]
-                labels = [inv_label_dict[i] for i in label]
-                temp = []
-                temp.append(X_test_text[i])
-                temp_ = []
-                temp_.append(X_test_mention_text[i])
-                f.write("Sentence: " + temp)
-                f.write("Mention" + temp_)
-                f.write("Prediction" + prediction)
-                f.write("Label" + labels)
-                score = "Precision: {:3.3f} Recall {:3.3f} F1 {:3.3f}".format(precision, recall, f1)
-                f.write(score + "\n")
-    print("Writing file to", filename)
+                print("Writing file to", filename)
+    else:
+        for i in range(test_size):
+            pred = list(y_pred[i])
+            pred.sort()
+            label = list(y_test_[i])
+            label.sort()
+            precision, recall, f1 = p_r_f(pred, label)
+            pred = [inv_label_dict[j] for j in pred]
+            label = [inv_label_dict[j] for j in label]
+            temp = []
+            temp.append(X_test_text[i])
+            temp_ = []
+            temp_.append(X_test_mention_text[i])
+            print("Sentence: ",temp)
+            print("Mention",temp_)
+            print("Prediction",pred)
+            print("Label",label)
+            score = "Precision: {:3.3f} Recall {:3.3f} F1 {:3.3f}".format(precision, recall, f1)
+            print(score + "\n")
 
     K.clear_session()
 
@@ -206,7 +196,6 @@ if __name__ == '__main__':
     parser.add_argument("--subword", action="store_true" , help="Use subword or not")
     parser.add_argument("--attention",action="store_true", help="Use attention or not")
     parser.add_argument("--visualize",action="store_true", help="Visualize or not")
-    parser.add_argument("--evaluation", action="store_true", help="Evaluation mode.")
     parser.add_argument("--model_dir", nargs='?', type=str, default="model/", 
                         help="Directory to load models. [Default: \"model/\"]")
     parser.add_argument("--model_type", nargs='?', type=str, default="BLSTM",
@@ -214,4 +203,4 @@ if __name__ == '__main__':
     parser.add_argument("--model_path", nargs='?', type=str, default="None", help="path to weighted")
     args = parser.parse_args()
 
-    run(args.model_dir, args.model_type, args.model_path, args.evaluation, args.subword, args.attention, args.visualize)
+    run(args.model_dir, args.model_type, args.model_path, args.subword, args.attention, args.visualize)
