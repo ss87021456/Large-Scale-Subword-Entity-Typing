@@ -15,9 +15,9 @@ from keras.callbacks import EarlyStopping, ModelCheckpoint, Callback
 from nn_model import BLSTM, CNN
 from tqdm import tqdm
 
-# CUDA_VISIBLE_DEVICES=1 python ./src/test.py --model_path=wo_pretrained/... --model_type=[BLSTM,CNN] [--subword] [--attention]
-# CUDA_VISIBLE_DEVICES=1 python ./src/test.py --model_path=wo_pretrained/... --model_type=[BLSTM,CNN] [--subword] [--attention] --visualize > visualize.txt
-
+# CUDA_VISIBLE_DEVICES=1 python ./src/evaluation.py --model_path=wo_pretrained/... --model_type=[BLSTM,CNN] [--subword] [--attention]
+# CUDA_VISIBLE_DEVICES=1 python ./src/evaluation.py --model_path=wo_pretrained/... --model_type=[BLSTM,CNN] [--subword] [--attention] --visualize > visualize.txt
+# CNN-weights-01.hdf5
 
 # Feature-parameter
 MAX_NUM_WORDS = 30000
@@ -112,13 +112,16 @@ def run(model_dir, model_type, model_path, subword=False, attention=False, visua
 
     print("Loading testing data...")
     if subword:
-        X_test = pkl.load(open(model_dir + "testing_data_w_subword.pkl", 'rb'))
-        X_test_mention = pkl.load(open(model_dir + "testing_mention_w_subword.pkl", 'rb'))
-        y_test = pkl.load(open(model_dir + "testing_label_w_subword.pkl", 'rb'))
+        X_test = pkl.load(open(model_dir + "training_data_w_subword.pkl", 'rb'))
+        X_test_mention = pkl.load(open(model_dir + "training_mention_w_subword.pkl", 'rb'))
+        y_test = pkl.load(open(model_dir + "training_label_w_subword.pkl", 'rb'))
     else:
-        X_test = pkl.load(open(model_dir + "testing_data_wo_subword.pkl", 'rb'))
-        X_test_mention = pkl.load(open(model_dir + "testing_mention_wo_subword.pkl", 'rb'))
-        y_test = pkl.load(open(model_dir + "testing_label_wo_subword.pkl", 'rb'))
+        #X_test = pkl.load(open(model_dir + "testing_data_wo_subword.pkl", 'rb'))
+        #X_test_mention = pkl.load(open(model_dir + "testing_mention_wo_subword.pkl", 'rb'))
+        #y_test = pkl.load(open(model_dir + "testing_label_wo_subword.pkl", 'rb'))
+        X_test = pkl.load(open(model_dir + "training_data_wo_subword.pkl", 'rb'))
+        X_test_mention = pkl.load(open(model_dir + "training_mention_wo_subword.pkl", 'rb'))
+        y_test = pkl.load(open(model_dir + "training_label_wo_subword.pkl", 'rb'))
 
     print("loading file..")
     if subword:
@@ -136,7 +139,7 @@ def run(model_dir, model_type, model_path, subword=False, attention=False, visua
     del X, mentions
     
     # Visualize number of rows
-    test_size = 2000 if visualize else None
+    test_size = 1000000 if visualize else None
 
     trained_weight_file = model_path
     model.load_weights(trained_weight_file)
@@ -179,15 +182,16 @@ def run(model_dir, model_type, model_path, subword=False, attention=False, visua
             pred = [inv_label_dict[j] for j in pred]
             label = [inv_label_dict[j] for j in label]
             temp = []
-            temp.append(X_test_text[i])
+            temp.append(X_train_text[i])
             temp_ = []
-            temp_.append(X_test_mention_text[i])
-            print("Sentence: ",temp)
-            print("Mention",temp_)
-            print("Prediction",pred)
-            print("Label",label)
-            score = "Precision: {:3.3f} Recall {:3.3f} F1 {:3.3f}".format(precision, recall, f1)
-            print(score + "\n")
+            temp_.append(X_train_mention_text[i])
+            if 'toxin' in temp_[0]:
+                print("Sentence: ",temp)
+                print("Mention",temp_)
+                print("Prediction",pred)
+                print("Label",label)
+                score = "Precision: {:3.3f} Recall {:3.3f} F1 {:3.3f}".format(precision, recall, f1)
+                print(score + "\n")
 
     K.clear_session()
 
