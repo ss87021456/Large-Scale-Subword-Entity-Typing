@@ -6,7 +6,7 @@ from utils import write_to_file, readlines, merge_dict
 
 # python src/hierarchical_eval.py --labels=data/label.json \
 # --mention=test_mention_list.txt --prediction=sample_pred_label.txt \
-# --k_parents=5 --hierarchy=data/MeSH_type_hierarchy_kptree.json
+# --k_parents=5 --hierarchy=data/
 
 
 def k_parents_eval(labels, mention, pred_file, k_parents, hierarchy_path, output=None):
@@ -30,7 +30,7 @@ def k_parents_eval(labels, mention, pred_file, k_parents, hierarchy_path, output
     pred = [[itr[0].split(","), itr[1].split(",")] for itr in pred]
 
     # Parse str to integer and lookup for the type (in context)
-    print("\nCalculating {:d} Layer parents precisions:".format(k_parents))
+    print("\nCalculating {:d} Layer parents accuracy:".format(k_parents))
     acc_collection = list()
     depth = list()
     for idx, itr in enumerate(pred):
@@ -43,25 +43,41 @@ def k_parents_eval(labels, mention, pred_file, k_parents, hierarchy_path, output
         ground_truth = [labels_dict[int(itr)] for itr in ground_truth]
         # print("PATH: {0}".format(paths))
         # print("{0}: {1} | {2}".format(idx + 1, prediction, ground_truth))
+        tmp = list()
         for itr_path in paths:
-            tmp = list()
+            per_path_acc = list()
             for itr_k in range(k_parents):
                 # print("Layer {:d}: {:s}".format(itr_k, itr_path[itr_k]))
                 try:
-                    tmp.append(1 if itr_path[itr_k] in prediction else 0)
+                    # tmp.append(1. if itr_path[itr_k] in prediction else 0.)
+                    per_path_acc.append(1. if itr_path[itr_k] in prediction else 0.)
                 # Path is not long enough
                 except:
-                    tmp.append(np.nan)
+                    # tmp.append(np.nan)
+                    per_path_acc.append(-1.)
             # print(tmp)
-            acc_collection.append(tmp)
-    #
+            # acc_collection.append(tmp)
+            tmp.append(per_path_acc)
+
+        # If the prediction predict correctly on some layer k, we give it 100% accuracy
+        tmp = np.array(tmp)
+        tmp = tmp.max(axis=0)
+        tmp[tmp == -1.] = np.nan
+        acc_collection.append(tmp)
+
+    # Calculate accuracy with respect to batch and ignore NaNs
     acc_collection = np.array(acc_collection)
-    precision = np.nanmean(acc_collection, axis=0)
-    # print(precision)
-    for itr in range(k_parents):
-        print("Layer {:2d}: {:2.2f}%".format(itr + 1, 100. * precision[itr]))
+    accuracy = np.nanmean(acc_collection, axis=0)
+    # Calculate number of instance across all classes
+    n_instances = np.count_nonzero(~np.isnan(acc_collection), axis=0)
+    # print(accuracy)
+    print(" LAYER# | N_INSTANCES | ACCURACY")
+    print("================================")
+    for itr, n in zip(range(k_parents), n_instances):
+        print("Layer {:2d}:  {:10d} |   {:.2f}%".format(itr + 1, n, 100. * accuracy[itr]))
     # info
     depth = np.array(list(chain.from_iterable(depth)))
+    print("================================")
     print("Depth: MEAN={:2.2f} | MAX={:2.2f} | MIN={:2.2f}"
           .format(depth.mean(), depth.max(), depth.min()))
 
