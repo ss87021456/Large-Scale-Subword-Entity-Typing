@@ -20,15 +20,18 @@ def attention_3d_block(inputs):
     output_attention_mul = merge([inputs, a_probs], name='attention_mul', mode='mul')
     return output_attention_mul
 
-def BLSTM(label_num, sentence_emb=None, mention_emb=None, attention=False, mode='concatenate', dropout=0.1):
+def BLSTM(label_num, sentence_emb=None, mention_emb=None, attention=False, mode='concatenate', dropout=0.1, subword=False):
         
         MAX_NUM_WORDS = 30000
         MAX_NUM_MENTION_WORDS = 20000
         MAX_SEQUENCE_LENGTH = 40
-        MAX_MENTION_LENGTH = 5
+        if subword:
+            MAX_MENTION_LENGTH = 15
+        else:
+            MAX_MENTION_LENGTH = 5
         EMBEDDING_DIM = 100
 
-        sentence = Input(shape=(MAX_SEQUENCE_LENGTH, ), name='sentence')        
+        sentence = Input(shape=(MAX_SEQUENCE_LENGTH, ), name='sentence')
         
         # Pretrain sentence_embedding
         if sentence_emb is not None:
@@ -62,17 +65,18 @@ def BLSTM(label_num, sentence_emb=None, mention_emb=None, attention=False, mode=
         x = Dropout(dropout)(x)
         x = Dense(label_num, activation="sigmoid")(x)
         model = Model(inputs=[sentence, mention], outputs=x)
-        model.compile(loss='binary_crossentropy',
-                      optimizer='adam')
+        model.compile(loss='binary_crossentropy', optimizer='adam')
         return model
 
-
-def CNN(label_num, sentence_emb=None, mention_emb=None, attention=False, mode='concatenate', dropout=0.1, cnn='1D'):
+def CNN(label_num, sentence_emb=None, mention_emb=None, attention=False, mode='concatenate', dropout=0.1, subword=False):
         
         MAX_NUM_WORDS = 30000
         MAX_NUM_MENTION_WORDS = 20000
         MAX_SEQUENCE_LENGTH = 40
-        MAX_MENTION_LENGTH = 5
+        if subword:
+            MAX_MENTION_LENGTH = 15
+        else:
+            MAX_MENTION_LENGTH = 5
         EMBEDDING_DIM = 100
         num_filters = 64
 
@@ -87,11 +91,10 @@ def CNN(label_num, sentence_emb=None, mention_emb=None, attention=False, mode='c
         if attention: # attention before lstm
             x = attention_3d_block(x)
 
-        if cnn == '1D':
-            x = Conv1D(num_filters, 5, activation='relu', padding='valid')(x)
-            x = MaxPooling1D(2)(x)
-            x = Conv1D(num_filters, 5, activation='relu', padding='valid')(x)
-            x = GlobalMaxPool1D()(x)
+        x = Conv1D(num_filters, 5, activation='relu', padding='valid')(x)
+        x = MaxPooling1D(2)(x)
+        x = Conv1D(num_filters, 5, activation='relu', padding='valid')(x)
+        x = GlobalMaxPool1D()(x)
 
         mention = Input(shape=(MAX_MENTION_LENGTH, ), name='mention')
         # Pretrain mention_embedding
@@ -99,15 +102,11 @@ def CNN(label_num, sentence_emb=None, mention_emb=None, attention=False, mode='c
             x_2 = mention_emb(mention)
         else:
             x_2 = Embedding(MAX_NUM_MENTION_WORDS,EMBEDDING_DIM,input_length=MAX_MENTION_LENGTH)(mention)
-        
-        if cnn == '1D':
-            x_2 = Conv1D(num_filters, 5, activation='relu', padding='same')(x_2)
-            x_2 = MaxPooling1D(2)(x_2)
-            x_2 = Conv1D(num_filters, 5, activation='relu', padding='same')(x_2)
-            x_2 = GlobalMaxPool1D()(x_2)
-        #elif cnn == '2D':
 
-
+        x_2 = Conv1D(num_filters, 5, activation='relu', padding='same')(x_2)
+        x_2 = MaxPooling1D(2)(x_2)
+        x_2 = Conv1D(num_filters, 5, activation='relu', padding='same')(x_2)
+        x_2 = GlobalMaxPool1D()(x_2)
 
         if mode == 'concatenate':
             x = concatenate([x, x_2])           # Concatencate
@@ -119,6 +118,5 @@ def CNN(label_num, sentence_emb=None, mention_emb=None, attention=False, mode='c
         x = Dropout(dropout)(x)
         x = Dense(label_num, activation="sigmoid")(x)
         model = Model(inputs=[sentence, mention], outputs=x)
-        model.compile(loss='binary_crossentropy',
-                      optimizer='adam')
+        model.compile(loss='binary_crossentropy', optimizer='adam')
         return model
