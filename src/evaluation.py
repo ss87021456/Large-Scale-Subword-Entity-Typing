@@ -15,9 +15,11 @@ from keras.callbacks import EarlyStopping, ModelCheckpoint, Callback
 from nn_model import BLSTM, CNN
 from tqdm import tqdm
 
+# simply output prediction
 # CUDA_VISIBLE_DEVICES=1 python ./src/evaluation.py --model_path=wo_pretrained/... --model_type=[BLSTM,CNN] [--subword] [--attention]
+
+# visualize
 # CUDA_VISIBLE_DEVICES=1 python ./src/evaluation.py --model_path=wo_pretrained/... --model_type=[BLSTM,CNN] [--subword] [--attention] --visualize > visualize.txt
-# CNN-weights-01.hdf5
 
 # Feature-parameter
 MAX_NUM_WORDS = 30000
@@ -112,15 +114,12 @@ def run(model_dir, model_type, model_path, subword=False, attention=False, visua
 
     print("Loading testing data...")
     if subword:
-        X_test = pkl.load(open(model_dir + "training_data_w_subword.pkl", 'rb'))
-        X_test_mention = pkl.load(open(model_dir + "training_mention_w_subword.pkl", 'rb'))
-        y_test = pkl.load(open(model_dir + "training_label_w_subword.pkl", 'rb'))
+        X_test = pkl.load(open(model_dir + "testing_data_w_subword.pkl", 'rb'))
+        X_test_mention = pkl.load(open(model_dir + "testing_mention_w_subword.pkl", 'rb'))
+        y_test = pkl.load(open(model_dir + "testing_label_w_subword.pkl", 'rb'))
     else:
-        #X_test = pkl.load(open(model_dir + "testing_data_wo_subword.pkl", 'rb'))
-        #X_test_mention = pkl.load(open(model_dir + "testing_mention_wo_subword.pkl", 'rb'))
-        #y_test = pkl.load(open(model_dir + "testing_label_wo_subword.pkl", 'rb'))
-        X_test = pkl.load(open(model_dir + "training_data_wo_subword.pkl", 'rb'))
-        X_test_mention = pkl.load(open(model_dir + "training_mention_wo_subword.pkl", 'rb'))
+        X_test = pkl.load(open(model_dir + "testing_data_wo_subword.pkl", 'rb'))
+        X_test_mention = pkl.load(open(model_dir + "testing_mention_wo_subword.pkl", 'rb'))
         y_test = pkl.load(open(model_dir + "training_label_wo_subword.pkl", 'rb'))
 
     print("loading file..")
@@ -139,7 +138,7 @@ def run(model_dir, model_type, model_path, subword=False, attention=False, visua
     del X, mentions
     
     # Visualize number of rows
-    test_size = 1000000 if visualize else None
+    test_size = 1000 if visualize else None
 
     trained_weight_file = model_path
     model.load_weights(trained_weight_file)

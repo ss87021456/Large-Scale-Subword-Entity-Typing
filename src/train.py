@@ -17,7 +17,7 @@ from nn_model import BLSTM, CNN
 # Training w/o pretrained
 # CUDA_VISIBLE_DEVICES=0 python ./src/BLSTM_train.py --pre=False --mode=[CNN,BLSTM]
 # Training w/ pretrained
-# CUDA_VISIBLE_DEVICES=0 python ./src/BLSTM_train.py --pre=True --emb=emb_path --mode=[CNN,BLSTM]
+# CUDA_VISIBLE_DEVICES=0 python ./src/BLSTM_train.py --pre=True --emb=data/FastText.vec --mode=[CNN,BLSTM]
 
 # Additional option --subword --attention
 
