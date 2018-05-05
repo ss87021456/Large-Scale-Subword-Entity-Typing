@@ -15,9 +15,9 @@ from keras.callbacks import EarlyStopping, ModelCheckpoint, Callback
 from nn_model import BLSTM, CNN
 
 # Training w/o pretrained
-# CUDA_VISIBLE_DEVICES=0 python ./src/BLSTM_train.py --pre=False --mode=[CNN,BLSTM]
+# CUDA_VISIBLE_DEVICES=0 python ./src/train.py --pre=False --mode=[CNN,BLSTM]
 # Training w/ pretrained
-# CUDA_VISIBLE_DEVICES=0 python ./src/BLSTM_train.py --pre=True --emb=data/FastText.vec --mode=[CNN,BLSTM]
+# CUDA_VISIBLE_DEVICES=0 python ./src/train.py --pre=True --emb=data/FastText.vec --mode=[CNN,BLSTM]
 
 # Additional option --subword --attention
 
@@ -91,6 +91,7 @@ def run(model_dir, model_type, pre=True, embedding=None, subword=False, attentio
             model = CNN(label_num=label_num, sentence_emb=None, mention_emb=None, attention=attention, subword=subword, mode='concatenate', dropout=0.1)
 
     print(model.summary())
+    #exit()
 
     file_path =  model_type + "-weights-{epoch:02d}.hdf5"   # for keras to save model each epoch
     model_name = model_type + "-weights-00.hdf5"            # deal with model_name   
@@ -116,19 +117,18 @@ def run(model_dir, model_type, pre=True, embedding=None, subword=False, attentio
         y_test = pkl.load(open(model_dir + "testing_label_wo_subword.pkl", 'rb'))
 
     # Training
-    if not evaluation:
-        print("Loading training data...")
-        if subword:
-            X_train = pkl.load(open(model_dir + "training_data_w_subword.pkl", 'rb'))
-            X_train_mention = pkl.load(open(model_dir + "training_mention_w_subword.pkl", 'rb'))
-            y_train = pkl.load(open(model_dir + "training_label_w_subword.pkl", 'rb'))
-        else:
-            X_train = pkl.load(open(model_dir + "training_data_wo_subword.pkl", 'rb'))
-            X_train_mention = pkl.load(open(model_dir + "training_mention_wo_subword.pkl", 'rb'))
-            y_train = pkl.load(open(model_dir + "training_label_wo_subword.pkl", 'rb'))
+    print("Loading training data...")
+    if subword:
+        X_train = pkl.load(open(model_dir + "training_data_w_subword.pkl", 'rb'))
+        X_train_mention = pkl.load(open(model_dir + "training_mention_w_subword.pkl", 'rb'))
+        y_train = pkl.load(open(model_dir + "training_label_w_subword.pkl", 'rb'))
+    else:
+        X_train = pkl.load(open(model_dir + "training_data_wo_subword.pkl", 'rb'))
+        X_train_mention = pkl.load(open(model_dir + "training_mention_wo_subword.pkl", 'rb'))
+        y_train = pkl.load(open(model_dir + "training_label_wo_subword.pkl", 'rb'))
 
-        print("Begin training...")
-        model.fit([X_train, X_train_mention], y_train, batch_size=batch_size, epochs=epochs, validation_split=0.1, callbacks=callbacks_list)
+    print("Begin training...")
+    model.fit([X_train, X_train_mention], y_train, batch_size=batch_size, epochs=epochs, validation_split=0.1, callbacks=callbacks_list)
 
     # Evaluation
     print("Loading trained weights for predicting...")
@@ -158,7 +158,6 @@ if __name__ == '__main__':
     parser.add_argument("--emb", help="please provide pretrained Embedding Model.")
     parser.add_argument("--subword", action="store_true" , help="Use subword or not")
     parser.add_argument("--attention",action="store_true", help="Use attention or not")
-    parser.add_argument("--evaluation", action="store_true", help="Evaluation mode.")
     parser.add_argument("--model", nargs='?', type=str, default="model/", 
                         help="Directory to load models. [Default: \"model/\"]")
     parser.add_argument("--mode", nargs='?', type=str, default="BLSTM",
