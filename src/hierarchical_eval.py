@@ -2,6 +2,7 @@ import argparse
 import json
 import numpy as np
 from itertools import chain
+from collections import Counter
 from utils import write_to_file, readlines, merge_dict
 
 """
@@ -29,8 +30,35 @@ def k_parents_eval(l_file, m_file, pred_file, k_parents, hierarchy_path, merge=F
 
     # Load all mentions in the testing data
     eval_mention = readlines(m_file)
+    test_mentions = np.unique(eval_mention)
     # Load k-parents tree
     hierarchy_dict = merge_dict(hierarchy_path, postfix="_kptree.json")
+
+    # Get paths of all unique mentions
+    test_paths = [hierarchy_dict[itr] for itr in test_mentions]
+    # Unpack paths (flatten)
+    test_paths = list(chain.from_iterable(test_paths))
+    # Statistics about the path depth: {depth: number}
+    depth_stat = Counter([len(itr) for itr in test_paths])
+    # Find the depth of all paths
+    max_depth = max(depth_stat.keys())
+
+    # Calculate the nodes in the testing partial tree
+    statistics = list()
+    for itr in range(max_depth):
+        nodes_in_layer = list()
+        # Collect nodes in the same layer
+        for p in test_paths:
+            try:
+                nodes_in_layer.append(p[itr])
+            except:
+                continue
+        # Unique those nodes in the same layer
+        nodes_in_layer = np.unique(nodes_in_layer)
+        # print(nodes_in_layer)
+        statistics.append(nodes_in_layer.size)
+    # print(statistics)
+
     # Load label mapping
     labels_dict = json.load(open(l_file, "r"))
     # Reverse label mapping to text content
@@ -91,13 +119,14 @@ def k_parents_eval(l_file, m_file, pred_file, k_parents, hierarchy_path, merge=F
     # Calculate number of instance across all classes
     n_instances = np.count_nonzero(~np.isnan(acc_collection), axis=0)
     # print(accuracy)
-    print(" LAYER# | N_INSTANCES | ACCURACY")
-    print("================================")
+    print(" LAYER# | N_INSTANCES | ACCURACY | #NODES")
+    print("=========================================")
     for itr, n in zip(range(k_parents), n_instances):
-        print("Layer {:2d}:  {:10d} |   {:.2f}%".format(itr + 1, n, 100. * accuracy[itr]))
+        print("Layer {:2d}:  {:10d} |   {:.2f}% | {:5d}"
+              .format(itr + 1, n, 100. * accuracy[itr], statistics[itr]))
     # info
     depth = np.array(list(chain.from_iterable(depth)))
-    print("================================")
+    print("=========================================")
     print("Depth: MEAN={:2.2f} | MAX={:2.2f} | MIN={:2.2f}"
           .format(depth.mean(), depth.max(), depth.min()))
 
