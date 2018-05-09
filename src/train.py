@@ -17,7 +17,7 @@ from nn_model import BLSTM, CNN
 # Training w/o pretrained
 # CUDA_VISIBLE_DEVICES=0 python ./src/train.py --pre=False --mode=[CNN,BLSTM]
 # Training w/ pretrained
-# CUDA_VISIBLE_DEVICES=0 python ./src/train.py --pre=True --emb=data/FastText.vec --mode=[CNN,BLSTM]
+# CUDA_VISIBLE_DEVICES=0 python ./src/train.py --pre=True --emb=data/FastText_embedding.vec --mode=[CNN,BLSTM]
 
 # Additional option --subword --attention
 
@@ -46,11 +46,11 @@ def run(model_dir, model_type, pre=True, embedding=None, subword=False, attentio
         model_dir += "/"
     # Load models
     if subword:
-        mlb = pkl.load(open(model_dir + "mlb_w_subword.pkl", 'rb'))
-        tokenizer = pkl.load(open(model_dir + "tokenizer_w_subword.pkl", 'rb'))
+        mlb = pkl.load(open(model_dir + "mlb_w_subword_filter.pkl", 'rb'))
+        tokenizer = pkl.load(open(model_dir + "tokenizer_w_subword_filter.pkl", 'rb'))
     else:
-        mlb = pkl.load(open(model_dir + "mlb_wo_subword.pkl", 'rb'))
-        tokenizer = pkl.load(open(model_dir + "tokenizer_wo_subword.pkl", 'rb'))
+        mlb = pkl.load(open(model_dir + "mlb_wo_subword_filter.pkl", 'rb'))
+        tokenizer = pkl.load(open(model_dir + "tokenizer_wo_subword_filter.pkl", 'rb'))
     
     word_index = tokenizer.word_index
     label_num = len(mlb.classes_)
@@ -108,24 +108,24 @@ def run(model_dir, model_type, pre=True, embedding=None, subword=False, attentio
 
     print("Loading testing data...")
     if subword:
-        X_test = pkl.load(open(model_dir + "testing_data_w_subword.pkl", 'rb'))
-        X_test_mention = pkl.load(open(model_dir + "testing_mention_w_subword.pkl", 'rb'))
-        y_test = pkl.load(open(model_dir + "testing_label_w_subword.pkl", 'rb'))
+        X_test = pkl.load(open(model_dir + "testing_data_w_subword_filter.pkl", 'rb'))
+        X_test_mention = pkl.load(open(model_dir + "testing_mention_w_subword_filter.pkl", 'rb'))
+        y_test = pkl.load(open(model_dir + "testing_label_w_subword_filter.pkl", 'rb'))
     else:
-        X_test = pkl.load(open(model_dir + "testing_data_wo_subword.pkl", 'rb'))
-        X_test_mention = pkl.load(open(model_dir + "testing_mention_wo_subword.pkl", 'rb'))
-        y_test = pkl.load(open(model_dir + "testing_label_wo_subword.pkl", 'rb'))
+        X_test = pkl.load(open(model_dir + "testing_data_wo_subword_filter.pkl", 'rb'))
+        X_test_mention = pkl.load(open(model_dir + "testing_mention_wo_subword_filter.pkl", 'rb'))
+        y_test = pkl.load(open(model_dir + "testing_label_wo_subword_filter.pkl", 'rb'))
 
     # Training
     print("Loading training data...")
     if subword:
-        X_train = pkl.load(open(model_dir + "training_data_w_subword.pkl", 'rb'))
-        X_train_mention = pkl.load(open(model_dir + "training_mention_w_subword.pkl", 'rb'))
-        y_train = pkl.load(open(model_dir + "training_label_w_subword.pkl", 'rb'))
+        X_train = pkl.load(open(model_dir + "training_data_w_subword_filter.pkl", 'rb'))
+        X_train_mention = pkl.load(open(model_dir + "training_mention_w_subword_filter.pkl", 'rb'))
+        y_train = pkl.load(open(model_dir + "training_label_w_subword_filter.pkl", 'rb'))
     else:
-        X_train = pkl.load(open(model_dir + "training_data_wo_subword.pkl", 'rb'))
-        X_train_mention = pkl.load(open(model_dir + "training_mention_wo_subword.pkl", 'rb'))
-        y_train = pkl.load(open(model_dir + "training_label_wo_subword.pkl", 'rb'))
+        X_train = pkl.load(open(model_dir + "training_data_wo_subword_filter.pkl", 'rb'))
+        X_train_mention = pkl.load(open(model_dir + "training_mention_wo_subword_filter.pkl", 'rb'))
+        y_train = pkl.load(open(model_dir + "training_label_wo_subword_filter.pkl", 'rb'))
 
     print("Begin training...")
     model.fit([X_train, X_train_mention], y_train, batch_size=batch_size, epochs=epochs, validation_split=0.1, callbacks=callbacks_list)

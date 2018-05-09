@@ -11,8 +11,8 @@ from sklearn.feature_extraction.text import CountVectorizer
 from keras.preprocessing import text, sequence
 import os
 
-# python ./src/generate_data.py --input=./data/smaller_preprocessed_sentence_keywords_labeled.tsv --train_idx=./model/train_index.pkl --test_idx=./model/test_index.pkl
-# python ./src/generate_data.py --input=./data/smaller_preprocessed_sentence_keywords_labeled_subwords.tsv --subword --train_idx=./model/train_index.pkl --test_idx=./model/test_index.pkl
+# python ./src/generate_data.py --input=./data/smaller_preprocessed_sentence_keywords_labeled.tsv --train_idx=./model/new_train_index.pkl --test_idx=./model/new_test_index.pkl
+# python ./src/generate_data.py --input=./data/smaller_preprocessed_sentence_keywords_labeled_subwords.tsv --subword --train_idx=./model/new_train_index.pkl --test_idx=./model/new_test_index.pkl
 
 # Feature-parameter..
 MAX_NUM_WORDS = 30000
@@ -53,9 +53,16 @@ def run(model_dir, input, test_size, train_idx, test_idx, subword=False):
 
     train_index = pkl.load(open(train_idx, 'rb'))
     test_index = pkl.load(open(test_idx, 'rb'))
-    
+
     X_train, X_test = X[train_index], X[test_index]
     X_train_mention, X_test_mention = mentions[train_index], mentions[test_index]
+
+    print("Writing new_test_mention_list..")
+    with open("new_test_mention_list.txt", "w") as f:
+        for mention in X_test_mention:
+            f.write(mention + "\n")
+    exit()
+
     del X, mentions
     
     print("Tokenize sentences...")
@@ -70,8 +77,8 @@ def run(model_dir, input, test_size, train_idx, test_idx, subword=False):
     X_te = sequence.pad_sequences(list_tokenized_test, maxlen=MAX_SEQUENCE_LENGTH)
     del list_tokenized_train, list_tokenized_test
 
-    pkl.dump(X_t, open(model_dir + "training_data_w_subword.pkl", 'wb'))
-    pkl.dump(X_te, open(model_dir + "testing_data_w_subword.pkl", 'wb'))
+    pkl.dump(X_t, open(model_dir + "training_data_w_subword_filter.pkl", 'wb'))
+    pkl.dump(X_te, open(model_dir + "testing_data_w_subword_filter.pkl", 'wb'))
     del X_t, X_te
 
     print("Tokenize mentions...")
@@ -87,8 +94,8 @@ def run(model_dir, input, test_size, train_idx, test_idx, subword=False):
     X_m_te = sequence.pad_sequences(m_list_tokenized_test, maxlen=MAX_MENTION_LENGTH)
     del m_list_tokenized_train, m_list_tokenized_test
 
-    pkl.dump(X_m_t, open(model_dir + "training_mention_w_subword.pkl", 'wb'))
-    pkl.dump(X_m_te, open(model_dir + "testing_mention_w_subword.pkl", 'wb'))
+    pkl.dump(X_m_t, open(model_dir + "training_mention_w_subword_filter.pkl", 'wb'))
+    pkl.dump(X_m_te, open(model_dir + "testing_mention_w_subword_filter.pkl", 'wb'))
     del X_m_t, X_m_te
 
     
@@ -118,15 +125,15 @@ def run(model_dir, input, test_size, train_idx, test_idx, subword=False):
     print(" shape of testing labels:",y_test.shape)
 
     # dumping training and testing label
-    pkl.dump(y_train, open(model_dir + "training_label_w_subword.pkl", 'wb'))
-    pkl.dump(y_test, open(model_dir + "testing_label_w_subword.pkl", 'wb'))
+    pkl.dump(y_train, open(model_dir + "training_label_w_subword_filter.pkl", 'wb'))
+    pkl.dump(y_test, open(model_dir + "testing_label_w_subword_filter.pkl", 'wb'))
     del y_train, y_test
 
     print("dumping pickle file of tokenizer/m_tokenizer/mlb...")
     # dumping model
-    pkl.dump(tokenizer, open(model_dir + "tokenizer_w_subword.pkl", 'wb'))
-    pkl.dump(m_tokenizer, open(model_dir + "m_tokenizer_w_subword.pkl", 'wb'))
-    pkl.dump(mlb, open(model_dir + "mlb_w_subword.pkl", 'wb'))
+    pkl.dump(tokenizer, open(model_dir + "tokenizer_w_subword_filter.pkl", 'wb'))
+    pkl.dump(m_tokenizer, open(model_dir + "m_tokenizer_w_subword_filter.pkl", 'wb'))
+    pkl.dump(mlb, open(model_dir + "mlb_w_subword_filter.pkl", 'wb'))
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -194,4 +201,35 @@ if __name__ == '__main__':
     print("test_index:",test_index)
     pkl.dump(train_index, open(model_dir + "train_index.pkl", 'wb'))
     pkl.dump(test_index, open(model_dir + "test_index.pkl", 'wb'))
+    '''
+
+
+    ''' use for filter out error mention
+    print("Loading error mention...")
+    error_mention = pkl.load(open("error_mention.pkl", 'rb'))
+
+    count = 0
+    train_error_idx = list()
+    for idx, mention in enumerate(X_train_mention):
+        if mention in error_mention:
+            count+=1
+            train_error_idx.append(idx)
+            #print("error mention!")
+    train_error_idx = np.array(train_error_idx)
+    train_index = np.delete(train_index, train_error_idx)
+    print("train error sentences! num:{:d}".format(count))
+
+    count = 0
+    test_error_idx = list()
+    for idx, mention in enumerate(X_test_mention):
+        if mention in error_mention:
+            count+=1
+            test_error_idx.append(idx)
+    print("test error sentences! num:{:d}".format(count))
+    test_error_idx = np.array(test_error_idx)
+    test_index = np.delete(test_index, test_error_idx)
+
+    pkl.dump(train_index, open("model/new_train_index.pkl", 'wb'))
+    pkl.dump(test_index, open("model/new_test_index.pkl", 'wb'))
+    exit()
     '''

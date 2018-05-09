@@ -79,13 +79,10 @@ def run(model_dir, model_type, model_path, subword=False, attention=False, visua
         model_dir += "/"
     # Load models
     if subword:
-        mlb = pkl.load(open(model_dir + "mlb_w_subword.pkl", 'rb'))
-        tokenizer = pkl.load(open(model_dir + "tokenizer_w_subword.pkl", 'rb'))
+        mlb = pkl.load(open(model_dir + "mlb_w_subword_filter.pkl", 'rb'))
     else:
-        mlb = pkl.load(open(model_dir + "mlb_wo_subword.pkl", 'rb'))
-        tokenizer = pkl.load(open(model_dir + "tokenizer_wo_subword.pkl", 'rb'))
+        mlb = pkl.load(open(model_dir + "mlb_wo_subword_filter.pkl", 'rb'))
     
-    word_index = tokenizer.word_index
     label_num = len(mlb.classes_)
     
     # Building Model
@@ -114,13 +111,13 @@ def run(model_dir, model_type, model_path, subword=False, attention=False, visua
 
     print("Loading testing data...")
     if subword:
-        X_test = pkl.load(open(model_dir + "testing_data_w_subword.pkl", 'rb'))
-        X_test_mention = pkl.load(open(model_dir + "testing_mention_w_subword.pkl", 'rb'))
-        y_test = pkl.load(open(model_dir + "testing_label_w_subword.pkl", 'rb'))
+        X_test = pkl.load(open(model_dir + "testing_data_w_subword_filter.pkl", 'rb'))
+        X_test_mention = pkl.load(open(model_dir + "testing_mention_w_subword_filter.pkl", 'rb'))
+        y_test = pkl.load(open(model_dir + "testing_label_w_subword_filter.pkl", 'rb'))
     else:
-        X_test = pkl.load(open(model_dir + "testing_data_wo_subword.pkl", 'rb'))
-        X_test_mention = pkl.load(open(model_dir + "testing_mention_wo_subword.pkl", 'rb'))
-        y_test = pkl.load(open(model_dir + "training_label_wo_subword.pkl", 'rb'))
+        X_test = pkl.load(open(model_dir + "testing_data_wo_subword_filter.pkl", 'rb'))
+        X_test_mention = pkl.load(open(model_dir + "testing_mention_wo_subword_filter.pkl", 'rb'))
+        y_test = pkl.load(open(model_dir + "training_label_wo_subword_filter.pkl", 'rb'))
 
     print("loading file..")
     if subword:
@@ -131,8 +128,8 @@ def run(model_dir, model_type, model_path, subword=False, attention=False, visua
     X = dataset['context'].values
     y = dataset['label'].values
     mentions = dataset['mention'].values
-    train_index = pkl.load(open(model_dir + "train_index.pkl", 'rb'))
-    test_index = pkl.load(open(model_dir + "test_index.pkl", 'rb'))
+    train_index = pkl.load(open(model_dir + "new_train_index.pkl", 'rb'))
+    test_index = pkl.load(open(model_dir + "new_test_index.pkl", 'rb'))
     X_train_text, X_test_text = X[train_index], X[test_index]
     X_train_mention_text, X_test_mention_text = mentions[train_index], mentions[test_index]
     del X, mentions
