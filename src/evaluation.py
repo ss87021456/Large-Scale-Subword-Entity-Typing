@@ -128,8 +128,8 @@ def run(model_dir, model_type, model_path, subword=False, attention=False, visua
     X = dataset['context'].values
     y = dataset['label'].values
     mentions = dataset['mention'].values
-    train_index = pkl.load(open(model_dir + "new_train_index.pkl", 'rb'))
-    test_index = pkl.load(open(model_dir + "new_test_index.pkl", 'rb'))
+    train_index = pkl.load(open(model_dir + "train_index.pkl", 'rb'))
+    test_index = pkl.load(open(model_dir + "test_index.pkl", 'rb'))
     X_train_text, X_test_text = X[train_index], X[test_index]
     X_train_mention_text, X_test_mention_text = mentions[train_index], mentions[test_index]
     del X, mentions
