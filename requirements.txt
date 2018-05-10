@@ -5,4 +5,5 @@ pandas
 tqdm
 seaborn
 keras == 2.1.5
+h5py
 gensim == 3.4.0

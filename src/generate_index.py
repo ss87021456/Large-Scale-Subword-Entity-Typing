@@ -83,8 +83,8 @@ def run(model_dir, input, test_size):
     # shuffle the index
     np.random.shuffle(train_index)
     np.random.shuffle(test_index)
-    print("train_index:",train_index)
-    print("test_index:",test_index)
+    #print("train_index:",train_index)
+    #print("test_index:",test_index)
     pkl.dump(train_index, open(model_dir + "train_index.pkl", 'wb'))
     pkl.dump(test_index, open(model_dir + "test_index.pkl", 'wb'))
     
