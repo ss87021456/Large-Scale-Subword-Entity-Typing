@@ -16,12 +16,15 @@ from copy import copy
 # python src/parse_entity.py data/UMLS_type_hierarchy.txt --trim --threshold=1
 # python src/parse_entity.py data/custom_subwords_v2.txt --subword
 
-def entity_parser(file, trim=True, threshold=1, plot=False, verbose=False):
+def entity_parser(file, trim=True, threshold=1, plot=False):
     """
+    Args:
+        file(str): Path to the hierarchy tree file.
+        trim(bool): Trim the hierarchy tree.
+        threshold(int): Threshold for trimming the hierarchy tree.
+        plot(bool): Plot the occurence of the nodes.
     """
-    # parsing file
-    # with open(file, 'r') as f:
-    #     dataset = f.read().splitlines()[1:]
+    # Parsing File
     dataset = readlines(file, begin=1, limit=None)
     keys = list()
     value = list()
@@ -31,8 +34,7 @@ def entity_parser(file, trim=True, threshold=1, plot=False, verbose=False):
         temp = re.split(r"[\t]", data)
         keys.append(temp[0])
         value.append(temp[1])
-    print()
-    print("Number of nodes in the hierarchy: {:3d}".format(len(keys)))
+    print("\nNumber of nodes in the hierarchy: {:3d}".format(len(keys)))
 
     # Initialize dictionary with keys as key and empty list as value
     entity = {k: [] for k in keys}
@@ -122,13 +124,6 @@ def entity_parser(file, trim=True, threshold=1, plot=False, verbose=False):
                 # Fill in the names
                 entity[key][idx] = value[index]
     #
-    """
-    nodes = list(entity.values())
-    leaf_nodes = list()
-    for itr in nodes:
-        if type(itr) == dict:
-            leaf_nodes.append(itr)
-    """
     def uni_list(arr):
         """
         Generate unique list
@@ -172,18 +167,34 @@ def entity_parser(file, trim=True, threshold=1, plot=False, verbose=False):
     leaf_info = dict()
     # Output only leaf node dictionary
     leaf_name = file[:-4] + "_leaf.json"
+    invalid_list = list()
     for entry in tqdm(entity):
         # print(entry)
         if type(entity[entry]) == dict:
             synonym = multi_mentions(entry)
             for itr in synonym:
+                # A, B -> A BA: if A is a node in the tree but not a leaf node
+                # SKIP the synonym
+                try:
+                    if type(entity[itr]) is not dict:
+                        # print("Found invalid: {0} | {1}".format(itr, entry))
+                        invalid_list.append(itr)
+                        continue
+                except:
+                    pass
                 # leaf_info[itr] = entity[entry]["TYPE"]
-                leaf_info[itr] = dict()
-                leaf_info[itr]["TYPE"] = entity[entry]["TYPE"]
-                leaf_info[itr]["PATH"] = entity[entry]["PATH"]
+                try:
+                    leaf_info[itr]["TYPE"] += copy(entity[entry]["TYPE"])
+                    leaf_info[itr]["PATH"] += copy(entity[entry]["PATH"])
+                except:
+                    leaf_info[itr] = dict()
+                    leaf_info[itr]["TYPE"] = copy(entity[entry]["TYPE"])
+                    leaf_info[itr]["PATH"] = copy(entity[entry]["PATH"])
         else:
             pass
     # pprint(leaf_info)
+    if len(invalid_list) > 0:
+        write_to_file(file[:-4] + "_invalid.txt", invalid_list)
     # Save leaf node file
     write_to_file(leaf_name, leaf_info)
     #
@@ -194,6 +205,7 @@ def entity_parser(file, trim=True, threshold=1, plot=False, verbose=False):
     print(" - Tree Depth: MIN={:2d} | MAX={:2d}".format(np.min(c), np.max(c)))
     kptree = dict(zip(tmp_key, tmp_val))
     write_to_file(file[:-4] + "_kptree.json", kptree)
+
     # Trim the hierarchy tree
     if trim and threshold > 0:
         print()
@@ -202,6 +214,7 @@ def entity_parser(file, trim=True, threshold=1, plot=False, verbose=False):
         all_types = [itr["TYPE"] for itr in leaf_info.values()]
         all_types = list(chain.from_iterable(all_types))
         n_org_labels = len(uni_list(all_types))
+        print(n_org_labels)
         occurence = dict(Counter(all_types))
         # pprint(occurence)
 
@@ -228,7 +241,7 @@ def entity_parser(file, trim=True, threshold=1, plot=False, verbose=False):
             y = list(np.cumsum(y))
             #
             plt.plot(x, y)
-            plt.title("Cumulative label occurences (Total: {0})".format(n_total_types))
+            plt.title("Cumulative label occurence (Total: {0})".format(n_total_types))
             plt.xlabel("occurence (occurence > 100 are treated as 100)")
             # plt.ylabel("# of labels")
             plt.ylabel("Percentage of all labels(%)")
@@ -241,12 +254,11 @@ def entity_parser(file, trim=True, threshold=1, plot=False, verbose=False):
         print("Trimming infrequent labels with occurence threshold = {:3d}"
               .format(threshold))
         # trimmed_labels = list(leaf_info.values())
-        trimmed_labels = [itr["TYPE"] for itr in leaf_info.values()]
-
+        trimmed_labels = [copy(itr["TYPE"]) for itr in leaf_info.values()]
         for itr_label, itr_occ in tqdm(occurence.items()):
             if itr_occ <= threshold:
-                vprint(" - Removing infrequent label: {0} (occurence = {1})"
-                       .format(itr_label, itr_occ), verbose)
+                # print(" - Removing infrequent label: {0} (occurence = {1})"
+                #        .format(itr_label, itr_occ))
                 for idx in range(len(trimmed_labels)):
                     if itr_label in trimmed_labels[idx]:
                         trimmed_labels[idx].remove(itr_label)
@@ -264,6 +276,7 @@ def entity_parser(file, trim=True, threshold=1, plot=False, verbose=False):
               .format(n_org_labels, n_trim_labels, threshold))
         print(" - Reduced labels by {:2.2f}% ({:5d} labels)"
               .format(reduced_per, reduced))
+        print(len(trimmed_leaf))
 
         # Save trimmed labels to file
         trimmed = file[:-4] + "_trimmed.json"
@@ -283,6 +296,11 @@ def extract_mentions(path, trim=True):
 
 def parse_subwords(file):
     """
+    Parse subword mapping to dictionary.
+
+    Args:
+        file(str): Path to the subword mapping file.
+                   format: <[WORD]>S1,S2,...
     """
     # Load subwords
     raw_data = readlines(file, limit=None)
@@ -308,8 +326,6 @@ if __name__ == '__main__':
                         help="Trim the hierarchy tree.")
     parser.add_argument("--threshold", nargs='?', type=int, default=2, 
                         help="occurence below threshold would be filtered out.")
-    parser.add_argument("--verbose", action="store_true",
-                        help="Verbose output")
     parser.add_argument("--plot", action="store_true", 
                         help="Plot statistics if the argument is given.")
 
@@ -318,4 +334,4 @@ if __name__ == '__main__':
     if args.subword:
         parse_subwords(args.file)
     else:
-        entity_parser(args.file, args.trim, args.threshold, args.plot, args.verbose)
+        entity_parser(args.file, args.trim, args.threshold, args.plot)

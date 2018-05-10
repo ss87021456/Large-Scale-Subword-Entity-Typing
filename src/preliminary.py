@@ -6,7 +6,7 @@ from itertools import chain
 
 # python src/preliminary.py data/smaller.tsv src/refine_rules/preliminary.tsv --thread=5
 
-def preliminary_cleanup(corpus, rule, output=None, thread=None):
+def preliminary_cleanup(corpus, rule, output=None, thread=None, limit=None):
     """
     Preliminary cleanup the corpus to make it easier for further
     processing methods. This method can be used to correct the
@@ -27,7 +27,7 @@ def preliminary_cleanup(corpus, rule, output=None, thread=None):
     # Load rules
     rules = load_rules(rule)
     # Load data
-    raw_data = readlines(corpus, limit=None, skip=True)
+    raw_data = readlines(corpus, limit=limit, skip=True)
 
     # Threading
     param = (rules, "PRELIMINARY")
@@ -45,6 +45,7 @@ if __name__ == '__main__':
                         [Default Postfix: \"_preprocessed.tsv\"].")
     parser.add_argument("--thread", type=int, help="Number of threads \
                         to run. [Default: 2 * number_of_cores]")
+    parser.add_argument("--limit", type=int, help="Number of maximum lines to load.")
     args = parser.parse_args()
 
-    preliminary_cleanup(args.corpus, args.rule, args.output, args.thread)
+    preliminary_cleanup(args.corpus, args.rule, args.output, args.thread, args.limit)
