@@ -100,7 +100,7 @@ def run(model_dir, input, test_size):
     print("{0} test unique mentions...".format(len(set(X_test_mention))))
     print("{0} train unique mentions...".format(len(set(X_train_mention))))
 
-    with open(model_dir + "mention_list.txt", "w") as f:
+    with open(model_dir + "test_mention_list.txt", "w") as f:
         for mention in X_test_mention:
             f.write(mention + "\n")
 
