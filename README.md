@@ -8,9 +8,10 @@ Teng-Jie, You (Daniel You)
 
 # Pipeline
 (1) put smaller.tsv into directory data/ <br>
-(2) ./prepare_corpus.sh <br>
-(3) ./generate_pickle.sh <br>
-(4) python src/train.py # for more information use python src/train.py -h
+(2) pip install -r requirements.txt <br>
+(3) ./prepare_corpus.sh <br>
+(4) ./generate_pickle.sh <br>
+(5) python src/train.py # for more information use python src/train.py -h
 
 # To-Do List
 - [X] Revise the input arguments of separate modules to achieve better modularity
