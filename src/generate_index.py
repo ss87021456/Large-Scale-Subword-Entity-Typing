@@ -35,7 +35,7 @@ def run(model_dir, input, test_size):
     print("Loading dataset..")
     dataset = pd.read_csv(input, sep='\t', names=['label','context','mention'])
 
-    mentions = dataset['mention'].values[:1000]
+    mentions = dataset['mention'].values[:None]
 
     
     # use for spliting data with mention specific 
