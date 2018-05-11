@@ -1,3 +1,7 @@
+echo ""
+echo "[STAGE 0/5] install nltk stopwords, punkt package"
+python src/nltk_download.py
+
 # Prepare keyword
 echo ""
 echo "[STAGE 1/5] Parsing and trimming infrequent labels in given hierarchy tree, parsing subwords information"
