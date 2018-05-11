@@ -172,7 +172,7 @@ if __name__ == '__main__':
     parser.add_argument("--model", nargs='?', type=str, default="model/", 
                         help="Directory to load models. [Default: \"model/\"]")
     parser.add_argument("--mode", nargs='?', type=str, default="BLSTM",
-                        help="different model architecture BLTSM or CNN [Default: \"BLSTM/\"]")
+                        help="different model architecture BLTSM or CNN [Default: \"BLSTM\"]")
     args = parser.parse_args()
 
     run(args.model, args.mode, args.pre, args.emb, args.subword, args.attention)
