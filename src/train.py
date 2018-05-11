@@ -44,7 +44,7 @@ def run(model_dir, model_type, pre=False, embedding=None, subword=False, attenti
     # Parse directory name
     if not model_dir.endswith("/"):
         model_dir += "/"
-    ## Load models
+    # Load models
     if subword:
         mlb = pkl.load(open(model_dir + "mlb_w_subword_filter.pkl", 'rb'))
         tokenizer = pkl.load(open(model_dir + "tokenizer_w_subword_filter.pkl", 'rb'))
