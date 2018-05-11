@@ -110,13 +110,22 @@ def run(model_dir, model_type, pre=False, embedding=None, subword=False, attenti
     if subword:
         X_test = pkl.load(open(model_dir + "testing_data_w_subword_filter.pkl", 'rb'))
         X_test_mention = pkl.load(open(model_dir + "testing_mention_w_subword_filter.pkl", 'rb'))
-        print(X_test_mention.shape)
-        exit()
         y_test = pkl.load(open(model_dir + "testing_label_w_subword_filter.pkl", 'rb'))
     else:
         X_test = pkl.load(open(model_dir + "testing_data_wo_subword_filter.pkl", 'rb'))
         X_test_mention = pkl.load(open(model_dir + "testing_mention_wo_subword_filter.pkl", 'rb'))
         y_test = pkl.load(open(model_dir + "testing_label_wo_subword_filter.pkl", 'rb'))
+
+    # Training
+    print("Loading validation data...")
+    if subword:
+        X_vali = pkl.load(open(model_dir + "validation_data_w_subword_filter.pkl", 'rb'))
+        X_vali_mention = pkl.load(open(model_dir + "validation_mention_w_subword_filter.pkl", 'rb'))
+        y_vali = pkl.load(open(model_dir + "validation_label_w_subword_filter.pkl", 'rb'))
+    else:
+        X_vali = pkl.load(open(model_dir + "validation_data_wo_subword_filter.pkl", 'rb'))
+        X_vali_mention = pkl.load(open(model_dir + "validation_mention_wo_subword_filter.pkl", 'rb'))
+        y_vali = pkl.load(open(model_dir + "validation_label_wo_subword_filter.pkl", 'rb'))
 
     # Training
     print("Loading training data...")
@@ -130,17 +139,17 @@ def run(model_dir, model_type, pre=False, embedding=None, subword=False, attenti
         y_train = pkl.load(open(model_dir + "training_label_wo_subword_filter.pkl", 'rb'))
 
     print("Begin training...")
-    model.fit([X_train, X_train_mention], y_train, batch_size=batch_size, epochs=epochs, validation_split=0.1, callbacks=callbacks_list)
+    model.fit([X_train, X_train_mention], y_train, batch_size=batch_size, epochs=epochs, validation_split=0.01, callbacks=callbacks_list)
 
     # Evaluation
-    print("Loading trained weights for predicting...")
+    print("Loading trained weights for validation...")
     for i in range(1,6,1):
         file = list(model_name)
         file[-6] = str(i)
         file = "".join(file)
         model.load_weights(file)
         print("Predicting...",file)
-        y_pred = model.predict([X_test, X_test_mention])
+        y_pred = model.predict([X_vali, X_vali_mention])
     
         y_pred[y_pred >= 0.5] = 1.
         y_pred[y_pred < 0.5] = 0.
@@ -148,7 +157,7 @@ def run(model_dir, model_type, pre=False, embedding=None, subword=False, attenti
     
         eval_types = ['micro','macro','weighted']
         for eval_type in eval_types:
-            p, r, f, _ = precision_recall_fscore_support(y_test, y_pred, average=eval_type)
+            p, r, f, _ = precision_recall_fscore_support(y_vali, y_pred, average=eval_type)
             print("[{}]\t{:3.3f}\t{:3.3f}\t{:3.3f}".format(eval_type, p, r, f))
 
 

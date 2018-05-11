@@ -35,7 +35,7 @@ def run(model_dir, input, test_size):
     print("Loading dataset..")
     dataset = pd.read_csv(input, sep='\t', names=['label','context','mention'])
 
-    mentions = dataset['mention'].values[:None]
+    mentions = dataset['mention'].values[:1000]
 
     
     # use for spliting data with mention specific 
@@ -61,44 +61,66 @@ def run(model_dir, input, test_size):
 
     total_length = mentions.shape[0]
     test_len     = total_length * test_size
-    train_len    = total_length - test_len
+    train_len    = total_length - 2 * test_len
+
     train_index  = []
+    test_index = []
+    validation_index = []
+
     count = 0
     print("processing training_index...")
-    print("training size: {0}, testing size: {1}, total size: {2}".format(train_len, test_len, total_length))
+    print("training size: {0}, testing size: {1}, validation size: {2}, total size: {3}".format(train_len, test_len, test_len, total_length))
     for mention in tqdm(key_list):
-        if count < train_len:
+        if count < train_len:                                     # for training dataset
             count += mention_count[mention]
             train_index.append(mention_index[mention])
+        elif count >= train_len and count < (train_len+test_len): # for validation dataset
+            count += mention_count[mention]
+            validation_index.append(mention_index[mention])
+        else :                                                    # rest are for testing dataset
+            count += mention_count[mention]
+            test_index.append(mention_index[mention])
 
     # flatten list
-    print("flatten train_index...")
-    dataset_index = set([i for i in range(total_length)])
-    train_index = set(list(itertools.chain.from_iterable(train_index)))
-    test_index = dataset_index - train_index  # use set property to extract index of testing
+    print("flatten train/validation/test index...")
+    train_index = list(itertools.chain.from_iterable(train_index))
+    validation_index = list(itertools.chain.from_iterable(validation_index))
+    test_index = list(itertools.chain.from_iterable(test_index))
+
     print("train size:",len(train_index))
-    train_index = np.array(list(train_index)) # transfer back to numpy array for further index
-    test_index = np.array(list(test_index))   # transfer back to numpy array for further index
+    print("validation size:",len(validation_index))
+    print("test size:",len(test_index))
+
+    train_index = np.array(train_index)
+    validation_index = np.array(validation_index)
+    test_index = np.array(test_index)
+
 
     # shuffle the index
     np.random.shuffle(train_index)
+    np.random.shuffle(validation_index)
     np.random.shuffle(test_index)
-    #print("train_index:",train_index)
-    #print("test_index:",test_index)
     pkl.dump(train_index, open(model_dir + "train_index.pkl", 'wb'))
+    pkl.dump(validation_index, open(model_dir + "validation_index.pkl", 'wb'))
     pkl.dump(test_index, open(model_dir + "test_index.pkl", 'wb'))
     
     
     print("Loading pkl...")
     train_index = pkl.load(open(model_dir + "train_index.pkl", 'rb'))
     test_index = pkl.load(open(model_dir + "test_index.pkl", 'rb'))
+    validation_index = pkl.load(open(model_dir + "validation_index.pkl", 'rb'))
 
     print("Writing new_test_mention_list..")
     X_test_mention = mentions[test_index]
     X_train_mention = mentions[train_index]
+    X_validation_mention = mentions[validation_index]
 
-    print("{0} test unique mentions...".format(len(set(X_test_mention))))
+
     print("{0} train unique mentions...".format(len(set(X_train_mention))))
+    print("{0} validation unique mentions...".format(len(set(X_validation_mention))))
+    print("{0} test unique mentions...".format(len(set(X_test_mention))))
+
+
 
     with open(model_dir + "test_mention_list.txt", "w") as f:
         for mention in X_test_mention:
