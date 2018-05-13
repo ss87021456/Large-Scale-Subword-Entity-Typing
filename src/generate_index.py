@@ -16,11 +16,13 @@ np.random.seed(0) # set random seed
 def parallel_index(thread_idx, mention_count, mentions):
     desc = "Thread {:2d}".format(thread_idx + 1)
     result = list()
+    result.append(thread_idx) # use for indicates thread order
     for key in tqdm(mention_count, position=thread_idx, desc=desc):
         index = np.where(mentions == key)[0]
         temp = [key]
         temp.append(index.tolist())
         result.append(temp)
+
 
     return result
 
@@ -51,11 +53,19 @@ def run(model_dir, input, test_size):
     mention_index = generic_threading(20, key_list, parallel_index, param) 
     mention = []
     indices = []
+    order = []
 
-    for metion_pair_thread in mention_index:
-        for metion_pair in metion_pair_thread:
-            mention.append(metion_pair[0])
-            indices.append(metion_pair[1])
+    for mention_pair_thread in mention_index:
+        order.append(mention_pair_thread[0])
+
+    print(order)
+    order_idx = sorted(range(len(order)), key=lambda k: order[k])
+    print(order_idx)
+
+    for thread_idx in order_idx:
+        for mention_pair in mention_index[thread_idx][1:]: # take the thread in order
+            mention.append(mention_pair[0])
+            indices.append(mention_pair[1])
 
     mention_index = dict(zip(mention, indices))
 
