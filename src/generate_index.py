@@ -9,7 +9,7 @@ from utils import generic_threading
 from sklearn.preprocessing import MultiLabelBinarizer
 import os
 
-# python ./src/generate_index.py --input=./data/smaller_preprocessed_sentence_keywords_labeled.tsv 
+# python ./src/generate_index.py --input=./data/smaller_preprocessed_sentence_keywords_labeled.tsv
 
 np.random.seed(0) # set random seed
 
@@ -41,7 +41,7 @@ def run(model_dir, input, test_size):
 
     
     # use for spliting data with mention specific 
-    np.random.shuffle(mentions)
+    # np.random.shuffle(mentions)
     print("{0} unique mentions...".format(len(set(mentions))))
     unique, counts = np.unique(mentions, return_counts=True)
     mention_count = dict(zip(unique, counts))
@@ -62,10 +62,13 @@ def run(model_dir, input, test_size):
     order_idx = sorted(range(len(order)), key=lambda k: order[k])
     print(order_idx)
 
+    ########################################
+    # TO-BE-VERIFIED CODE NECESSITY
     for thread_idx in order_idx:
         for mention_pair in mention_index[thread_idx][1:]: # take the thread in order
             mention.append(mention_pair[0])
             indices.append(mention_pair[1])
+    ########################################
 
     mention_index = dict(zip(mention, indices))
 
@@ -80,7 +83,11 @@ def run(model_dir, input, test_size):
     count = 0
     print("processing training_index...")
     print("training size: {0}, testing size: {1}, validation size: {2}, total size: {3}".format(train_len, test_len, test_len, total_length))
-    for mention in tqdm(key_list):
+    ########################################
+    # TO-BE REVISED TO A MORE ELEGANT SPLITTING WAY
+    np.random.shuffle(unique)
+    for mention in tqdm(unique):
+    # for mention in tqdm(key_list):
         if count < train_len:                                     # for training dataset
             count += mention_count[mention]
             train_index.append(mention_index[mention])
@@ -90,6 +97,7 @@ def run(model_dir, input, test_size):
         else :                                                    # rest are for testing dataset
             count += mention_count[mention]
             test_index.append(mention_index[mention])
+    ########################################
 
     # flatten list
     print("flatten train/validation/test index...")
