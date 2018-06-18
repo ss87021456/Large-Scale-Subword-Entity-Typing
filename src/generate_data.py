@@ -36,13 +36,14 @@ def parallel_index(thread_idx, mention_count, mentions):
 
 def run(model_dir, input, train_idx, test_idx, vali_idx, subword=False):
     MAX_MENTION_LENGTH = 5 if not subword else 15
-    print(MAX_MENTION_LENGTH)
+    print("MAX_MENTION_LENGTH = {0}".format(MAX_MENTION_LENGTH))
     # Parse directory name
     if not model_dir.endswith("/"):
         model_dir += "/"
     # Create directory to store model
     if not os.path.exists(model_dir):
         os.makedirs(model_dir)
+    sb_tag = "w" if subword else "wo"
 
     print("Loading dataset..")
     dataset = pd.read_csv(input, sep='\t', names=['label','context','mention'])
@@ -51,116 +52,74 @@ def run(model_dir, input, train_idx, test_idx, vali_idx, subword=False):
     y = dataset['label'].values
     mentions = dataset['mention'].values
 
-    train_index = pkl.load(open(train_idx, 'rb'))
-    test_index = pkl.load(open(test_idx, 'rb'))
-    validation_index = pkl.load(open(vali_idx, 'rb'))
-
-    X_train, X_test, X_validation = X[train_index], X[test_index], X[validation_index]
-    X_train_mention, X_test_mention, X_validation_mention  = mentions[train_index], mentions[test_index], mentions[validation_index]
-
-
-    del X, mentions
-    
-    print("Tokenize sentences...")
-    tokenizer = text.Tokenizer(num_words=MAX_NUM_WORDS)
-    tokenizer.fit_on_texts(list(X_train))
-    list_tokenized_train = tokenizer.texts_to_sequences(X_train)
-    list_tokenized_test = tokenizer.texts_to_sequences(X_test)
-    list_tokenized_vali = tokenizer.texts_to_sequences(X_validation)
-    del X_train, X_test, X_validation
-    # Padding sentences
-    print("Padding sentences vector...")
-    X_t = sequence.pad_sequences(list_tokenized_train, maxlen=MAX_SEQUENCE_LENGTH)
-    X_te = sequence.pad_sequences(list_tokenized_test, maxlen=MAX_SEQUENCE_LENGTH)
-    X_vali = sequence.pad_sequences(list_tokenized_vali, maxlen=MAX_SEQUENCE_LENGTH)
-    del list_tokenized_train, list_tokenized_test, list_tokenized_vali
-
-    if subword:
-        pkl.dump(X_t, open(model_dir + "training_data_w_subword_filter.pkl", 'wb'))
-        pkl.dump(X_te, open(model_dir + "testing_data_w_subword_filter.pkl", 'wb'))
-        pkl.dump(X_vali, open(model_dir + "validation_data_w_subword_filter.pkl", 'wb'))
-    else:
-        pkl.dump(X_t, open(model_dir + "training_data_wo_subword_filter.pkl", 'wb'))
-        pkl.dump(X_te, open(model_dir + "testing_data_wo_subword_filter.pkl", 'wb'))
-        pkl.dump(X_vali, open(model_dir + "validation_data_wo_subword_filter.pkl", 'wb'))
-    del X_t, X_te, X_vali
-
-    print("Tokenize mentions...")
-    m_tokenizer = text.Tokenizer(num_words=MAX_NUM_MENTION_WORDS)
-    m_tokenizer.fit_on_texts(list(X_train_mention))
-    m_list_tokenized_train = m_tokenizer.texts_to_sequences(X_train_mention)
-    m_list_tokenized_test = m_tokenizer.texts_to_sequences(X_test_mention)
-    m_list_tokenized_vali = m_tokenizer.texts_to_sequences(X_validation_mention)
-    del X_train_mention, X_test_mention, X_validation_mention
-
-    # Padding mentions
-    print("Padding mentions vector...")
-    X_m_t = sequence.pad_sequences(m_list_tokenized_train, maxlen=MAX_MENTION_LENGTH)
-    X_m_te = sequence.pad_sequences(m_list_tokenized_test, maxlen=MAX_MENTION_LENGTH)
-    X_m_vali = sequence.pad_sequences(m_list_tokenized_vali, maxlen=MAX_MENTION_LENGTH)
-    del m_list_tokenized_train, m_list_tokenized_test, m_list_tokenized_vali
-
-    if subword:
-        pkl.dump(X_m_t, open(model_dir + "training_mention_w_subword_filter.pkl", 'wb'))
-        pkl.dump(X_m_te, open(model_dir + "testing_mention_w_subword_filter.pkl", 'wb'))
-        pkl.dump(X_m_vali, open(model_dir + "validation_mention_w_subword_filter.pkl", 'wb'))
-
-    else :
-        pkl.dump(X_m_t, open(model_dir + "training_mention_wo_subword_filter.pkl", 'wb'))
-        pkl.dump(X_m_te, open(model_dir + "testing_mention_wo_subword_filter.pkl", 'wb'))
-        pkl.dump(X_m_vali, open(model_dir + "validation_mention_wo_subword_filter.pkl", 'wb'))
-    del X_m_t, X_m_te, X_m_vali
-
-    
     # Parsing the labels and convert to integer using comma as separetor
-    print("Creating MultiLabel..")
+    print("Creating MultiLabel Binarizer..")
     temp = list()
     for element in y:
-        values = element.split(',')
-        values = list(map(int, values))
+        values = [int(itr) for itr in element.split(',')]
+        # values = list(map(int, values))
         temp.append(values)
-    # Convert to np.array
     del y
+    # Convert to np.array
     temp = np.array(temp)
-    print(len(temp), len(temp[0]))
-    print(type(temp), type(temp[0]))
-    y_train = temp[train_index]
-    y_test = temp[test_index]
-    y_vali = temp[validation_index]
-    # Binarizer the labels
-    print("Binarizering labels..")
+
+    # Initialize content tokenizer
+    X_tokenizer = text.Tokenizer(num_words=MAX_NUM_WORDS)
+    m_tokenizer = text.Tokenizer(num_words=MAX_NUM_MENTION_WORDS)
+    # Fit MLB
     mlb = MultiLabelBinarizer(sparse_output=True)
     mlb.fit(temp)
-    del temp
 
-    y_train = mlb.transform(y_train)
-    y_test = mlb.transform(y_test)
-    y_vali = mlb.transform(y_vali)
-    print(" shape of training labels:",y_train.shape)
-    print(" shape of validation labels:",y_vali.shape)
-    print(" shape of testing labels:",y_test.shape)
+    partitions = ["train", "test", "validation"]
+    for itr in partitions:
+        prefix = itr + "ing" if itr in ["train", "test"] else itr
+        # Load designated indices for each partitions
+        indices = pkl.load(open(model_dir + itr + "_index.pkl", 'rb'))
+        # Index the content according to the given indices
+        X_itr = X[indices]
+        m_itr = mentions[indices]
 
-    # dumping training and testing label
-    if subword:
-        pkl.dump(y_train, open(model_dir + "training_label_w_subword_filter.pkl", 'wb'))
-        pkl.dump(y_test, open(model_dir + "testing_label_w_subword_filter.pkl", 'wb'))
-        pkl.dump(y_vali, open(model_dir + "validation_label_w_subword_filter.pkl", 'wb'))
-    else:
-        pkl.dump(y_train, open(model_dir + "training_label_wo_subword_filter.pkl", 'wb'))
-        pkl.dump(y_test, open(model_dir + "testing_label_wo_subword_filter.pkl", 'wb'))
-        pkl.dump(y_vali, open(model_dir + "validation_label_wo_subword_filter.pkl", 'wb'))
-    del y_train, y_test
+        # Tokenization on the context
+        print("Tokenize {0} sentences and mentions...".format(prefix))
+        # Trim the token size w.r.t training context
+        if itr == "train":
+            X_tokenizer.fit_on_texts(list(X_itr))
+            m_tokenizer.fit_on_texts(list(m_itr))
+        # Tokenize the current context
+        X_tokenized = X_tokenizer.texts_to_sequences(X_itr)
+        m_tokenized = m_tokenizer.texts_to_sequences(m_itr)
 
+        # Padding contexts
+        print("Padding {0} sentences and mention vectors...".format(prefix))
+        X_pad = sequence.pad_sequences(X_tokenized, maxlen=MAX_SEQUENCE_LENGTH)
+        m_pad = sequence.pad_sequences(m_tokenized, maxlen=MAX_MENTION_LENGTH)
+
+        # Save context vectors to pickle file
+        # Sentence
+        filename = "{0}{1}_data_{2}_subword_filter1.pkl".format(model_dir, prefix, sb_tag)
+        pkl.dump(X_pad, open(filename, 'wb'))
+        # Mention
+        filename = "{0}{1}_mention_{2}_subword_filter1.pkl".format(model_dir, prefix, sb_tag)
+        pkl.dump(X_pad, open(filename, 'wb'))
+        del X_itr, X_tokenized, X_pad, m_itr, m_tokenized, m_pad
+
+        # Binarizer the labels
+        print("Binarizering labels..")
+        y_itr = temp[indices]
+        y_bin = mlb.transform(y_itr)
+        print(" - {0} label shape: {1}".format(prefix, y_bin.shape))
+
+        # Save label vectors to pickle file
+        filename =  "{0}{1}_label_{2}_subword_filter1.pkl".format(model_dir, prefix, sb_tag)
+        pkl.dump(y_bin, open(filename, 'wb'))
+
+    # Save all models
     print("dumping pickle file of tokenizer/m_tokenizer/mlb...")
-    # dumping model
-    if subword:
-        pkl.dump(tokenizer, open(model_dir + "tokenizer_w_subword_filter.pkl", 'wb'))
-        pkl.dump(m_tokenizer, open(model_dir + "m_tokenizer_w_subword_filter.pkl", 'wb'))
-        pkl.dump(mlb, open(model_dir + "mlb_w_subword_filter.pkl", 'wb'))
-    else:
-        pkl.dump(tokenizer, open(model_dir + "tokenizer_wo_subword_filter.pkl", 'wb'))
-        pkl.dump(m_tokenizer, open(model_dir + "m_tokenizer_wo_subword_filter.pkl", 'wb'))
-        pkl.dump(mlb, open(model_dir + "mlb_wo_subword_filter.pkl", 'wb'))
+    pkl.dump(X_tokenizer, open(model_dir + "tokenizer_{0}_subword_filter.pkl".format(sb_tag), 'wb'))
+    pkl.dump(m_tokenizer, open(model_dir + "m_tokenizer_{0}_subword_filter.pkl".format(sb_tag), 'wb'))
+    pkl.dump(mlb, open(model_dir + "mlb_{0}_subword_filter.pkl".format(sb_tag), 'wb'))
+
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("--model", nargs='?', type=str, default="model/", 
