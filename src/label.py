@@ -8,15 +8,16 @@ from utils import write_to_file, readlines, generic_threading, keywords_as_label
 import pandas as pd
 from collections import Counter
 
-# python src/label.py data/ --trim
-# python src/label.py data/ --labels=data/label.json --replace \
-# --corpus=data/smaller_preprocessed_sentence_keywords.tsv --subwords=data/subwords.json --thread=10
+"""
+python src/label.py data/ --trim
+python src/label.py data/ --labels=data/label.json --replace \
+--corpus=data/smaller_preprocessed_sentence_keywords.tsv --subwords=data/subwords.json --thread=10
 
-# python src/label.py data/ --labels=data/label.json --replace \
-# --corpus=data/smaller_preprocessed_sentence_keywords.tsv --subwords=data/subwords.json --thread=10 --limit=100
+python src/label.py data/ --labels=data/label.json --replace \
+--corpus=data/smaller_preprocessed_sentence_keywords.tsv --subwords=data/subwords.json --thread=10 --limit=100
 
-# python src/label.py data/ --corpus=data/smaller_preprocessed_sentence_keywords.tsv --stat
-
+python src/label.py data/ --corpus=data/smaller_preprocessed_sentence_keywords.tsv --stat
+"""
 
 def fit_encoder(keywords_path, model=None, trim=True, output=None):
     """

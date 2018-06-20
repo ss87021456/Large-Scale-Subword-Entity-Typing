@@ -46,11 +46,12 @@ def run(model_dir, input, subword=False, vector=True):
     sb_tag = "w" if subword else "wo"
 
     print("Loading dataset..")
-    dataset = pd.read_csv(input, sep='\t', names=['label','context','mention'])
+    dataset = pd.read_csv(input, sep='\t', names=['label','context','mention', 'subword'])
 
     X = dataset['context'].values
     y = dataset['label'].values
     mentions = dataset['mention'].values
+    subwords = dataset['subword'].values
 
     # Parsing the labels and convert to integer using comma as separetor
     print("Creating MultiLabel Binarizer..")
@@ -62,6 +63,12 @@ def run(model_dir, input, subword=False, vector=True):
     del y
     # Convert to np.array
     temp = np.array(temp)
+
+    # Parse subwords
+    subwords = [str(itr).split(" ") for itr in subwords]
+    ### Load subword pool
+    ### Choose criteria to only include useful subwords
+    ### Choose vector dimension
 
     # Initialize content tokenizer
     X_tokenizer = text.Tokenizer(num_words=MAX_NUM_WORDS)

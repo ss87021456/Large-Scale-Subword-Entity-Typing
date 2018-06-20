@@ -502,7 +502,7 @@ def keywords_as_labels(thread_idx, data, keywords, labels, subwords=None,
 
                         # Mention Features: [mention _ subwords]
                         ###mention_features = itr_mention + " " + " ".join(filtered_subword_list[1:] if len(words) == 1 else filtered_subword_list)
-                        mention_features = itr_mention + " " + " ".join(subword_list[1:] if len(words) == 1 else subword_list)
+                        mention_features = itr_mention + "\t" + " ".join(subword_list[1:] if len(words) == 1 else subword_list)
 
                     # If no subword information is given, then the feature is just the mentions
                     else:
