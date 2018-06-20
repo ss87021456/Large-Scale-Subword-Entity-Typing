@@ -45,21 +45,26 @@ def BLSTM(label_num, sentence_emb=None, mention_emb=None, attention=False, mode=
         x = Bidirectional(LSTM(50, return_sequences=True))(x)
         x = GlobalMaxPool1D()(x)
 
+        # Embedding for mention/subword
         mention = Input(shape=(MAX_MENTION_LENGTH, ), name='mention')
+        # Vectorization on subwords
         # Pretrain mention_embedding
         if mention_emb is not None:
             x_2 = mention_emb(mention)
         else:
-            x_2 = Embedding(MAX_NUM_MENTION_WORDS,EMBEDDING_DIM,input_length=MAX_MENTION_LENGTH)(mention)
+            x_2 = Embedding(MAX_NUM_MENTION_WORDS, EMBEDDING_DIM,
+                            input_length=MAX_MENTION_LENGTH)(mention)
         
         x_2 = Bidirectional(LSTM(50, return_sequences=True))(x_2)
         x_2 = GlobalMaxPool1D()(x_2)
 
+        # Concatenate
         if mode == 'concatenate':
-            x = concatenate([x, x_2])           # Concatencate
+            x = concatenate([x, x_2])
             x = Dropout(dropout)(x)
+        # Inner product
         elif mode == 'dot':
-            x = dot([x, x_2], axes=-1)           # Dot product
+            x = dot([x, x_2], axes=-1)
 
         x = Dense(200, activation="relu")(x)
         x = Dropout(dropout)(x)

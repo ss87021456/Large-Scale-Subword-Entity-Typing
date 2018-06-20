@@ -45,12 +45,9 @@ def run(model_dir, model_type, pre=False, embedding=None, subword=False, attenti
     if not model_dir.endswith("/"):
         model_dir += "/"
     # Load models
-    if subword:
-        mlb = pkl.load(open(model_dir + "mlb_w_subword_filter.pkl", 'rb'))
-        tokenizer = pkl.load(open(model_dir + "tokenizer_w_subword_filter.pkl", 'rb'))
-    else:
-        mlb = pkl.load(open(model_dir + "mlb_wo_subword_filter.pkl", 'rb'))
-        tokenizer = pkl.load(open(model_dir + "tokenizer_wo_subword_filter.pkl", 'rb'))
+    sb_tag = "w" if subword else "wo"
+    mlb = pkl.load(open(model_dir + "mlb_{0}_subword_filter.pkl".format(sb_tag), 'rb'))
+    tokenizer = pkl.load(open(model_dir + "tokenizer_{0}_subword_filter.pkl".format(sb_tag), 'rb'))
     
     word_index = tokenizer.word_index
     label_num = len(mlb.classes_)
@@ -72,78 +69,57 @@ def run(model_dir, model_type, pre=False, embedding=None, subword=False, attenti
                 embedding_matrix[i] = embedding_vector
 
         # load pre-trained word embeddings into an Embedding layer
-        # note that we set trainable = False so as to keep the embeddings fixed
-        embedding_layer = Embedding(num_words,EMBEDDING_DIM,weights=[embedding_matrix],input_length=MAX_SEQUENCE_LENGTH,trainable=True)
-    
+        # note that we set trainable=False to keep the embeddings fixed
+        embedding_layer = Embedding(num_words, EMBEDDING_DIM, weights=[embedding_matrix], input_length=MAX_SEQUENCE_LENGTH, trainable=True)
+    else:
+        embedding_layer = None
+
     # Building Model
     print("Building computational graph...")
     if model_type == "BLSTM":
-        print("Building default BLSTM mode with attention:",attention,"subword:",subword)
-        if pre:
-            model = BLSTM(label_num=label_num, sentence_emb=embedding_layer, mention_emb=None, attention=attention, subword=subword, mode='concatenate', dropout=0.1)
-        else:
-            model = BLSTM(label_num=label_num, sentence_emb=None, mention_emb=None, attention=attention, subword=subword, mode='concatenate', dropout=0.1)
+        print("Building default BLSTM mode with attention:", attention, "subword:", subword)
+        model = BLSTM(label_num=label_num, sentence_emb=embedding_layer, mention_emb=None, attention=attention, subword=subword, mode='concatenate', dropout=0.1)
     elif model_type == "CNN":
         print("Building default CNN mode with attention:",attention,"subword:",subword)
-        if pre:
-            model = CNN(label_num=label_num, sentence_emb=embedding_layer, mention_emb=None, attention=attention, subword=subword, mode='concatenate', dropout=0.1)
-        else:
-            model = CNN(label_num=label_num, sentence_emb=None, mention_emb=None, attention=attention, subword=subword, mode='concatenate', dropout=0.1)
+        model = CNN(label_num=label_num, sentence_emb=embedding_layer, mention_emb=None, attention=attention, subword=subword, mode='concatenate', dropout=0.1)
 
     print(model.summary())
     #exit()
 
-    file_path =  model_type + "-weights-{epoch:02d}.hdf5"   # for keras to save model each epoch
-    model_name = model_type + "-weights-00.hdf5"            # deal with model_name   
-    if attention:
-        file_path = "Attention-" + file_path
-        model_name = "Attention-" + model_name
-    if subword:
-        file_path = "Subword" + file_path
-        model_name = "Subword" + model_name
+    prefix = "{0}{1}".format("Subword-"   if subword   else "",
+                             "Attention-" if attention else "")
+    # for keras to save model each epoch
+    file_path =  prefix + model_type + "-weights-{epoch:02d}.hdf5"
+    # deal with model_name
+    model_name = prefix + model_type + "-weights-00.hdf5"
 
     checkpoint = ModelCheckpoint(file_path, monitor='val_loss', verbose=1, save_best_only=False, mode='min') # Save every epoch
     early = EarlyStopping(monitor="val_loss", mode="min", patience=20)
     callbacks_list = [checkpoint, early] #early
 
     print("Loading testing data...")
-    if subword:
-        X_test = pkl.load(open(model_dir + "testing_data_w_subword_filter.pkl", 'rb'))
-        X_test_mention = pkl.load(open(model_dir + "testing_mention_w_subword_filter.pkl", 'rb'))
-        y_test = pkl.load(open(model_dir + "testing_label_w_subword_filter.pkl", 'rb'))
-    else:
-        X_test = pkl.load(open(model_dir + "testing_data_wo_subword_filter.pkl", 'rb'))
-        X_test_mention = pkl.load(open(model_dir + "testing_mention_wo_subword_filter.pkl", 'rb'))
-        y_test = pkl.load(open(model_dir + "testing_label_wo_subword_filter.pkl", 'rb'))
+    X_test = pkl.load(open(model_dir + "testing_data_{0}_subword_filter.pkl".format(sb_tag), 'rb'))
+    X_test_mention = pkl.load(open(model_dir + "testing_mention_{0}_subword_filter.pkl".format(sb_tag), 'rb'))
+    y_test = pkl.load(open(model_dir + "testing_label_{0}_subword_filter.pkl".format(sb_tag), 'rb'))
 
     # Training
     print("Loading validation data...")
-    if subword:
-        X_vali = pkl.load(open(model_dir + "validation_data_w_subword_filter.pkl", 'rb'))
-        X_vali_mention = pkl.load(open(model_dir + "validation_mention_w_subword_filter.pkl", 'rb'))
-        y_vali = pkl.load(open(model_dir + "validation_label_w_subword_filter.pkl", 'rb'))
-    else:
-        X_vali = pkl.load(open(model_dir + "validation_data_wo_subword_filter.pkl", 'rb'))
-        X_vali_mention = pkl.load(open(model_dir + "validation_mention_wo_subword_filter.pkl", 'rb'))
-        y_vali = pkl.load(open(model_dir + "validation_label_wo_subword_filter.pkl", 'rb'))
+    X_vali = pkl.load(open(model_dir + "validation_data_{0}_subword_filter.pkl".format(sb_tag), 'rb'))
+    X_vali_mention = pkl.load(open(model_dir + "validation_mention_{0}_subword_filter.pkl".format(sb_tag), 'rb'))
+    y_vali = pkl.load(open(model_dir + "validation_label_{0}_subword_filter.pkl".format(sb_tag), 'rb'))
 
     # Training
     print("Loading training data...")
-    if subword:
-        X_train = pkl.load(open(model_dir + "training_data_w_subword_filter.pkl", 'rb'))
-        X_train_mention = pkl.load(open(model_dir + "training_mention_w_subword_filter.pkl", 'rb'))
-        y_train = pkl.load(open(model_dir + "training_label_w_subword_filter.pkl", 'rb'))
-    else:
-        X_train = pkl.load(open(model_dir + "training_data_wo_subword_filter.pkl", 'rb'))
-        X_train_mention = pkl.load(open(model_dir + "training_mention_wo_subword_filter.pkl", 'rb'))
-        y_train = pkl.load(open(model_dir + "training_label_wo_subword_filter.pkl", 'rb'))
+    X_train = pkl.load(open(model_dir + "training_data_{0}_subword_filter.pkl".format(sb_tag), 'rb'))
+    X_train_mention = pkl.load(open(model_dir + "training_mention_{0}_subword_filter.pkl".format(sb_tag), 'rb'))
+    y_train = pkl.load(open(model_dir + "training_label_{0}_subword_filter.pkl".format(sb_tag), 'rb'))
 
     print("Begin training...")
     model.fit([X_train, X_train_mention], y_train, batch_size=batch_size, epochs=epochs, validation_split=0.01, callbacks=callbacks_list)
 
     # Evaluation
     print("Loading trained weights for validation...")
-    for i in range(1,6,1):
+    for i in range(1, epochs + 1, 1):
         file = list(model_name)
         file[-6] = str(i)
         file = "".join(file)
@@ -159,7 +135,6 @@ def run(model_dir, model_type, pre=False, embedding=None, subword=False, attenti
         for eval_type in eval_types:
             p, r, f, _ = precision_recall_fscore_support(y_vali, y_pred, average=eval_type)
             print("[{}]\t{:3.3f}\t{:3.3f}\t{:3.3f}".format(eval_type, p, r, f))
-
 
     K.clear_session()
 
