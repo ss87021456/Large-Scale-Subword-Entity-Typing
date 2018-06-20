@@ -22,7 +22,7 @@ python src/parse_sentence.py data/smaller_preprocessed.tsv --thread=10
 # Recognize sentences
 echo ""
 echo "[STAGE 4/5] Recognize all sentences in the corpus containing the mentions in given entity hierarchy tree"
-python src/recognize_sentences.py data/smaller_preprocessed_sentence.txt data/ --trim --mode=MULTI --thread=20 --limit=10000
+python src/recognize_sentences.py data/smaller_preprocessed_sentence.txt data/ --trim --mode=MULTI --thread=20
 
 # add labels to the dataset
 echo ""

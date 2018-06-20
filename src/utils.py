@@ -493,15 +493,16 @@ def keywords_as_labels(thread_idx, data, keywords, labels, subwords=None,
                         # Unpack the subword list [list of subwords for each mention]
                         subword_list = list(chain.from_iterable(subword_list))
 
-                        # remove stopword
-                        stop_words = set(stopwords.words('english'))
-                        filtered_subword_list = [w for w in subword_list if not w in stop_words]
+                        # Remove stopword
+                        ###stop_words = set(stopwords.words('english'))
+                        ###filtered_subword_list = [w for w in subword_list if not w in stop_words]
                         # Sort all subwords in decending length order
                         # ***The filtering criteria should not be heuristic***
-                        filtered_subword_list = sorted(filtered_subword_list, key=len, reverse=True)
+                        ###filtered_subword_list = sorted(filtered_subword_list, key=len, reverse=True)
 
                         # Mention Features: [mention _ subwords]
-                        mention_features = itr_mention + " " + " ".join(filtered_subword_list[1:] if len(words) == 1 else filtered_subword_list)
+                        ###mention_features = itr_mention + " " + " ".join(filtered_subword_list[1:] if len(words) == 1 else filtered_subword_list)
+                        mention_features = itr_mention + " " + " ".join(subword_list[1:] if len(words) == 1 else subword_list)
 
                     # If no subword information is given, then the feature is just the mentions
                     else:

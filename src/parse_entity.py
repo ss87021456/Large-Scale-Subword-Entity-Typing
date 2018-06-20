@@ -317,6 +317,13 @@ def parse_subwords(file):
 
     write_to_file("data/subwords.json", dictionary)
 
+    # Subword pool for subword embedding
+    # subword_pool = np.unique(list(chain.from_iterable(subwords)))
+    subword_pool = dict(Counter(list(chain.from_iterable(subwords))))
+    # print(subword_pool)
+    write_to_file("data/subword_pool.json", subword_pool)
+
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("file", help="File to be parsed.")

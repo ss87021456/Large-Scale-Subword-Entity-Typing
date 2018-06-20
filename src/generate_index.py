@@ -23,7 +23,6 @@ def parallel_index(thread_idx, mention_count, mentions):
         temp.append(index.tolist())
         result.append(temp)
 
-
     return result
 
 def run(model_dir, input, test_size):
@@ -36,10 +35,8 @@ def run(model_dir, input, test_size):
 
     print("Loading dataset..")
     dataset = pd.read_csv(input, sep='\t', names=['label','context','mention'])
+    mentions = dataset['mention'].values
 
-    mentions = dataset['mention'].values[:None]
-
-    
     # use for spliting data with mention specific 
     # np.random.shuffle(mentions)
     print("{0} unique mentions...".format(len(set(mentions))))
@@ -76,38 +73,38 @@ def run(model_dir, input, test_size):
     test_len     = total_length * test_size
     train_len    = total_length - 2 * test_len
 
-    train_index  = []
-    test_index = []
-    validation_index = []
+    train_index  = list()
+    test_index = list()
+    validation_index = list()
 
     count = 0
-    print("processing training_index...")
-    print("training size: {0}, testing size: {1}, validation size: {2}, total size: {3}".format(train_len, test_len, test_len, total_length))
+    print("Processing training_index...")
+    print("Training size: {0}, testing size: {1}, validation size: {2}, total size: {3}".format(train_len, test_len, test_len, total_length))
     ########################################
     # TO-BE REVISED TO A MORE ELEGANT SPLITTING WAY
     np.random.shuffle(unique)
     for mention in tqdm(unique):
-    # for mention in tqdm(key_list):
-        if count < train_len:                                     # for training dataset
+        if count < train_len:                                       # for training dataset
             count += mention_count[mention]
             train_index.append(mention_index[mention])
-        elif count >= train_len and count < (train_len+test_len): # for validation dataset
+        elif count >= train_len and count < (train_len + test_len): # for validation dataset
             count += mention_count[mention]
             validation_index.append(mention_index[mention])
-        else :                                                    # rest are for testing dataset
+        else :                                                      # rest are for testing dataset
             count += mention_count[mention]
             test_index.append(mention_index[mention])
     ########################################
 
     # flatten list
-    print("flatten train/validation/test index...")
+    print("Flatten train/validation/test index...")
     train_index = list(itertools.chain.from_iterable(train_index))
     validation_index = list(itertools.chain.from_iterable(validation_index))
     test_index = list(itertools.chain.from_iterable(test_index))
 
-    print("train size:",len(train_index))
-    print("validation size:",len(validation_index))
-    print("test size:",len(test_index))
+    print("Number of instances in all sets:")
+    print(" - Training   :", len(train_index))
+    print(" - Testing    :", len(test_index))
+    print(" - Validation :", len(validation_index))
 
     train_index = np.array(train_index)
     validation_index = np.array(validation_index)

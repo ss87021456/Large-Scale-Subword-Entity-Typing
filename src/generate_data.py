@@ -11,8 +11,8 @@ from sklearn.feature_extraction.text import CountVectorizer
 from keras.preprocessing import text, sequence
 import os
 
-# python ./src/generate_data.py --input=./data/smaller_preprocessed_sentence_keywords_labeled.tsv --train_idx=./model/train_index.pkl --test_idx=./model/test_index.pkl --vali_idx=./model/validation_index.pkl
-# python ./src/generate_data.py --input=./data/smaller_preprocessed_sentence_keywords_labeled_subwords.tsv --subword --train_idx=./model/train_index.pkl --test_idx=./model/test_index.pkl --vali_idx=./model/validation_index.pkl
+# python ./src/generate_data.py --input=./data/smaller_preprocessed_sentence_keywords_labeled.tsv 
+# python ./src/generate_data.py --input=./data/smaller_preprocessed_sentence_keywords_labeled_subwords.tsv --subword
 
 # Feature-parameter..
 MAX_NUM_WORDS = 30000
@@ -34,7 +34,7 @@ def parallel_index(thread_idx, mention_count, mentions):
 
     return result
 
-def run(model_dir, input, train_idx, test_idx, vali_idx, subword=False):
+def run(model_dir, input, subword=False, vector=True):
     MAX_MENTION_LENGTH = 5 if not subword else 15
     print("MAX_MENTION_LENGTH = {0}".format(MAX_MENTION_LENGTH))
     # Parse directory name
@@ -96,11 +96,11 @@ def run(model_dir, input, train_idx, test_idx, vali_idx, subword=False):
 
         # Save context vectors to pickle file
         # Sentence
-        filename = "{0}{1}_data_{2}_subword_filter1.pkl".format(model_dir, prefix, sb_tag)
+        filename = "{0}{1}_data_{2}_subword_filter.pkl".format(model_dir, prefix, sb_tag)
         pkl.dump(X_pad, open(filename, 'wb'))
         # Mention
-        filename = "{0}{1}_mention_{2}_subword_filter1.pkl".format(model_dir, prefix, sb_tag)
-        pkl.dump(X_pad, open(filename, 'wb'))
+        filename = "{0}{1}_mention_{2}_subword_filter.pkl".format(model_dir, prefix, sb_tag)
+        pkl.dump(m_pad, open(filename, 'wb'))
         del X_itr, X_tokenized, X_pad, m_itr, m_tokenized, m_pad
 
         # Binarizer the labels
@@ -125,13 +125,14 @@ if __name__ == '__main__':
     parser.add_argument("--model", nargs='?', type=str, default="model/", 
                         help="Directory to store models. [Default: \"model/\"]")
     parser.add_argument("--input", help="Input dataset filename.")
-    parser.add_argument("--train_idx", help="Input training index pickle file")
-    parser.add_argument("--test_idx", help="Input testing index pickle file")
-    parser.add_argument("--vali_idx", help="Input validation index pickle file")
+    # parser.add_argument("--train_idx", help="Input training index pickle file")
+    # parser.add_argument("--test_idx", help="Input testing index pickle file")
+    # parser.add_argument("--vali_idx", help="Input validation index pickle file")
     parser.add_argument("--subword", action="store_true" , help="Use subword or not")
+    parser.add_argument("--vector", action="store_false" , help="Use vector-based subword information.")
     args = parser.parse_args()
 
-    run(args.model, args.input, args.train_idx, args.test_idx, args.vali_idx, args.subword)
+    run(args.model, args.input, args.subword, args.vector)
 
     ''' use for spliting data with mention specific 
     print("{0} unique mentions...".format(len(set(mentions))))
