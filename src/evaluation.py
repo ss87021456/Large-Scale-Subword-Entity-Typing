@@ -16,7 +16,7 @@ from nn_model import BLSTM, CNN
 from tqdm import tqdm
 
 # simply output prediction
-# CUDA_VISIBLE_DEVICES=1 python ./src/evaluation.py --model_path=... --model_type=[BLSTM,CNN] [--subword] [--attention]
+# CUDA_VISIBLE_DEVICES=1 python ./src/evaluation.py  --model_path=... --model_type=[BLSTM,CNN] [--subword] [--attention]
 
 # visualize
 # CUDA_VISIBLE_DEVICES=1 python ./src/evaluation.py --model_path=... --model_type=[BLSTM,CNN] [--subword] [--attention] --visualize > visualize.txt
@@ -54,25 +54,8 @@ config = tf.ConfigProto()
 config.gpu_options.per_process_gpu_memory_fraction = 0.3
 set_session(tf.Session(config=config))
 
-# Feature-parameter
-MAX_NUM_WORDS = 30000
-MAX_NUM_MENTION_WORDS = 20000
-MAX_SEQUENCE_LENGTH = 40
-MAX_MENTION_LENGTH = 5 # 15 if subowrd else 5
-EMBEDDING_DIM = 100
 
-# Hyper-parameter
-batch_size = 64
-epochs = 5
-
-# Set memory constraint
-import tensorflow as tf
-from keras.backend.tensorflow_backend import set_session
-config = tf.ConfigProto()
-config.gpu_options.per_process_gpu_memory_fraction = 0.3
-set_session(tf.Session(config=config))
-
-def run(model_dir, model_type, model_path, subword=False, attention=False, visualize=False):
+def run(model_dir, pre=False, model_type, model_path, subword=False, attention=False, visualize=False):
     print(model_dir, model_type, model_path)
     # Parse directory name
     if not model_dir.endswith("/"):
@@ -82,8 +65,6 @@ def run(model_dir, model_type, model_path, subword=False, attention=False, visua
         mlb = pkl.load(open(model_dir + "mlb_w_subword_filter.pkl", 'rb'))
     else:
         mlb = pkl.load(open(model_dir + "mlb_wo_subword_filter.pkl", 'rb'))
-    
-    label_num = len(mlb.classes_)
     
     # Building Model
     print("Building computational graph...")
@@ -117,7 +98,7 @@ def run(model_dir, model_type, model_path, subword=False, attention=False, visua
     else:
         X_test = pkl.load(open(model_dir + "testing_data_wo_subword_filter.pkl", 'rb'))
         X_test_mention = pkl.load(open(model_dir + "testing_mention_wo_subword_filter.pkl", 'rb'))
-        y_test = pkl.load(open(model_dir + "training_label_wo_subword_filter.pkl", 'rb'))
+        y_test = pkl.load(open(model_dir + "testing_label_wo_subword_filter.pkl", 'rb'))
 
     print("loading file..")
     if subword:
@@ -143,7 +124,12 @@ def run(model_dir, model_type, model_path, subword=False, attention=False, visua
     y_pred[y_pred >= 0.5] = 1.
     y_pred[y_pred < 0.5] = 0.
     y_pred = sparse.csr_matrix(y_pred)
-
+    
+    eval_types = ['micro','macro','weighted']
+    for eval_type in eval_types:
+        p, r, f, _ = precision_recall_fscore_support(y_test, y_pred, average=eval_type)
+        print("[{}]\t{:3.3f}\t{:3.3f}\t{:3.3f}".format(eval_type, p, r, f))
+    '''
     print("inverse_transform result...")
     y_pred = mlb.inverse_transform(y_pred)
     y_test_ = mlb.inverse_transform(y_test[:test_size])
@@ -188,7 +174,7 @@ def run(model_dir, model_type, model_path, subword=False, attention=False, visua
                 print("Label",label)
                 score = "Precision: {:3.3f} Recall {:3.3f} F1 {:3.3f}".format(precision, recall, f1)
                 print(score + "\n")
-
+    '''
     K.clear_session()
 
 if __name__ == '__main__':
