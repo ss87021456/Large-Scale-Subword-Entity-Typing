@@ -3,7 +3,7 @@ import numpy as np
 from scipy import sparse
 import argparse
 import pickle as pkl
-from utils import split_data
+from utils import split_data, create_embedding_layer
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import MultiLabelBinarizer
 from sklearn.metrics import precision_recall_fscore_support 
@@ -20,7 +20,7 @@ from nn_model import BLSTM, CNN
 # CUDA_VISIBLE_DEVICES=0 python ./src/train.py --pre --emb=data/FastText_embedding.vec --mode=[CNN,BLSTM]
 
 # Additional option --subword --attention
-
+# /home/chiawei2/nlp_tool/fastText-0.1.0/vector/fastText_Pubmed.vec
 
 # Feature-parameter
 MAX_NUM_WORDS = 30000
@@ -48,18 +48,40 @@ def run(model_dir, model_type, pre=False, embedding=None, subword=False, attenti
     sb_tag = "w" if subword else "wo"
     mlb = pkl.load(open(model_dir + "mlb_{0}_subword_filter.pkl".format(sb_tag), 'rb'))
     tokenizer = pkl.load(open(model_dir + "tokenizer_{0}_subword_filter.pkl".format(sb_tag), 'rb'))
+    m_tokenizer = pkl.load(open(model_dir + "m_tokenizer_{0}_subword_filter.pkl".format(sb_tag), 'rb'))
     
     word_index = tokenizer.word_index
+    m_word_index = m_tokenizer.word_index
     label_num = len(mlb.classes_)
 
+    ###
+    tokenizer_model = model_dir + "tokenizer_{0}_subword_filter.pkl".format(sb_tag)
+    m_tokenizer_model = model_dir + "m_tokenizer_{0}_subword_filter.pkl".format(sb_tag)
+    ###
+    embedding_layer = create_embedding_layer(tokenizer_model=tokenizer_model,
+                                             filename=embedding,
+                                             max_num_words=MAX_NUM_WORDS,
+                                             max_length=MAX_SEQUENCE_LENGTH,
+                                             embedding_dim=EMBEDDING_DIM)
+    m_embedding_layer = create_embedding_layer(tokenizer_model=m_tokenizer_model,
+                                               filename=embedding,
+                                               max_num_words=MAX_NUM_MENTION_WORDS,
+                                               max_length=MAX_MENTION_LENGTH,
+                                               embedding_dim=EMBEDDING_DIM)
+    """
     if pre:
+        embedding_layer = 
         print("Loading pre-trained embedding model...")
         embeddings_index = fastText(embedding)
 
         print("Preparing embedding matrix...")
         # prepare embedding matrix
         num_words = min(MAX_NUM_WORDS, len(word_index) + 1)
+        m_num_words = min(MAX_NUM_MENTION_WORDS, len(word_index) + 1)
         embedding_matrix = np.zeros((num_words, EMBEDDING_DIM))
+        m_embedding_matrix = np.zeros((m_num_words, EMBEDDING_DIM))
+
+        # process content
         for word, i in word_index.items():
             if i >= MAX_NUM_WORDS:
                 continue
@@ -68,20 +90,27 @@ def run(model_dir, model_type, pre=False, embedding=None, subword=False, attenti
                 # words not found in embedding index will be all-zeros.
                 embedding_matrix[i] = embedding_vector
 
-        # load pre-trained word embeddings into an Embedding layer
-        # note that we set trainable=False to keep the embeddings fixed
-        embedding_layer = Embedding(num_words, EMBEDDING_DIM, weights=[embedding_matrix], input_length=MAX_SEQUENCE_LENGTH, trainable=True)
+        # Load pre-trained word embeddings into an Embedding layer
+        embedding_layer = Embedding(num_words, EMBEDDING_DIM,
+                                    weights=[embedding_matrix],
+                                    input_length=MAX_SEQUENCE_LENGTH,
+                                    trainable=True)
+        m_embedding_layer = Embedding(m_num_words, EMBEDDING_DIM,
+                                      weights=[m_embedding_matrix],
+                                      input_length=MAX_MENTION_LENGTH,
+                                      trainable=True)
     else:
         embedding_layer = None
-
+        m_embedding_layer = None
+    """
     # Building Model
     print("Building computational graph...")
     if model_type == "BLSTM":
         print("Building default BLSTM mode with attention:", attention, "subword:", subword)
-        model = BLSTM(label_num=label_num, sentence_emb=embedding_layer, mention_emb=None, attention=attention, subword=subword, mode='concatenate', dropout=0.1)
+        model = BLSTM(label_num=label_num, sentence_emb=embedding_layer, mention_emb=m_embedding_layer, attention=attention, subword=subword, mode='concatenate', dropout=0.1)
     elif model_type == "CNN":
         print("Building default CNN mode with attention:",attention,"subword:",subword)
-        model = CNN(label_num=label_num, sentence_emb=embedding_layer, mention_emb=None, attention=attention, subword=subword, mode='concatenate', dropout=0.1)
+        model = CNN(label_num=label_num, sentence_emb=embedding_layer, mention_emb=m_embedding_layer, attention=attention, subword=subword, mode='concatenate', dropout=0.1)
 
     print(model.summary())
     #exit()

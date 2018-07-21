@@ -321,6 +321,7 @@ def parse_subwords(file):
     # subword_pool = np.unique(list(chain.from_iterable(subwords)))
     subword_pool = dict(Counter(list(chain.from_iterable(subwords))))
     # print(subword_pool)
+    print("Raw number of subwords: {:8d}".format(len(subword_pool)))
     write_to_file("data/subword_pool.json", subword_pool)
 
 

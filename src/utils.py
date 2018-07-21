@@ -11,6 +11,9 @@ from tqdm import tqdm
 from string import punctuation
 from itertools import chain
 from nltk.corpus import stopwords
+from keras.layers import Embedding
+from fastText_model import fastText # pretrain-model
+import pickle as pkl
 
 
 def vprint(msg, verbose=False):
@@ -124,6 +127,41 @@ def write_to_file(file, data):
             print("[Type Error] Please specify type as JSON or TSV")
             exit()
     print("File saved in {:s}".format(file))
+
+def create_embedding_layer(tokenizer_model, filename, max_num_words, max_length, embedding_dim):
+    """
+    """
+    # Load trained tokenizer model
+    tokenizer = pkl.load(open(tokenizer_model, 'rb'))
+    word_index = tokenizer.word_index
+    # Parameters for embedding layer
+    num_words = min(max_num_words, len(word_index) + 1)
+    embedding_matrix = np.zeros((num_words, embedding_dim))
+
+    if os.path.isfile(filename):
+        # Parse embedding matrix
+        print("Loading pre-trained embedding model from {0}...".format(filename))
+        embeddings_index = fastText(filename)
+
+        print("Preparing embedding matrix...")
+        # Process mention
+        for word, idx in word_index.items():
+            #
+            if idx >= num_words:
+                break
+            # Fetch pre-trained vector
+            embedding_vector = embeddings_index[word]
+            if embedding_vector is not None:
+                # words not found in embedding index will be all-zeros.
+                embedding_matrix[idx] = embedding_vector
+
+    # keras.layers.Embedding
+    embedding_layer = Embedding(num_words, embedding_dim,
+                                weights=[embedding_matrix],
+                                input_length=max_length,
+                                trainable=True)
+
+    return embedding_layer
 
 def split_data(data, n_slice, mode="TUPLE"):
     """
