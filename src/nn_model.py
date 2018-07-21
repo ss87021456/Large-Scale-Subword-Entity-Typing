@@ -1,6 +1,6 @@
 from keras.models import Model
 from keras.layers import Dense, Embedding, Input, concatenate, dot, Permute, Reshape, merge
-from keras.layers import LSTM, Bidirectional, GlobalMaxPool1D, Dropout
+from keras.layers import LSTM, Bidirectional, GlobalMaxPool1D, Dropout, CuDNNLSTM
 from keras.layers import Conv1D, Conv2D, MaxPooling1D
 
 
@@ -42,7 +42,7 @@ def BLSTM(label_num, sentence_emb=None, mention_emb=None, attention=False, mode=
         if attention: # attention before lstm
             x = attention_3d_block(x)
 
-        x = Bidirectional(LSTM(50, return_sequences=True))(x)
+        x = Bidirectional(CuDNNLSTM(50, return_sequences=True))(x)
         x = GlobalMaxPool1D()(x)
 
         # Embedding for mention/subword
@@ -55,7 +55,7 @@ def BLSTM(label_num, sentence_emb=None, mention_emb=None, attention=False, mode=
             x_2 = Embedding(MAX_NUM_MENTION_WORDS, EMBEDDING_DIM,
                             input_length=MAX_MENTION_LENGTH)(mention)
         
-        x_2 = Bidirectional(LSTM(50, return_sequences=True))(x_2)
+        x_2 = Bidirectional(CuDNNLSTM(50, return_sequences=True))(x_2)
         x_2 = GlobalMaxPool1D()(x_2)
 
         # Concatenate
