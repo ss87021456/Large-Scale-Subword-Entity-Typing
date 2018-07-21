@@ -58,51 +58,20 @@ def run(model_dir, model_type, pre=False, embedding=None, subword=False, attenti
     tokenizer_model = model_dir + "tokenizer_{0}_subword_filter.pkl".format(sb_tag)
     m_tokenizer_model = model_dir + "m_tokenizer_{0}_subword_filter.pkl".format(sb_tag)
     ###
-    embedding_layer = create_embedding_layer(tokenizer_model=tokenizer_model,
+    embedding_layer, preload = create_embedding_layer(tokenizer_model=tokenizer_model,
                                              filename=embedding,
                                              max_num_words=MAX_NUM_WORDS,
                                              max_length=MAX_SEQUENCE_LENGTH,
-                                             embedding_dim=EMBEDDING_DIM)
+                                             embedding_dim=EMBEDDING_DIM,
+                                             reuse=True)
     m_embedding_layer = create_embedding_layer(tokenizer_model=m_tokenizer_model,
                                                filename=embedding,
                                                max_num_words=MAX_NUM_MENTION_WORDS,
                                                max_length=MAX_MENTION_LENGTH,
-                                               embedding_dim=EMBEDDING_DIM)
-    """
-    if pre:
-        embedding_layer = 
-        print("Loading pre-trained embedding model...")
-        embeddings_index = fastText(embedding)
+                                               embedding_dim=EMBEDDING_DIM,
+                                               preload=preload)
+    del preload
 
-        print("Preparing embedding matrix...")
-        # prepare embedding matrix
-        num_words = min(MAX_NUM_WORDS, len(word_index) + 1)
-        m_num_words = min(MAX_NUM_MENTION_WORDS, len(word_index) + 1)
-        embedding_matrix = np.zeros((num_words, EMBEDDING_DIM))
-        m_embedding_matrix = np.zeros((m_num_words, EMBEDDING_DIM))
-
-        # process content
-        for word, i in word_index.items():
-            if i >= MAX_NUM_WORDS:
-                continue
-            embedding_vector = embeddings_index[word]
-            if embedding_vector is not None:
-                # words not found in embedding index will be all-zeros.
-                embedding_matrix[i] = embedding_vector
-
-        # Load pre-trained word embeddings into an Embedding layer
-        embedding_layer = Embedding(num_words, EMBEDDING_DIM,
-                                    weights=[embedding_matrix],
-                                    input_length=MAX_SEQUENCE_LENGTH,
-                                    trainable=True)
-        m_embedding_layer = Embedding(m_num_words, EMBEDDING_DIM,
-                                      weights=[m_embedding_matrix],
-                                      input_length=MAX_MENTION_LENGTH,
-                                      trainable=True)
-    else:
-        embedding_layer = None
-        m_embedding_layer = None
-    """
     # Building Model
     print("Building computational graph...")
     if model_type == "BLSTM":

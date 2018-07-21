@@ -128,8 +128,17 @@ def write_to_file(file, data):
             exit()
     print("File saved in {:s}".format(file))
 
-def create_embedding_layer(tokenizer_model, filename, max_num_words, max_length, embedding_dim):
+def create_embedding_layer(tokenizer_model, filename, max_num_words, max_length,
+                           embedding_dim, preload=None, reuse=False):
     """
+    Args:
+        tokenizer_model():
+        filename():
+        max_num_words():
+        max_length():
+        embedding_dim():
+        preload(): Pre-loaded embedding object.
+        reuse(bool): Reuse the loaded embedding object to save time.
     """
     # Load trained tokenizer model
     tokenizer = pkl.load(open(tokenizer_model, 'rb'))
@@ -140,8 +149,12 @@ def create_embedding_layer(tokenizer_model, filename, max_num_words, max_length,
 
     if os.path.isfile(filename):
         # Parse embedding matrix
-        print("Loading pre-trained embedding model from {0}...".format(filename))
-        embeddings_index = fastText(filename)
+        if preload is not None:
+            print("Pre-loaded embedding layer is given, use preload one.")
+            embeddings_index = preload
+        else:
+            print("Loading pre-trained embedding model from {0}...".format(filename))
+            embeddings_index = fastText(filename)
 
         print("Preparing embedding matrix...")
         # Process mention
@@ -161,7 +174,8 @@ def create_embedding_layer(tokenizer_model, filename, max_num_words, max_length,
                                 input_length=max_length,
                                 trainable=True)
 
-    return embedding_layer
+    # Return embedding_layer only if reuse is not asserted
+    return embedding_layer if not reuse else (embedding_layer, embeddings_index)
 
 def split_data(data, n_slice, mode="TUPLE"):
     """
