@@ -15,7 +15,7 @@ from keras.callbacks import EarlyStopping, ModelCheckpoint, Callback
 from nn_model import BLSTM, CNN
 from tqdm import tqdm
 
-# simply output prediction
+# testing
 # CUDA_VISIBLE_DEVICES=1 python ./src/evaluation.py  --model_path=... --model_type=[BLSTM,CNN] [--subword] [--attention]
 
 # visualize
