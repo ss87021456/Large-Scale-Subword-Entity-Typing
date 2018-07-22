@@ -55,7 +55,7 @@ config.gpu_options.per_process_gpu_memory_fraction = 0.3
 set_session(tf.Session(config=config))
 
 
-def run(model_dir, pre=False, model_type, model_path, subword=False, attention=False, visualize=False):
+def run(model_dir, model_type, model_path, subword=False, attention=False, visualize=False, pre=False):
     print(model_dir, model_type, model_path)
     # Parse directory name
     if not model_dir.endswith("/"):
@@ -70,10 +70,22 @@ def run(model_dir, pre=False, model_type, model_path, subword=False, attention=F
     print("Building computational graph...")
     if model_type == "BLSTM":
         print("Building default BLSTM mode with attention:",attention,"subword:",subword)
-        model = BLSTM(label_num=label_num, sentence_emb=None, mention_emb=None, attention=attention, subword=subword, mode='concatenate', dropout=0.1)
+        model = BLSTM(label_num=label_num,
+                      sentence_emb=None,
+                      mention_emb=None,
+                      attention=attention,
+                      subword=subword,
+                      mode='concatenate',
+                      dropout=0.1)
     elif model_type == "CNN":
         print("Building default CNN mode with attention:",attention,"subword:",subword)
-        model = CNN(label_num=label_num, sentence_emb=None, mention_emb=None, attention=attention, subword=subword, mode='concatenate', dropout=0.1)
+        model = CNN(label_num=label_num,
+                    sentence_emb=None,
+                    mention_emb=None,
+                    attention=attention,
+                    subword=subword,
+                    mode='concatenate',
+                    dropout=0.1)
 
     print(model.summary())
 
@@ -176,6 +188,31 @@ def run(model_dir, pre=False, model_type, model_path, subword=False, attention=F
                 print(score + "\n")
     '''
     K.clear_session()
+
+def just_test(model, filename):
+    
+    print("Restoring best weights from: {:s}".format(filename))
+    model.load_weights(filename)
+
+    # Load testing data
+    print("Loading testing data...")
+    X_test = pkl.load(open(model_dir + "testing_data_{0}_subword_filter.pkl".format(sb_tag), 'rb'))
+    X_test_mention = pkl.load(open(model_dir + "testing_mention_{0}_subword_filter.pkl".format(sb_tag), 'rb'))
+    y_test = pkl.load(open(model_dir + "testing_label_{0}_subword_filter.pkl".format(sb_tag), 'rb'))
+
+    print("Predicting on testing data...")
+    y_pred = model.predict([X_test[:test_size], X_test_mention[:test_size]])
+    y_pred[y_pred >= 0.5] = 1.
+    y_pred[y_pred < 0.5] = 0.
+    y_pred = sparse.csr_matrix(y_pred)
+    
+    with open("0721.txt", "a") as file_writer:
+        file_writer.write("{:s}\n".format(filename))
+        eval_types = ['micro','macro','weighted']
+        for eval_type in eval_types:
+            p, r, f, _ = precision_recall_fscore_support(y_test, y_pred, average=eval_type)
+            print("[{}]\t{:3.3f}\t{:3.3f}\t{:3.3f}".format(eval_type, p, r, f))
+            file_writer.write("[{}]\t{:3.3f}\t{:3.3f}\t{:3.3f}\n".format(eval_type, p, r, f))
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
