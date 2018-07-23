@@ -177,8 +177,7 @@ def create_embedding_layer(tokenizer_model, filename, max_num_words, max_length,
                                 trainable=True)
 
     # Return embedding_layer only if reuse is not asserted
-    return (embedding_layer, embeddings_index) \
-           if reuse and filename is not None else embedding_layer
+    return (embedding_layer, embeddings_index)
 
 def split_data(data, n_slice, mode="TUPLE"):
     """

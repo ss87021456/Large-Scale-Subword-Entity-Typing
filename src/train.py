@@ -9,9 +9,10 @@ from nn_model import BLSTM, CNN, Text_CNN
 from evaluation import just_test, predict
 
 # Training w/o pretrained
-# CUDA_VISIBLE_DEVICES=0 python ./src/train.py --mode=[CNN,BLSTM]
+# CUDA_VISIBLE_DEVICES=0 python ./src/train.py --arch=[CNN,BLSTM]
 # Training w/ pretrained
-# CUDA_VISIBLE_DEVICES=0 python ./src/train.py --pre --emb=data/FastText_embedding.vec --mode=[CNN,BLSTM]
+# CUDA_VISIBLE_DEVICES=0 python ./src/train.py --emb=data/FastText_embedding.vec --arch=[CNN,BLSTM]
+# CUDA_VISIBLE_DEVICES=0 python ./src/train.py --emb=data/FastText_embedding.vec --arch=Text_CNN
 
 # Additional option --subword --attention
 # /home/chiawei2/nlp_tool/fastText-0.1.0/vector/fastText_Pubmed.vec
@@ -59,14 +60,14 @@ def run(model_dir, model_type, embedding=None, subword=False, attention=False):
                                              embedding_dim=EMBEDDING_DIM,
                                              reuse=True)
 
-    m_embedding_layer = create_embedding_layer(tokenizer_model=m_tokenizer_model,
+    m_embedding_layer, _ = create_embedding_layer(tokenizer_model=m_tokenizer_model,
                                                filename=embedding,
                                                max_num_words=MAX_NUM_MENTION_WORDS,
                                                max_length=MAX_MENTION_LENGTH,
                                                embedding_dim=EMBEDDING_DIM,
                                                preload=preload)
     del preload
-    exit()
+    # exit()
     # Building Model
     print("Building computational graph...")
     if model_type == "BLSTM":
