@@ -227,7 +227,7 @@ def just_test(model, subword, filename, amount=None):
     X_m = pkl.load(open(model_dir + "testing_mention_{0}_subword_filter.pkl".format(sb_tag), 'rb'))
     y = pkl.load(open(model_dir + "testing_label_{0}_subword_filter.pkl".format(sb_tag), 'rb'))
 
-    predict(model, X, X_m, y, model_file=filename, output="results.txt", amount=amount)
+    predict(model, X, X_m, y, model_file=filename, output="results-test.txt", amount=amount)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()

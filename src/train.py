@@ -7,8 +7,6 @@ from keras import backend as K
 from keras.callbacks import EarlyStopping, ModelCheckpoint
 from nn_model import BLSTM, CNN
 from evaluation import just_test, predict
-from datetime import datetime
-from time import time
 
 # Training w/o pretrained
 # CUDA_VISIBLE_DEVICES=0 python ./src/train.py --mode=[CNN,BLSTM]
@@ -119,7 +117,7 @@ def run(model_dir, model_type, embedding=None, subword=False, attention=False):
     record = 0
     index = 0
     # Validation data
-    print("Loading validation data...")
+    print("\nLoading validation data...")
     X_val = pkl.load(open(model_dir + "validation_data_{0}_subword_filter.pkl".format(sb_tag), 'rb'))
     X_m_val = pkl.load(open(model_dir + "validation_mention_{0}_subword_filter.pkl".format(sb_tag), 'rb'))
     y_val = pkl.load(open(model_dir + "validation_label_{0}_subword_filter.pkl".format(sb_tag), 'rb'))
