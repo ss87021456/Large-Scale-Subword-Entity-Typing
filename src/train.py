@@ -5,7 +5,7 @@ from utils import create_embedding_layer
 from sklearn.metrics import precision_recall_fscore_support 
 from keras import backend as K
 from keras.callbacks import EarlyStopping, ModelCheckpoint
-from nn_model import BLSTM, CNN
+from nn_model import BLSTM, CNN, Text_CNN
 from evaluation import just_test, predict
 
 # Training w/o pretrained
@@ -58,6 +58,7 @@ def run(model_dir, model_type, embedding=None, subword=False, attention=False):
                                              max_length=MAX_SEQUENCE_LENGTH,
                                              embedding_dim=EMBEDDING_DIM,
                                              reuse=True)
+
     m_embedding_layer = create_embedding_layer(tokenizer_model=m_tokenizer_model,
                                                filename=embedding,
                                                max_num_words=MAX_NUM_MENTION_WORDS,
@@ -65,7 +66,7 @@ def run(model_dir, model_type, embedding=None, subword=False, attention=False):
                                                embedding_dim=EMBEDDING_DIM,
                                                preload=preload)
     del preload
-
+    exit()
     # Building Model
     print("Building computational graph...")
     if model_type == "BLSTM":
@@ -86,6 +87,15 @@ def run(model_dir, model_type, embedding=None, subword=False, attention=False):
                     subword=subword,
                     mode='concatenate',
                     dropout=0.1)
+    elif model_type == "Text_CNN":
+        print("Building default Text_CNN mode with attention:",attention,"subword:",subword)
+        model = Text_CNN(label_num=label_num,
+                    sentence_emb=embedding_layer,
+                    mention_emb=m_embedding_layer,
+                    attention=attention,
+                    subword=subword,
+                    mode='concatenate',
+                    dropout=0.5)
 
     print(model.summary())
 
