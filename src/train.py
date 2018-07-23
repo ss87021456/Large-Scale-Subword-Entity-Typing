@@ -6,8 +6,9 @@ from sklearn.metrics import precision_recall_fscore_support
 from keras import backend as K
 from keras.callbacks import EarlyStopping, ModelCheckpoint
 from nn_model import BLSTM, CNN
-from evaluation import just_test
+from evaluation import just_test, predict
 from datetime import datetime
+from time import time
 
 # Training w/o pretrained
 # CUDA_VISIBLE_DEVICES=0 python ./src/train.py --mode=[CNN,BLSTM]
@@ -119,36 +120,23 @@ def run(model_dir, model_type, embedding=None, subword=False, attention=False):
     index = 0
     # Validation data
     print("Loading validation data...")
-    X_vali = pkl.load(open(model_dir + "validation_data_{0}_subword_filter.pkl".format(sb_tag), 'rb'))
-    X_vali_mention = pkl.load(open(model_dir + "validation_mention_{0}_subword_filter.pkl".format(sb_tag), 'rb'))
-    y_vali = pkl.load(open(model_dir + "validation_label_{0}_subword_filter.pkl".format(sb_tag), 'rb'))
+    X_val = pkl.load(open(model_dir + "validation_data_{0}_subword_filter.pkl".format(sb_tag), 'rb'))
+    X_m_val = pkl.load(open(model_dir + "validation_mention_{0}_subword_filter.pkl".format(sb_tag), 'rb'))
+    y_val = pkl.load(open(model_dir + "validation_label_{0}_subword_filter.pkl".format(sb_tag), 'rb'))
 
     print("Loading trained weights for validation...")
-    file_writer = open("results.txt", "a")
-    file_writer.write("\n{0}\n".format(datetime.now()))
     for i in range(1, epochs + 1, 1):
         # Deal with model_name for each epoch
         model_name = prefix + model_type + "-weights-{:02d}.hdf5".format(i)
-        file_writer.write("{:s}\n".format(model_name))
         model.load_weights(model_name)
-        print("Predicting... {:s}".format(model_name))
-        y_pred = model.predict([X_vali, X_vali_mention])
-    
-        y_pred[y_pred >= 0.5] = 1.
-        y_pred[y_pred < 0.5] = 0.
-        y_pred = sparse.csr_matrix(y_pred)
-    
-        eval_types = ['micro','macro','weighted']
-        for eval_type in eval_types:
-            p, r, f, _ = precision_recall_fscore_support(y_vali, y_pred, average=eval_type)
-            print("[{}]\t{:3.3f}\t{:3.3f}\t{:3.3f}".format(eval_type, p, r, f))
-            file_writer.write("[{}]\t{:3.3f}\t{:3.3f}\t{:3.3f}\n".format(eval_type, p, r, f))
-            if eval_type == 'micro' and record < f:
-                record = f
-                index = i
 
-    file_writer.close()
+        f = predict(model, X_val, X_m_val, y_val, model_name, "results.txt", return_mf1=True)
 
+        if record < f:
+            record = f
+            index = i
+
+    print("\nValidation completed, best micro-F1 score is at epoch {:02d}".format(index))
     # Test model with best micro F1 score
     file_path =  prefix + model_type + "-weights-{:02d}.hdf5".format(index)
     just_test(model=model, filename=file_path, subword=subword)

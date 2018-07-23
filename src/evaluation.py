@@ -10,6 +10,7 @@ from keras.layers import Embedding
 from keras.callbacks import EarlyStopping, ModelCheckpoint, Callback
 from nn_model import BLSTM, CNN
 from tqdm import tqdm
+from time import time
 from datetime import datetime
 
 # testing
@@ -171,7 +172,7 @@ def run(model_dir, model_type, model_path, subword=False, attention=False, visua
     '''
     K.clear_session()
 
-def predict(model, X, X_m, y, model_file, output, amount=None):
+def predict(model, X, X_m, y, model_file, output, amount=None, return_mf1=False):
     """
     Args:
         model(): Keras model object
@@ -181,22 +182,36 @@ def predict(model, X, X_m, y, model_file, output, amount=None):
         model_file(str): Filename of the loaded weights
         output(): 
         amount(int): The amount of first "amount" of data to be predicted
+        return_mf1(bool): Return micro-F1 score
     """
-    print("Predicting with saved model: {0}".format(model_file))
+
+    print("Predicting with saved model: {0}".format(model_file), end='')
+    start_time = time()
     y_pred = model.predict([X[:amount], X_m[:amount]])
+    print("(took {:3.3f}s)".format(time() - start_time))
+
     y_pred[y_pred >= 0.5] = 1.
     y_pred[y_pred < 0.5] = 0.
     y_pred = sparse.csr_matrix(y_pred)
-    
+
+    F1 = 0.
     file_writer = open(output, "a")
     file_writer.write("\n{0}\n".format(datetime.now()))
     file_writer.write("{:s}\n".format(model_file))
+
+    # Begin evaluation
     eval_types = ['micro', 'macro', 'weighted']
     for eval_type in eval_types:
         p, r, f, _ = precision_recall_fscore_support(y, y_pred, average=eval_type)
         print("[{}]\t{:3.3f}\t{:3.3f}\t{:3.3f}".format(eval_type, p, r, f))
         file_writer.write("[{}]\t{:3.3f}\t{:3.3f}\t{:3.3f}\n".format(eval_type, p, r, f))
+        F1 = f if eval_type == 'micro' else 0.
+
+    # Close file pointer
     file_writer.close()
+
+    if return_mf1:
+        return F1
 
 def just_test(model, subword, filename, amount=None):
     """
