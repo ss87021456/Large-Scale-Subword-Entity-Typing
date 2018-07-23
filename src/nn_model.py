@@ -1,7 +1,7 @@
 from keras.models import Model
 from keras.layers import Dense, Embedding, Input, concatenate, dot, Permute, Reshape, merge
 from keras.layers import LSTM, Bidirectional, GlobalMaxPool1D, Dropout, CuDNNLSTM
-from keras.layers import Conv1D, Conv2D, MaxPooling1D
+from keras.layers import Conv1D, Conv2D, MaxPooling1D, Flatten, MaxPool2D
 
 
 def attention_3d_block(inputs):
@@ -115,6 +115,78 @@ def CNN(label_num, sentence_emb=None, mention_emb=None, attention=False, mode='c
 
         if mode == 'concatenate':
             x = concatenate([x, x_2])           # Concatencate
+            x = Dropout(dropout)(x)
+        elif mode == 'dot':
+            x = dot([x, x_2], axes=-1)           # Dot product
+
+        x = Dense(200, activation="relu")(x)
+        x = Dropout(dropout)(x)
+        x = Dense(label_num, activation="sigmoid")(x)
+        model = Model(inputs=[sentence, mention], outputs=x)
+        model.compile(loss='binary_crossentropy', optimizer='adam')
+        return model
+
+def Text_CNN(label_num, sentence_emb=None, mention_emb=None, attention=False, mode='concatenate', dropout=0.1, subword=False):
+        
+        MAX_NUM_WORDS = 30000
+        MAX_NUM_MENTION_WORDS = 20000
+        MAX_SEQUENCE_LENGTH = 40
+        if subword:
+            MAX_MENTION_LENGTH = 15
+        else:
+            MAX_MENTION_LENGTH = 5
+        EMBEDDING_DIM = 100
+        # Text_CNN Configuration
+        filter_sizes = [1,2,3]
+        num_filters = 64
+
+        sentence = Input(shape=(MAX_SEQUENCE_LENGTH, ), name='sentence')        
+        
+        # Pretrain sentence_embedding
+        if sentence_emb is not None:
+            x = sentence_emb(sentence)
+        else:
+            x = Embedding(MAX_NUM_WORDS,EMBEDDING_DIM,input_length=MAX_SEQUENCE_LENGTH)(sentence)
+        
+        if attention: # attention before lstm
+            x = attention_3d_block(x)
+
+        reshape = Reshape((MAX_SEQUENCE_LENGTH,EMBEDDING_DIM,1))(x)
+        conv_0 = Conv2D(num_filters, kernel_size=(filter_sizes[0], EMBEDDING_DIM), padding='valid', kernel_initializer='normal', activation='relu')(reshape)
+        conv_1 = Conv2D(num_filters, kernel_size=(filter_sizes[1], EMBEDDING_DIM), padding='valid', kernel_initializer='normal', activation='relu')(reshape)
+        conv_2 = Conv2D(num_filters, kernel_size=(filter_sizes[2], EMBEDDING_DIM), padding='valid', kernel_initializer='normal', activation='relu')(reshape)
+        maxpool_0 = MaxPool2D(pool_size=(MAX_SEQUENCE_LENGTH - filter_sizes[0] + 1, 1), strides=(1,1), padding='valid')(conv_0)
+        maxpool_1 = MaxPool2D(pool_size=(MAX_SEQUENCE_LENGTH - filter_sizes[1] + 1, 1), strides=(1,1), padding='valid')(conv_1)
+        maxpool_2 = MaxPool2D(pool_size=(MAX_SEQUENCE_LENGTH - filter_sizes[2] + 1, 1), strides=(1,1), padding='valid')(conv_2)
+        maxpool_0 = Dropout(dropout)(maxpool_0)
+        maxpool_1 = Dropout(dropout)(maxpool_1)
+        maxpool_2 = Dropout(dropout)(maxpool_2)
+        content_vec = concatenate([maxpool_0, maxpool_1, maxpool_2])
+        content_vec = Flatten()(content_vec)
+
+
+        mention = Input(shape=(MAX_MENTION_LENGTH, ), name='mention')
+        # Pretrain mention_embedding
+        if mention_emb is not None:
+            x_2 = mention_emb(mention)
+        else:
+            x_2 = Embedding(MAX_NUM_MENTION_WORDS,EMBEDDING_DIM,input_length=MAX_MENTION_LENGTH)(mention)
+        
+        reshape_2 = Reshape((MAX_MENTION_LENGTH,EMBEDDING_DIM,1))(x_2)
+        conv_0_2 = Conv2D(num_filters, kernel_size=(filter_sizes[0], EMBEDDING_DIM), padding='valid', kernel_initializer='normal', activation='relu')(reshape_2)
+        conv_1_2 = Conv2D(num_filters, kernel_size=(filter_sizes[1], EMBEDDING_DIM), padding='valid', kernel_initializer='normal', activation='relu')(reshape_2)
+        conv_2_2 = Conv2D(num_filters, kernel_size=(filter_sizes[2], EMBEDDING_DIM), padding='valid', kernel_initializer='normal', activation='relu')(reshape_2)
+        maxpool_0_2 = MaxPool2D(pool_size=(MAX_MENTION_LENGTH - filter_sizes[0] + 1, 1), strides=(1,1), padding='valid')(conv_0_2)
+        maxpool_1_2 = MaxPool2D(pool_size=(MAX_MENTION_LENGTH - filter_sizes[1] + 1, 1), strides=(1,1), padding='valid')(conv_1_2)
+        maxpool_2_2 = MaxPool2D(pool_size=(MAX_MENTION_LENGTH - filter_sizes[2] + 1, 1), strides=(1,1), padding='valid')(conv_2_2)
+        maxpool_0_2 = Dropout(dropout)(maxpool_0_2)
+        maxpool_1_2 = Dropout(dropout)(maxpool_1_2)
+        maxpool_2_2 = Dropout(dropout)(maxpool_2_2)
+        content_vec_2 = concatenate([maxpool_0_2, maxpool_1_2, maxpool_2_2])
+        content_vec_2 = Flatten()(content_vec_2)
+
+        if mode == 'concatenate':
+            x = concatenate([content_vec, content_vec_2])           # Concatencate
             x = Dropout(dropout)(x)
         elif mode == 'dot':
             x = dot([x, x_2], axes=-1)           # Dot product
