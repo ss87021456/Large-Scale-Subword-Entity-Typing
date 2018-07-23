@@ -4,16 +4,13 @@ from scipy import sparse
 import argparse, json
 import pickle as pkl
 from utils import split_data
-from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import MultiLabelBinarizer
 from sklearn.metrics import precision_recall_fscore_support 
-from fastText_model import fastText # pretrain-model
-from keras.preprocessing import text, sequence
 from keras import backend as K
 from keras.layers import Embedding
 from keras.callbacks import EarlyStopping, ModelCheckpoint, Callback
 from nn_model import BLSTM, CNN
 from tqdm import tqdm
+from datetime import datetime
 
 # testing
 # CUDA_VISIBLE_DEVICES=1 python ./src/evaluation.py  --model_path=... --model_type=[BLSTM,CNN] [--subword] [--attention]
@@ -23,7 +20,7 @@ from tqdm import tqdm
 
 # Feature-parameter
 MAX_NUM_WORDS = 30000
-MAX_NUM_MENTION_WORDS = 20000
+MAX_NUM_MENTION_WORDS = 11626 # 20000
 MAX_SEQUENCE_LENGTH = 40
 MAX_MENTION_LENGTH = 5 # 15 if subowrd else 5
 EMBEDDING_DIM = 100
@@ -61,11 +58,10 @@ def run(model_dir, model_type, model_path, subword=False, attention=False, visua
     if not model_dir.endswith("/"):
         model_dir += "/"
     # Load models
-    if subword:
-        mlb = pkl.load(open(model_dir + "mlb_w_subword_filter.pkl", 'rb'))
-    else:
-        mlb = pkl.load(open(model_dir + "mlb_wo_subword_filter.pkl", 'rb'))
-    
+    sb_tag = "w" if subword else "wo"
+    mlb = pkl.load(open(model_dir + "mlb_{0}_subword_filter.pkl".format(sb_tag), 'rb'))
+    label_num = len(mlb.classes_)
+
     # Building Model
     print("Building computational graph...")
     if model_type == "BLSTM":
@@ -103,20 +99,20 @@ def run(model_dir, model_type, model_path, subword=False, attention=False, visua
     callbacks_list = [checkpoint, early] #early
 
     print("Loading testing data...")
-    if subword:
-        X_test = pkl.load(open(model_dir + "testing_data_w_subword_filter.pkl", 'rb'))
-        X_test_mention = pkl.load(open(model_dir + "testing_mention_w_subword_filter.pkl", 'rb'))
-        y_test = pkl.load(open(model_dir + "testing_label_w_subword_filter.pkl", 'rb'))
-    else:
-        X_test = pkl.load(open(model_dir + "testing_data_wo_subword_filter.pkl", 'rb'))
-        X_test_mention = pkl.load(open(model_dir + "testing_mention_wo_subword_filter.pkl", 'rb'))
-        y_test = pkl.load(open(model_dir + "testing_label_wo_subword_filter.pkl", 'rb'))
+    X = pkl.load(open(model_dir + "testing_data_{0}_subword_filter.pkl".format(sb_tag), 'rb'))
+    X_m = pkl.load(open(model_dir + "testing_mention_{0}_subword_filter.pkl".format(sb_tag), 'rb'))
+    y = pkl.load(open(model_dir + "testing_label_{0}_subword_filter.pkl".format(sb_tag), 'rb'))
 
-    print("loading file..")
-    if subword:
-        dataset = pd.read_csv("./data/smaller_preprocessed_sentence_keywords_labeled_subwords.tsv", sep='\t', names=['label','context','mention'])
-    else:
-        dataset = pd.read_csv("./data/smaller_preprocessed_sentence_keywords_labeled.tsv", sep='\t', names=['label','context','mention'])
+    # Visualize number of rows
+    test_size = 1000 if visualize else None
+    model.load_weights(model_path)
+    predict(model, X, X_m, y, model_file=model_path, output="results-test.txt", amount=test_size)
+
+    """
+    print("Loading file..")
+    dataset = pd.read_csv("./data/smaller_preprocessed_sentence_keywords_labeled{0}.tsv"
+                          .format("_subwords" if subword else ""),
+                          sep='\t', names=['label','context','mention'])
 
     X = dataset['context'].values
     y = dataset['label'].values
@@ -126,25 +122,11 @@ def run(model_dir, model_type, model_path, subword=False, attention=False, visua
     X_train_text, X_test_text = X[train_index], X[test_index]
     X_train_mention_text, X_test_mention_text = mentions[train_index], mentions[test_index]
     del X, mentions
-    
-    # Visualize number of rows
-    test_size = 1000 if visualize else None
-
-    trained_weight_file = model_path
-    model.load_weights(trained_weight_file)
-    y_pred = model.predict([X_test[:test_size], X_test_mention[:test_size]])
-    y_pred[y_pred >= 0.5] = 1.
-    y_pred[y_pred < 0.5] = 0.
-    y_pred = sparse.csr_matrix(y_pred)
-    
-    eval_types = ['micro','macro','weighted']
-    for eval_type in eval_types:
-        p, r, f, _ = precision_recall_fscore_support(y_test, y_pred, average=eval_type)
-        print("[{}]\t{:3.3f}\t{:3.3f}\t{:3.3f}".format(eval_type, p, r, f))
+    """
     '''
     print("inverse_transform result...")
     y_pred = mlb.inverse_transform(y_pred)
-    y_test_ = mlb.inverse_transform(y_test[:test_size])
+    y_test_ = mlb.inverse_transform(y[:test_size])
 
     label_dict = json.load(open('data/label.json', "r"))
     inv_label_dict = {v: k for k, v in label_dict.items()}
@@ -189,30 +171,48 @@ def run(model_dir, model_type, model_path, subword=False, attention=False, visua
     '''
     K.clear_session()
 
-def just_test(model, filename):
+def predict(model, X, X_m, y, model_file, output, amount=None):
+    """
+    Args:
+        model(): Keras model object
+        X(): Context
+        X_m(): Mention
+        y(): Targets labels
+        model_file(str): Filename of the loaded weights
+        output(): 
+        amount(int): The amount of first "amount" of data to be predicted
+    """
+    print("Predicting with saved model: {0}".format(model_file))
+    y_pred = model.predict([X[:amount], X_m[:amount]])
+    y_pred[y_pred >= 0.5] = 1.
+    y_pred[y_pred < 0.5] = 0.
+    y_pred = sparse.csr_matrix(y_pred)
     
+    file_writer = open(output, "a")
+    file_writer.write("\n{0}\n".format(datetime.now()))
+    file_writer.write("{:s}\n".format(model_file))
+    eval_types = ['micro', 'macro', 'weighted']
+    for eval_type in eval_types:
+        p, r, f, _ = precision_recall_fscore_support(y, y_pred, average=eval_type)
+        print("[{}]\t{:3.3f}\t{:3.3f}\t{:3.3f}".format(eval_type, p, r, f))
+        file_writer.write("[{}]\t{:3.3f}\t{:3.3f}\t{:3.3f}\n".format(eval_type, p, r, f))
+    file_writer.close()
+
+def just_test(model, subword, filename, amount=None):
+    """
+    """
+    model_dir = "model/"
+    sb_tag = "w" if subword else "wo"
     print("Restoring best weights from: {:s}".format(filename))
     model.load_weights(filename)
 
     # Load testing data
     print("Loading testing data...")
-    X_test = pkl.load(open(model_dir + "testing_data_{0}_subword_filter.pkl".format(sb_tag), 'rb'))
-    X_test_mention = pkl.load(open(model_dir + "testing_mention_{0}_subword_filter.pkl".format(sb_tag), 'rb'))
-    y_test = pkl.load(open(model_dir + "testing_label_{0}_subword_filter.pkl".format(sb_tag), 'rb'))
+    X = pkl.load(open(model_dir + "testing_data_{0}_subword_filter.pkl".format(sb_tag), 'rb'))
+    X_m = pkl.load(open(model_dir + "testing_mention_{0}_subword_filter.pkl".format(sb_tag), 'rb'))
+    y = pkl.load(open(model_dir + "testing_label_{0}_subword_filter.pkl".format(sb_tag), 'rb'))
 
-    print("Predicting on testing data...")
-    y_pred = model.predict([X_test[:test_size], X_test_mention[:test_size]])
-    y_pred[y_pred >= 0.5] = 1.
-    y_pred[y_pred < 0.5] = 0.
-    y_pred = sparse.csr_matrix(y_pred)
-    
-    with open("0721.txt", "a") as file_writer:
-        file_writer.write("{:s}\n".format(filename))
-        eval_types = ['micro','macro','weighted']
-        for eval_type in eval_types:
-            p, r, f, _ = precision_recall_fscore_support(y_test, y_pred, average=eval_type)
-            print("[{}]\t{:3.3f}\t{:3.3f}\t{:3.3f}".format(eval_type, p, r, f))
-            file_writer.write("[{}]\t{:3.3f}\t{:3.3f}\t{:3.3f}\n".format(eval_type, p, r, f))
+    predict(model, X, X_m, y, model_file=filename, output="results.txt", amount=amount)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()

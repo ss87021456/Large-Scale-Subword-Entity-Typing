@@ -1,19 +1,13 @@
-import pandas as pd
-import numpy as np
 from scipy import sparse
 import argparse
 import pickle as pkl
-from utils import split_data, create_embedding_layer
-from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import MultiLabelBinarizer
+from utils import create_embedding_layer
 from sklearn.metrics import precision_recall_fscore_support 
-from fastText_model import fastText # pretrain-model
-from keras.preprocessing import text, sequence
 from keras import backend as K
-from keras.layers import Embedding
-from keras.callbacks import EarlyStopping, ModelCheckpoint, Callback
+from keras.callbacks import EarlyStopping, ModelCheckpoint
 from nn_model import BLSTM, CNN
 from evaluation import just_test
+from datetime import datetime
 
 # Training w/o pretrained
 # CUDA_VISIBLE_DEVICES=0 python ./src/train.py --mode=[CNN,BLSTM]
@@ -41,7 +35,7 @@ config = tf.ConfigProto()
 config.gpu_options.per_process_gpu_memory_fraction = 0.3
 set_session(tf.Session(config=config))
 
-def run(model_dir, model_type, pre=False, embedding=None, subword=False, attention=False):
+def run(model_dir, model_type, embedding=None, subword=False, attention=False):
     # Parse directory name
     if not model_dir.endswith("/"):
         model_dir += "/"
@@ -95,25 +89,16 @@ def run(model_dir, model_type, pre=False, embedding=None, subword=False, attenti
                     dropout=0.1)
 
     print(model.summary())
-    #exit()
 
     prefix = "{0}{1}".format("Subword-"   if subword   else "",
                              "Attention-" if attention else "")
     # for keras to save model each epoch
     file_path =  prefix + model_type + "-weights-{epoch:02d}.hdf5"
-    # deal with model_name
-    model_name = prefix + model_type + "-weights-00.hdf5"
 
     # Save every epoch
     checkpoint = ModelCheckpoint(file_path, monitor='val_loss', verbose=1, save_best_only=False, mode='min')
     early = EarlyStopping(monitor="val_loss", mode="min", patience=20)
     callbacks_list = [checkpoint, early] #early
-
-    # Training
-    print("Loading validation data...")
-    X_vali = pkl.load(open(model_dir + "validation_data_{0}_subword_filter.pkl".format(sb_tag), 'rb'))
-    X_vali_mention = pkl.load(open(model_dir + "validation_mention_{0}_subword_filter.pkl".format(sb_tag), 'rb'))
-    y_vali = pkl.load(open(model_dir + "validation_label_{0}_subword_filter.pkl".format(sb_tag), 'rb'))
 
     # Training
     print("Loading training data...")
@@ -132,46 +117,53 @@ def run(model_dir, model_type, pre=False, embedding=None, subword=False, attenti
     # Evaluation
     record = 0
     index = 0
+    # Validation data
+    print("Loading validation data...")
+    X_vali = pkl.load(open(model_dir + "validation_data_{0}_subword_filter.pkl".format(sb_tag), 'rb'))
+    X_vali_mention = pkl.load(open(model_dir + "validation_mention_{0}_subword_filter.pkl".format(sb_tag), 'rb'))
+    y_vali = pkl.load(open(model_dir + "validation_label_{0}_subword_filter.pkl".format(sb_tag), 'rb'))
+
     print("Loading trained weights for validation...")
-    with open("0721.txt", "a") as file_writer:
-        for i in range(1, epochs + 1, 1):
-            file = list(model_name)
-            file[-6] = str(i)
-            file = "".join(file)
-            file_writer.write("{:s}\n".format(file))
-            model.load_weights(file)
-            print("Predicting...",file)
-            y_pred = model.predict([X_vali, X_vali_mention])
-        
-            y_pred[y_pred >= 0.5] = 1.
-            y_pred[y_pred < 0.5] = 0.
-            y_pred = sparse.csr_matrix(y_pred)
-        
-            eval_types = ['micro','macro','weighted']
-            for eval_type in eval_types:
-                p, r, f, _ = precision_recall_fscore_support(y_vali, y_pred, average=eval_type)
-                print("[{}]\t{:3.3f}\t{:3.3f}\t{:3.3f}".format(eval_type, p, r, f))
-                file_writer.write("[{}]\t{:3.3f}\t{:3.3f}\t{:3.3f}\n".format(eval_type, p, r, f))
-                if eval_type == 'micro' and record < f:
-                    record = f
-                    index = i
+    file_writer = open("results.txt", "a")
+    file_writer.write("\n{0}\n".format(datetime.now()))
+    for i in range(1, epochs + 1, 1):
+        # Deal with model_name for each epoch
+        model_name = prefix + model_type + "-weights-{:02d}.hdf5".format(i)
+        file_writer.write("{:s}\n".format(model_name))
+        model.load_weights(model_name)
+        print("Predicting... {:s}".format(model_name))
+        y_pred = model.predict([X_vali, X_vali_mention])
+    
+        y_pred[y_pred >= 0.5] = 1.
+        y_pred[y_pred < 0.5] = 0.
+        y_pred = sparse.csr_matrix(y_pred)
+    
+        eval_types = ['micro','macro','weighted']
+        for eval_type in eval_types:
+            p, r, f, _ = precision_recall_fscore_support(y_vali, y_pred, average=eval_type)
+            print("[{}]\t{:3.3f}\t{:3.3f}\t{:3.3f}".format(eval_type, p, r, f))
+            file_writer.write("[{}]\t{:3.3f}\t{:3.3f}\t{:3.3f}\n".format(eval_type, p, r, f))
+            if eval_type == 'micro' and record < f:
+                record = f
+                index = i
+
+    file_writer.close()
 
     # Test model with best micro F1 score
     file_path =  prefix + model_type + "-weights-{:02d}.hdf5".format(index)
-    just_test(model=model, filename=file_path)
+    just_test(model=model, filename=file_path, subword=subword)
 
     K.clear_session()
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument("--pre", action="store_true", help="Use pretrained embedding Model or not")
     parser.add_argument("--emb", help="please provide pretrained Embedding Model.")
     parser.add_argument("--subword", action="store_true" , help="Use subword or not")
     parser.add_argument("--attention",action="store_true", help="Use attention or not")
     parser.add_argument("--model", nargs='?', type=str, default="model/", 
                         help="Directory to load models. [Default: \"model/\"]")
-    parser.add_argument("--mode", nargs='?', type=str, default="BLSTM",
-                        help="different model architecture BLTSM or CNN [Default: \"BLSTM\"]")
+    parser.add_argument("--arch", nargs='?', type=str, default="BLSTM",
+                        help="Different model architecture BLTSM or CNN [Default: \"BLSTM\"]")
     args = parser.parse_args()
 
-    run(args.model, args.mode, args.pre, args.emb, args.subword, args.attention)
+    run(args.model, args.arch, args.emb, args.subword, args.attention)

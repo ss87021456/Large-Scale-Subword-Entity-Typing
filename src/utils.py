@@ -132,11 +132,11 @@ def create_embedding_layer(tokenizer_model, filename, max_num_words, max_length,
                            embedding_dim, preload=None, reuse=False):
     """
     Args:
-        tokenizer_model():
-        filename():
-        max_num_words():
-        max_length():
-        embedding_dim():
+        tokenizer_model(str):
+        filename(str):
+        max_num_words(int):
+        max_length(int):
+        embedding_dim(int):
         preload(): Pre-loaded embedding object.
         reuse(bool): Reuse the loaded embedding object to save time.
     """
@@ -147,10 +147,10 @@ def create_embedding_layer(tokenizer_model, filename, max_num_words, max_length,
     num_words = min(max_num_words, len(word_index) + 1)
     embedding_matrix = np.zeros((num_words, embedding_dim))
 
-    if os.path.isfile(filename):
+    if filename is not None:
         # Parse embedding matrix
         if preload is not None:
-            print("Pre-loaded embedding layer is given, use preload one.")
+            print("Pre-loaded embedding layer is given, use pre-loaded one.")
             embeddings_index = preload
         else:
             print("Loading pre-trained embedding model from {0}...".format(filename))
@@ -167,6 +167,8 @@ def create_embedding_layer(tokenizer_model, filename, max_num_words, max_length,
             if embedding_vector is not None:
                 # words not found in embedding index will be all-zeros.
                 embedding_matrix[idx] = embedding_vector
+    else:
+        embeddings_index = None
 
     # keras.layers.Embedding
     embedding_layer = Embedding(num_words, embedding_dim,
@@ -175,7 +177,8 @@ def create_embedding_layer(tokenizer_model, filename, max_num_words, max_length,
                                 trainable=True)
 
     # Return embedding_layer only if reuse is not asserted
-    return embedding_layer if not reuse else (embedding_layer, embeddings_index)
+    return (embedding_layer, embeddings_index) \
+           if reuse and filename is not None else embedding_layer
 
 def split_data(data, n_slice, mode="TUPLE"):
     """
