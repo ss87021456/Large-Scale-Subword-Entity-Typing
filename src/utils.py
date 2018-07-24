@@ -132,13 +132,16 @@ def create_embedding_layer(tokenizer_model, filename, max_num_words, max_length,
                            embedding_dim, preload=None, reuse=False):
     """
     Args:
-        tokenizer_model(str):
-        filename(str):
-        max_num_words(int):
-        max_length(int):
-        embedding_dim(int):
+        tokenizer_model(str): Pre-trained tokenizer for the data.
+        filename(str): Filename of pre-trained embeddings.
+        max_num_words(int): Maximum number of words in a sentence.
+        max_length(int): Input length of the model
+        embedding_dim(int): The dimension of the embedding vectors.
         preload(): Pre-loaded embedding object.
         reuse(bool): Reuse the loaded embedding object to save time.
+    Returns:
+        embedding_layer(keras.layers.Embedding): Keras Embedding layer object.
+        embeddings_index(): 
     """
     # Load trained tokenizer model
     tokenizer = pkl.load(open(tokenizer_model, 'rb'))

@@ -35,7 +35,7 @@ config = tf.ConfigProto()
 config.gpu_options.per_process_gpu_memory_fraction = 0.3
 set_session(tf.Session(config=config))
 
-def run(model_dir, model_type, embedding=None, subword=False, attention=False):
+def run(model_dir, model_type, embedding=None, subword=False, attention=False, tag=None):
     # Parse directory name
     if not model_dir.endswith("/"):
         model_dir += "/"
@@ -103,7 +103,7 @@ def run(model_dir, model_type, embedding=None, subword=False, attention=False):
     prefix = "{0}{1}".format("Subword-"   if subword   else "",
                              "Attention-" if attention else "")
     # for keras to save model each epoch
-    file_path =  prefix + model_type + "-weights-{epoch:02d}.hdf5"
+    file_path =  prefix + model_type + "-weights-{epoch:02d}" + "{:s}.hdf5".format(tag)
 
     # Save every epoch
     checkpoint = ModelCheckpoint(file_path, monitor='val_loss', verbose=1, save_best_only=False, mode='min')
@@ -113,11 +113,11 @@ def run(model_dir, model_type, embedding=None, subword=False, attention=False):
     # Training
     print("Loading training data...")
     X_train = pkl.load(open(model_dir + "training_data_{0}_subword_filter.pkl".format(sb_tag), 'rb'))
-    X_train_mention = pkl.load(open(model_dir + "training_mention_{0}_subword_filter.pkl".format(sb_tag), 'rb'))
+    X_m_train = pkl.load(open(model_dir + "training_mention_{0}_subword_filter.pkl".format(sb_tag), 'rb'))
     y_train = pkl.load(open(model_dir + "training_label_{0}_subword_filter.pkl".format(sb_tag), 'rb'))
 
     print("Begin training...")
-    model.fit([X_train, X_train_mention],
+    model.fit([X_train, X_m_train],
               y_train,
               batch_size=batch_size,
               epochs=epochs,
@@ -136,7 +136,7 @@ def run(model_dir, model_type, embedding=None, subword=False, attention=False):
     print("Loading trained weights for validation...")
     for i in range(1, epochs + 1, 1):
         # Deal with model_name for each epoch
-        model_name = prefix + model_type + "-weights-{:02d}.hdf5".format(i)
+        model_name = prefix + model_type + "-weights-{:02d}{:s}.hdf5".format(i, tag)
         model.load_weights(model_name)
 
         f = predict(model, X_val, X_m_val, y_val, model_name, "results.txt", return_mf1=True)
@@ -147,8 +147,8 @@ def run(model_dir, model_type, embedding=None, subword=False, attention=False):
 
     print("\nValidation completed, best micro-F1 score is at epoch {:02d}".format(index))
     # Test model with best micro F1 score
-    file_path =  prefix + model_type + "-weights-{:02d}.hdf5".format(index)
-    just_test(model=model, filename=file_path, subword=subword)
+    model_name =  prefix + model_type + "-weights-{:02d}{:s}.hdf5".format(index, tag)
+    just_test(model=model, filename=model_name, subword=subword)
 
     K.clear_session()
 
@@ -161,6 +161,7 @@ if __name__ == '__main__':
                         help="Directory to load models. [Default: \"model/\"]")
     parser.add_argument("--arch", nargs='?', type=str, default="BLSTM",
                         help="Different model architecture BLTSM or CNN [Default: \"BLSTM\"]")
+    parser.add_argument("--tag", nargs='?', type=str, help="Extra name tag on the saved model.")
     args = parser.parse_args()
 
-    run(args.model, args.arch, args.emb, args.subword, args.attention)
+    run(args.model, args.arch, args.emb, args.subword, args.attention, args.tag)

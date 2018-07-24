@@ -174,15 +174,18 @@ def run(model_dir, model_type, model_path, subword=False, attention=False, visua
 
 def predict(model, X, X_m, y, model_file, output, amount=None, return_mf1=False):
     """
+    Given the model object, data, labels, this function simply predict and evaluate
+    the defined metrics with the model on the given data.
+
     Args:
         model(): Keras model object
         X(): Context
         X_m(): Mention
         y(): Targets labels
         model_file(str): Filename of the loaded weights
-        output(): 
-        amount(int): The amount of first "amount" of data to be predicted
-        return_mf1(bool): Return micro-F1 score
+        output(): The filename of the evaluation metrics logging file.
+        amount(int): The amount of first "amount" of data to be predicted.
+        return_mf1(bool): Return micro-F1 score.
     """
 
     print("Predicting with saved model: {0} ... ".format(model_file), end='')
@@ -201,7 +204,6 @@ def predict(model, X, X_m, y, model_file, output, amount=None, return_mf1=False)
 
     # Begin evaluation
     print("Calculating Precision/Recall/F-1 scores ...")
-    # start_time = time()
     eval_types = ['micro', 'macro', 'weighted']
     for eval_type in eval_types:
         p, r, f, _ = precision_recall_fscore_support(y, y_pred, average=eval_type)
@@ -209,7 +211,7 @@ def predict(model, X, X_m, y, model_file, output, amount=None, return_mf1=False)
         file_writer.write("[{}]\t{:3.3f}\t{:3.3f}\t{:3.3f}\n".format(eval_type, p, r, f))
         if eval_type == 'micro':
             F1 = f
-    # print("Done (took {:3.3f}s)".format(time() - start_time))
+
     # Close file pointer
     file_writer.close()
 
@@ -218,6 +220,15 @@ def predict(model, X, X_m, y, model_file, output, amount=None, return_mf1=False)
 
 def just_test(model, subword, filename, amount=None):
     """
+    Given the model object and the previously stored weights file,
+    this function just restore the weights, load testing data and
+    predict the labels.
+
+    Args:
+        model(): Keras model object.
+        subword(bool): Indicating if the model uses subword information or not.
+        filename(str): Filename of the trained weight file.
+        amount(int): Use only first "amount" of data.
     """
     model_dir = "model/"
     sb_tag = "w" if subword else "wo"
