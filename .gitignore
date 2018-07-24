@@ -1,7 +1,8 @@
-*DS_Store*
-data/output.txt
-data/smaller_sentence.txt
-data/smaller_sentence_found.txt
+*DS_Store
+model/*
+data/*
 src/__pycache__/
 *.pyc
 *.swp
+*.hdf5
+*.pkl

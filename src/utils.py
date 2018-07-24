@@ -129,7 +129,7 @@ def write_to_file(file, data):
     print("File saved in {:s}".format(file))
 
 def create_embedding_layer(tokenizer_model, filename, max_num_words, max_length,
-                           embedding_dim, preload=None, reuse=False):
+                           embedding_dim, preload=None):
     """
     Args:
         tokenizer_model(str): Pre-trained tokenizer for the data.
@@ -170,14 +170,14 @@ def create_embedding_layer(tokenizer_model, filename, max_num_words, max_length,
             if embedding_vector is not None:
                 # words not found in embedding index will be all-zeros.
                 embedding_matrix[idx] = embedding_vector
+        # keras.layers.Embedding
+        embedding_layer = Embedding(num_words, embedding_dim,
+                                    weights=[embedding_matrix],
+                                    input_length=max_length,
+                                    trainable=True)
     else:
-        embeddings_index = None
-
-    # keras.layers.Embedding
-    embedding_layer = Embedding(num_words, embedding_dim,
-                                weights=[embedding_matrix],
-                                input_length=max_length,
-                                trainable=True)
+        print("No pre-trained embedding is given, training embedding from scratch.")
+        embedding_layer, embeddings_index = None, None
 
     # Return embedding_layer only if reuse is not asserted
     return (embedding_layer, embeddings_index)

@@ -57,8 +57,7 @@ def run(model_dir, model_type, embedding=None, subword=False, attention=False, t
                                              filename=embedding,
                                              max_num_words=MAX_NUM_WORDS,
                                              max_length=MAX_SEQUENCE_LENGTH,
-                                             embedding_dim=EMBEDDING_DIM,
-                                             reuse=True)
+                                             embedding_dim=EMBEDDING_DIM)
 
     m_embedding_layer, _ = create_embedding_layer(tokenizer_model=m_tokenizer_model,
                                                filename=embedding,
@@ -141,7 +140,8 @@ def run(model_dir, model_type, embedding=None, subword=False, attention=False, t
 
         f = predict(model, X_val, X_m_val, y_val, model_name, "results.txt", return_mf1=True)
 
-        if record < f:
+        # Always choose model trained with more epoch when the F-1 score is same
+        if record <= f:
             record = f
             index = i
 
