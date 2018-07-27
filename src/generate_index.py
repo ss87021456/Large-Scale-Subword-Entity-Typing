@@ -9,7 +9,7 @@ from utils import generic_threading, readlines
 from sklearn.preprocessing import MultiLabelBinarizer
 import os
 
-# python ./src/generate_index.py --input=../share/data_labeled_kpb.tsv --text_only
+# python ./src/generate_index.py --input=../share/data_labeled_kpb.tsv --thread=5 --text_only --tag=kbp
 # python ./src/generate_index.py --input=./data/smaller_preprocessed_sentence_keywords_labeled.tsv
 
 np.random.seed(0) # set random seed
@@ -26,7 +26,7 @@ def parallel_index(thread_idx, mention_count, mentions):
 
     return result
 
-def run(model_dir, input, test_size, tag=None, text_only=False):
+def run(model_dir, input, test_size, n_thread=20, tag=None, text_only=False):
     postfix = ("_" + tag) if tag is not None else ""
     # Parse directory name
     if not model_dir.endswith("/"):
@@ -56,7 +56,7 @@ def run(model_dir, input, test_size, tag=None, text_only=False):
     param = (mentions, )
     key_list = list(mention_count.keys())
     # [['mention1',[idxes]],['mention2',[idxes]],...]
-    mention_index = generic_threading(20, key_list, parallel_index, param) 
+    mention_index = generic_threading(n_thread, key_list, parallel_index, param) 
     mention = []
     indices = []
     order = []
@@ -134,7 +134,7 @@ def run(model_dir, input, test_size, tag=None, text_only=False):
     test_index = pkl.load(open(model_dir + "test_index{:s}.pkl".format(postfix), 'rb'))
     validation_index = pkl.load(open(model_dir + "validation_index{:s}.pkl".format(postfix), 'rb'))
 
-    print("Writing new_test_mention_list..")
+    print("Writing new_test_mention_list{:s}..".format(postfix))
     X_test_mention = mentions[test_index]
     X_train_mention = mentions[train_index]
     X_validation_mention = mentions[validation_index]
@@ -155,10 +155,11 @@ if __name__ == '__main__':
                         help="Directory to store models. [Default: \"model/\"]")
     parser.add_argument("--input", help="Input dataset filename.")
     parser.add_argument("--text_only", action="store_true", help="Input dataset filename.")
+    parser.add_argument("--thread", type=int, default=20, help="Number of threads to run.")
     parser.add_argument("--test_size", nargs='?', const=0.1, type=float, default=0.1,
                         help="Specify the portion of the testing data to be split.\
                         [Default: 10\% of the entire dataset]")
     parser.add_argument("--tag", type=str, help="Make tags on the files.")
     args = parser.parse_args()
 
-    run(args.model_dir, args.input, args.test_size, args.tag, args.text_only)
+    run(args.model_dir, args.input, args.test_size, args.thread, args.tag, args.text_only)
