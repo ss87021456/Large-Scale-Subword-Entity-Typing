@@ -50,7 +50,7 @@ def load_rules(file):
     #
     return rules
 
-def readlines(file, begin=None, limit=None, rand=False, skip=False):
+def readlines(file, begin=None, limit=None, delimitor=None, rand=False, skip=False):
     """
     Read and split all content in the files line by line.
 
@@ -90,6 +90,9 @@ def readlines(file, begin=None, limit=None, rand=False, skip=False):
                 data = [data[itr] for itr in index]
             else:
                 data = f.read().splitlines()[begin:limit]
+                if delimitor is not None:
+                    print("Splitting each line with given delimitor")
+                    data = [itr.split(delimitor) for itr in data]
     print("Total {0} lines loaded.".format(len(data)))
     return data
 

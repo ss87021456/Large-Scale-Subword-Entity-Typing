@@ -7,8 +7,11 @@ from sklearn.preprocessing import LabelEncoder
 from utils import write_to_file, readlines, generic_threading, keywords_as_labels, merge_dict
 import pandas as pd
 from collections import Counter
+import csv
 
 """
+python src/label.py ../share/data.txt --from_file --tag=kpb
+
 python src/label.py data/ --trim
 python src/label.py data/ --labels=data/label.json --replace \
 --corpus=data/smaller_preprocessed_sentence_keywords.tsv --subwords=data/subwords.json --thread=10
@@ -19,7 +22,7 @@ python src/label.py data/ --labels=data/label.json --replace \
 python src/label.py data/ --corpus=data/smaller_preprocessed_sentence_keywords.tsv --stat
 """
 
-def fit_encoder(keywords_path, model=None, trim=True, output=None):
+def fit_encoder(keywords_path, model=None, trim=True, from_file=False, output=None, tag=None):
     """
     Arguments:
         keywords(str): Path to directory of keywords dictionary.
@@ -27,22 +30,30 @@ def fit_encoder(keywords_path, model=None, trim=True, output=None):
         model(str): Label Encoder save filename.
         output(str): Path to the output file.
     """
+    postfix = ("_" + tag) if tag is not None else ""
     if model is None:
-        model = "model/label_encoder.pkl"
+        model = "model/label_encoder{:s}.pkl".format(postfix)
     if output is None:
-        output = "data/label.json"
-        r_output = "data/label_lookup.json"
+        output = "data/label{:s}.json".format(postfix)
+        r_output = "data/label_lookup{:s}.json".format(postfix)
 
     # Load keywords
-    contents = merge_dict(keywords_path, trim=trim)
-    # contents = json.load(open(keywords, "r"))
+    if from_file:
+        # contents = readlines(keywords_path, delimitor="\t")
+        # mentions = [itr[0] for itr in contents]
+        contents = pd.read_csv(keywords_path, sep="\t", names=['label','context','mention'], quoting=csv.QUOTE_NONE)
+        mentions = contents['label'].values
+    else:
+        # contents = json.load(open(keywords, "r"))
+        contents = merge_dict(keywords_path, trim=trim)
+        # Unique the mentions
+        mentions = list(contents.values())
 
     # LabelEncoder
     print("Initializing LabelEncoder for encoding unique types...")
     encoder = LabelEncoder()
-    # Unique the mentions
-    mentions = list(contents.values())
-    unique_types = list(np.unique(list(chain.from_iterable(mentions))))
+
+    unique_types = list(np.unique(mentions if from_file else list(chain.from_iterable(mentions))))
     print(" - Total number of unique types: {0}".format(len(unique_types)))
 
     # Fit LabelEncoder
@@ -67,8 +78,16 @@ def fit_encoder(keywords_path, model=None, trim=True, output=None):
     output_dict = dict(zip([int(itr) for itr in codes], unique_types))
     write_to_file(r_output, output_dict)
 
+    if from_file is not None:
+        print("* Label corpus in place")
+        encoded = encoder.transform(mentions)
+        contents['label'] = encoded
+        filename = keywords_path[:-4] + "_labeled{:s}.tsv".format(postfix)
+        contents.to_csv(filename, sep="\t", header=False, index=False)
+        print("Converted to file: {:s}".format(contents))
+
 def replace_labels(keywords_path, corpus, labels, output, subwords=None, mode="MULTI",
-                   duplicate=True, thread=5, limit=None):
+                   duplicate=True, thread=5, limit=None, tag=None):
     """
 
     Arguments:
@@ -77,9 +96,10 @@ def replace_labels(keywords_path, corpus, labels, output, subwords=None, mode="M
         corpus():
         thread():
     """
+    postfix = ("_" + tag) if tag is not None else ""
     if output is None:
-        output = corpus[:-4] + "_labeled{0}.tsv"\
-        .format("_subwords" if subwords is not None else "")
+        output = corpus[:-4] + "_labeled{0}{1}.tsv"\
+        .format("_subwords" if subwords is not None else "", postfix)
 
     print("Replacing mentions with their labels:")
     print(" - Mention: {:s}".format(mode))
@@ -114,11 +134,12 @@ def replace_labels(keywords_path, corpus, labels, output, subwords=None, mode="M
     # Write result to file
     write_to_file(output, result)
 
-def acquire_statistic(corpus, keywords_path, output=None):
+def acquire_statistic(corpus, keywords_path, output=None, tag=None):
     """
     """
+    postfix = ("_" + tag) if tag is not None else ""
     if output is None:
-        output = corpus[:-4] + "_stat.json"
+        output = corpus[:-4] + "_stat{:s}.json".format(postfix)
 
     # Load lines from corpus
     raw_data = readlines(corpus, limit=None)
@@ -138,16 +159,15 @@ def acquire_statistic(corpus, keywords_path, output=None):
     # Save statistics to file
     write_to_file(output, stat)
 
-def find_type_parents():
-    pass
-
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("keywords_path", type=str,
                         help="Path to where mention dictionaries are saved.")
-    parser.add_argument("--model", help="Output encoder name.")
-    parser.add_argument("--output", help="Sentences with key words")
+    parser.add_argument("--model", type=str, help="Output encoder name.")
+    parser.add_argument("--output", type=str, help="Sentences with key words")
+    parser.add_argument("--tag", type=str, help="Make tags on the files.")
+    parser.add_argument("--from_file", action="store_true", help="Load just from single file.")
     parser.add_argument("--mode", choices=["SINGLE", "MULTI"], \
                         nargs='?' , default="MULTI", help="Single mention or \
                         multi-mentions per sentence.")
@@ -175,8 +195,8 @@ if __name__ == '__main__':
     if args.replace:
         replace_labels(args.keywords_path, args.corpus, args.labels, args.output,
                        args.subwords, args.mode, args.no_duplicate, args.thread,
-                       args.limit)
+                       args.from_file, args.limit, args.tag)
     elif args.stat:
         acquire_statistic(args.corpus, args.keywords_path, args.output)
     else:
-        fit_encoder(args.keywords_path, args.model, args.trim, args.output)
+        fit_encoder(args.keywords_path, args.model, args.trim, args.from_file, args.output, args.tag)
