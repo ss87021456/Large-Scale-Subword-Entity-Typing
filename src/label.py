@@ -39,10 +39,10 @@ def fit_encoder(keywords_path, model=None, trim=True, from_file=False, output=No
 
     # Load keywords
     if from_file:
-        # contents = readlines(keywords_path, delimitor="\t")
-        # mentions = [itr[0] for itr in contents]
-        contents = pd.read_csv(keywords_path, sep="\t", names=['label','context','mention'], quoting=csv.QUOTE_NONE)
-        mentions = contents['label'].values
+        contents = readlines(keywords_path, delimitor="\t")
+        mentions = [itr[0] for itr in contents]
+        # contents = pd.read_csv(keywords_path, sep="\t", names=['label','context','mention'], dtype={'mention': str}, quoting=csv.QUOTE_NONE)
+        # mentions = contents['label'].values
     else:
         # contents = json.load(open(keywords, "r"))
         contents = merge_dict(keywords_path, trim=trim)
@@ -80,11 +80,15 @@ def fit_encoder(keywords_path, model=None, trim=True, from_file=False, output=No
 
     if from_file is not None:
         print("* Label corpus in place")
-        encoded = encoder.transform(mentions)
-        contents['label'] = encoded
         filename = keywords_path[:-4] + "_labeled{:s}.tsv".format(postfix)
-        contents.to_csv(filename, sep="\t", header=False, index=False)
-        print("Converted to file: {:s}".format(contents))
+        encoded = encoder.transform(mentions)
+        contents = ["\t".join([str(itr_l), itr_c[1], itr_c[2]]) for itr_l, itr_c in zip(encoded, contents)]
+        print(contents[732315])
+        write_to_file(filename, contents)
+        # contents['label'] = encoded
+        # contents.to_csv(filename, sep="\t", header=False, index=False)
+        # print(contents['mention'][732315])
+        print("Converted to file: {:s}".format(filename))
 
 def replace_labels(keywords_path, corpus, labels, output, subwords=None, mode="MULTI",
                    duplicate=True, thread=5, limit=None, tag=None):

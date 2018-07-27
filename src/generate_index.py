@@ -5,10 +5,11 @@ import argparse
 import itertools
 from tqdm import tqdm
 import pickle as pkl
-from utils import generic_threading
+from utils import generic_threading, readlines
 from sklearn.preprocessing import MultiLabelBinarizer
 import os
 
+# python ./src/generate_index.py --input=../share/data_labeled_kpb.tsv --text_only
 # python ./src/generate_index.py --input=./data/smaller_preprocessed_sentence_keywords_labeled.tsv
 
 np.random.seed(0) # set random seed
@@ -25,7 +26,8 @@ def parallel_index(thread_idx, mention_count, mentions):
 
     return result
 
-def run(model_dir, input, test_size):
+def run(model_dir, input, test_size, tag=None, text_only=False):
+    postfix = ("_" + tag) if tag is not None else ""
     # Parse directory name
     if not model_dir.endswith("/"):
         model_dir += "/"
@@ -34,11 +36,18 @@ def run(model_dir, input, test_size):
         os.makedirs(model_dir)
 
     print("Loading dataset..")
-    dataset = pd.read_csv(input, sep='\t', names=['label','context','mention'])
-    mentions = dataset['mention'].values
+    if text_only:
+        contents = readlines(input, delimitor="\t")
+        mentions = np.array([itr[0] for itr in contents])
+    else:
+        dataset = pd.read_csv(input, sep='\t', names=['label','context','mention'], dtype=str)
+        mentions = dataset['mention'].values
 
-    # use for spliting data with mention specific 
-    # np.random.shuffle(mentions)
+        # use for spliting data with mention specific 
+        # np.random.shuffle(mentions)
+        for idx, itr in enumerate(mentions):
+            if type(itr) == float or type(itr) == int:
+                print(idx, itr, dataset['label'][idx], dataset['context'][idx])
     print("{0} unique mentions...".format(len(set(mentions))))
     unique, counts = np.unique(mentions, return_counts=True)
     mention_count = dict(zip(unique, counts))
@@ -115,15 +124,15 @@ def run(model_dir, input, test_size):
     np.random.shuffle(train_index)
     np.random.shuffle(validation_index)
     np.random.shuffle(test_index)
-    pkl.dump(train_index, open(model_dir + "train_index.pkl", 'wb'))
-    pkl.dump(validation_index, open(model_dir + "validation_index.pkl", 'wb'))
-    pkl.dump(test_index, open(model_dir + "test_index.pkl", 'wb'))
+    pkl.dump(train_index, open(model_dir + "train_index{:s}.pkl".format(postfix), 'wb'))
+    pkl.dump(validation_index, open(model_dir + "validation_index{:s}.pkl".format(postfix), 'wb'))
+    pkl.dump(test_index, open(model_dir + "test_index{:s}.pkl".format(postfix), 'wb'))
     
     
     print("Loading pkl...")
-    train_index = pkl.load(open(model_dir + "train_index.pkl", 'rb'))
-    test_index = pkl.load(open(model_dir + "test_index.pkl", 'rb'))
-    validation_index = pkl.load(open(model_dir + "validation_index.pkl", 'rb'))
+    train_index = pkl.load(open(model_dir + "train_index{:s}.pkl".format(postfix), 'rb'))
+    test_index = pkl.load(open(model_dir + "test_index{:s}.pkl".format(postfix), 'rb'))
+    validation_index = pkl.load(open(model_dir + "validation_index{:s}.pkl".format(postfix), 'rb'))
 
     print("Writing new_test_mention_list..")
     X_test_mention = mentions[test_index]
@@ -135,9 +144,7 @@ def run(model_dir, input, test_size):
     print("{0} validation unique mentions...".format(len(set(X_validation_mention))))
     print("{0} test unique mentions...".format(len(set(X_test_mention))))
 
-
-
-    with open(model_dir + "test_mention_list.txt", "w") as f:
+    with open(model_dir + "test_mention_list{:s}.txt".format(postfix), "w") as f:
         for mention in X_test_mention:
             f.write(mention + "\n")
 
@@ -147,9 +154,11 @@ if __name__ == '__main__':
     parser.add_argument("--model_dir", nargs='?', type=str, default="model/", 
                         help="Directory to store models. [Default: \"model/\"]")
     parser.add_argument("--input", help="Input dataset filename.")
+    parser.add_argument("--text_only", action="store_true", help="Input dataset filename.")
     parser.add_argument("--test_size", nargs='?', const=0.1, type=float, default=0.1,
                         help="Specify the portion of the testing data to be split.\
                         [Default: 10\% of the entire dataset]")
+    parser.add_argument("--tag", type=str, help="Make tags on the files.")
     args = parser.parse_args()
 
-    run(args.model_dir, args.input, args.test_size)
+    run(args.model_dir, args.input, args.test_size, args.tag, args.text_only)
