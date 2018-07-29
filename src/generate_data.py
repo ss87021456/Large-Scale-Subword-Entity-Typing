@@ -11,7 +11,8 @@ from sklearn.feature_extraction.text import CountVectorizer
 from keras.preprocessing import text, sequence
 import os
 
-# python ./src/generate_data.py --input=./data/smaller_preprocessed_sentence_keywords_labeled.tsv 
+# python ./src/generate_data.py --input=../share/data_labeled_kpb.tsv --tag=kbp
+# python ./src/generate_data.py --input=./data/smaller_preprocessed_sentence_keywords_labeled.tsv
 # python ./src/generate_data.py --input=./data/smaller_preprocessed_sentence_keywords_labeled_subwords.tsv --subword
 
 # Feature-parameter..
@@ -34,7 +35,8 @@ def parallel_index(thread_idx, mention_count, mentions):
 
     return result
 
-def run(model_dir, input, subword=False, vector=True):
+def run(model_dir, input, subword=False, tag=None, vector=True):
+    postfix = ("_" + tag) if tag is not None else ""
     MAX_MENTION_LENGTH = 5 if not subword else 15
     print("MAX_MENTION_LENGTH = {0}".format(MAX_MENTION_LENGTH))
     # Parse directory name
@@ -45,9 +47,11 @@ def run(model_dir, input, subword=False, vector=True):
         os.makedirs(model_dir)
     sb_tag = "w" if subword else "wo"
 
-    print("Loading dataset..")
+    print("Loading dataset from: {:s}".format(input))
     # dataset = pd.read_csv(input, sep='\t', names=['label','context','mention', 'subword'])
-    dataset = pd.read_csv(input, sep='\t', names=['label','context','mention'])
+    dataset = pd.read_csv(input, sep='\t', names=['label', 'context', 'mention'])
+    dataset['label'] = dataset['label'].astype(str)
+    dataset['mention'] = dataset['mention'].astype(str)
 
     X = dataset['context'].values
     y = dataset['label'].values
@@ -55,15 +59,18 @@ def run(model_dir, input, subword=False, vector=True):
     # subwords = dataset['subword'].values
 
     # Parsing the labels and convert to integer using comma as separetor
-    print("Creating MultiLabel Binarizer..")
+    print("Creating MultiLabel Binarizer...")
+    temp = np.array([[int(itr) for itr in element.split(',')] for element in y])
+    """
     temp = list()
     for element in y:
         values = [int(itr) for itr in element.split(',')]
         # values = list(map(int, values))
         temp.append(values)
-    del y
     # Convert to np.array
     temp = np.array(temp)
+    """
+    del y
 
     # Parse subwords
     # subwords = [str(itr).split(" ") for itr in subwords]
@@ -82,7 +89,9 @@ def run(model_dir, input, subword=False, vector=True):
     for itr in partitions:
         prefix = itr + "ing" if itr in ["train", "test"] else itr
         # Load designated indices for each partitions
-        indices = pkl.load(open(model_dir + itr + "_index.pkl", 'rb'))
+        filename = model_dir + itr + "_index{:s}.pkl".format(postfix)
+        print("Loading indices from file: {:s}".format(filename))
+        indices = pkl.load(open(filename, 'rb'))
         # Index the content according to the given indices
         X_itr = X[indices]
         m_itr = mentions[indices]
@@ -104,10 +113,10 @@ def run(model_dir, input, subword=False, vector=True):
 
         # Save context vectors to pickle file
         # Sentence
-        filename = "{0}{1}_data_{2}_subword_filter.pkl".format(model_dir, prefix, sb_tag)
+        filename = "{:s}{:s}_data_{:s}_subword_filter{:s}.pkl".format(model_dir, prefix, sb_tag, postfix)
         pkl.dump(X_pad, open(filename, 'wb'))
         # Mention
-        filename = "{0}{1}_mention_{2}_subword_filter.pkl".format(model_dir, prefix, sb_tag)
+        filename = "{:s}{:s}_mention_{:s}_subword_filter{:s}.pkl".format(model_dir, prefix, sb_tag, postfix)
         pkl.dump(m_pad, open(filename, 'wb'))
         del X_itr, X_tokenized, X_pad, m_itr, m_tokenized, m_pad
 
@@ -118,14 +127,14 @@ def run(model_dir, input, subword=False, vector=True):
         print(" - {0} label shape: {1}".format(prefix, y_bin.shape))
 
         # Save label vectors to pickle file
-        filename =  "{0}{1}_label_{2}_subword_filter1.pkl".format(model_dir, prefix, sb_tag)
+        filename =  "{:s}{:s}_label_{:s}_subword_filter{:s}.pkl".format(model_dir, prefix, sb_tag, postfix)
         pkl.dump(y_bin, open(filename, 'wb'))
 
     # Save all models
-    print("dumping pickle file of tokenizer/m_tokenizer/mlb...")
-    pkl.dump(X_tokenizer, open(model_dir + "tokenizer_{0}_subword_filter.pkl".format(sb_tag), 'wb'))
-    pkl.dump(m_tokenizer, open(model_dir + "m_tokenizer_{0}_subword_filter.pkl".format(sb_tag), 'wb'))
-    pkl.dump(mlb, open(model_dir + "mlb_{0}_subword_filter.pkl".format(sb_tag), 'wb'))
+    print("Dumping pickle file of tokenizer/m_tokenizer/mlb...")
+    pkl.dump(X_tokenizer, open(model_dir + "tokenizer_{:s}_subword_filter{:s}.pkl".format(sb_tag, postfix), 'wb'))
+    pkl.dump(m_tokenizer, open(model_dir + "m_tokenizer_{:s}_subword_filter{:s}.pkl".format(sb_tag, postfix), 'wb'))
+    pkl.dump(mlb, open(model_dir + "mlb_{:s}_subword_filter{:s}.pkl".format(sb_tag, postfix), 'wb'))
 
 
 if __name__ == '__main__':
@@ -137,10 +146,11 @@ if __name__ == '__main__':
     # parser.add_argument("--test_idx", help="Input testing index pickle file")
     # parser.add_argument("--vali_idx", help="Input validation index pickle file")
     parser.add_argument("--subword", action="store_true" , help="Use subword or not")
+    parser.add_argument("--tag", type=str, help="Make tags on the files.")
     parser.add_argument("--vector", action="store_false" , help="Use vector-based subword information.")
     args = parser.parse_args()
 
-    run(args.model, args.input, args.subword, args.vector)
+    run(args.model, args.input, args.subword, args.tag, args.vector)
 
     ''' use for spliting data with mention specific 
     print("{0} unique mentions...".format(len(set(mentions))))

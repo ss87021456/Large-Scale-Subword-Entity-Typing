@@ -10,9 +10,11 @@ from evaluation import just_test, predict
 
 # Training w/o pretrained
 # CUDA_VISIBLE_DEVICES=0 python ./src/train.py --arch=[CNN,BLSTM]
+# CUDA_VISIBLE_DEVICES=0 python ./src/train.py --arch=[CNN,BLSTM] --data_tag=kbp
 # Training w/ pretrained
 # CUDA_VISIBLE_DEVICES=0 python ./src/train.py --emb=data/FastText_embedding.vec --arch=[CNN,BLSTM]
 # CUDA_VISIBLE_DEVICES=0 python ./src/train.py --emb=data/FastText_embedding.vec --arch=Text_CNN
+# CUDA_VISIBLE_DEVICES=0 python ./src/train.py --emb=/shared/data/embed/w2v.txt --arch=[CNN,BLSTM] --data_tag=kbp
 
 # Additional option --subword --attention
 # /home/chiawei2/nlp_tool/fastText-0.1.0/vector/fastText_Pubmed.vec
@@ -35,23 +37,26 @@ config = tf.ConfigProto()
 config.gpu_options.per_process_gpu_memory_fraction = 0.3
 set_session(tf.Session(config=config))
 
-def run(model_dir, model_type, embedding=None, subword=False, attention=False, tag=None):
+def run(model_dir, model_type, embedding=None, subword=False, attention=False, data_tag=None, tag=None):
+    postfix = ("_" + data_tag) if data_tag is not None else ""
+    tag = ("_" + tag) if tag is not None else ""
+    print(postfix)
     # Parse directory name
     if not model_dir.endswith("/"):
         model_dir += "/"
     # Load models
     sb_tag = "w" if subword else "wo"
-    mlb = pkl.load(open(model_dir + "mlb_{0}_subword_filter.pkl".format(sb_tag), 'rb'))
-    tokenizer = pkl.load(open(model_dir + "tokenizer_{0}_subword_filter.pkl".format(sb_tag), 'rb'))
-    m_tokenizer = pkl.load(open(model_dir + "m_tokenizer_{0}_subword_filter.pkl".format(sb_tag), 'rb'))
+    mlb = pkl.load(open(model_dir + "mlb_{0}_subword_filter{1}.pkl".format(sb_tag, postfix), 'rb'))
+    tokenizer = pkl.load(open(model_dir + "tokenizer_{0}_subword_filter{1}.pkl".format(sb_tag, postfix), 'rb'))
+    m_tokenizer = pkl.load(open(model_dir + "m_tokenizer_{0}_subword_filter{1}.pkl".format(sb_tag, postfix), 'rb'))
     
     word_index = tokenizer.word_index
     m_word_index = m_tokenizer.word_index
     label_num = len(mlb.classes_)
 
     ###
-    tokenizer_model = model_dir + "tokenizer_{0}_subword_filter.pkl".format(sb_tag)
-    m_tokenizer_model = model_dir + "m_tokenizer_{0}_subword_filter.pkl".format(sb_tag)
+    tokenizer_model = model_dir + "tokenizer_{0}_subword_filter{1}.pkl".format(sb_tag, postfix)
+    m_tokenizer_model = model_dir + "m_tokenizer_{0}_subword_filter{1}.pkl".format(sb_tag, postfix)
     ###
     embedding_layer, preload = create_embedding_layer(tokenizer_model=tokenizer_model,
                                              filename=embedding,
@@ -111,9 +116,9 @@ def run(model_dir, model_type, embedding=None, subword=False, attention=False, t
 
     # Training
     print("Loading training data...")
-    X_train = pkl.load(open(model_dir + "training_data_{0}_subword_filter.pkl".format(sb_tag), 'rb'))
-    X_m_train = pkl.load(open(model_dir + "training_mention_{0}_subword_filter.pkl".format(sb_tag), 'rb'))
-    y_train = pkl.load(open(model_dir + "training_label_{0}_subword_filter.pkl".format(sb_tag), 'rb'))
+    X_train = pkl.load(open(model_dir + "training_data_{0}_subword_filter{1}.pkl".format(sb_tag, postfix), 'rb'))
+    X_m_train = pkl.load(open(model_dir + "training_mention_{0}_subword_filter{1}.pkl".format(sb_tag, postfix), 'rb'))
+    y_train = pkl.load(open(model_dir + "training_label_{0}_subword_filter{1}.pkl".format(sb_tag, postfix), 'rb'))
 
     print("Begin training...")
     model.fit([X_train, X_m_train],
@@ -128,9 +133,9 @@ def run(model_dir, model_type, embedding=None, subword=False, attention=False, t
     index = 0
     # Validation data
     print("\nLoading validation data...")
-    X_val = pkl.load(open(model_dir + "validation_data_{0}_subword_filter.pkl".format(sb_tag), 'rb'))
-    X_m_val = pkl.load(open(model_dir + "validation_mention_{0}_subword_filter.pkl".format(sb_tag), 'rb'))
-    y_val = pkl.load(open(model_dir + "validation_label_{0}_subword_filter.pkl".format(sb_tag), 'rb'))
+    X_val = pkl.load(open(model_dir + "validation_data_{0}_subword_filter{1}.pkl".format(sb_tag, postfix), 'rb'))
+    X_m_val = pkl.load(open(model_dir + "validation_mention_{0}_subword_filter{1}.pkl".format(sb_tag, postfix), 'rb'))
+    y_val = pkl.load(open(model_dir + "validation_label_{0}_subword_filter{1}.pkl".format(sb_tag, postfix), 'rb'))
 
     print("Loading trained weights for validation...")
     for i in range(1, epochs + 1, 1):
@@ -148,7 +153,7 @@ def run(model_dir, model_type, embedding=None, subword=False, attention=False, t
     print("\nValidation completed, best micro-F1 score is at epoch {:02d}".format(index))
     # Test model with best micro F1 score
     model_name =  prefix + model_type + "-weights-{:02d}{:s}.hdf5".format(index, tag)
-    just_test(model=model, filename=model_name, subword=subword)
+    just_test(model=model, filename=model_name, subword=subword, postfix=postfix)
 
     K.clear_session()
 
@@ -162,6 +167,7 @@ if __name__ == '__main__':
     parser.add_argument("--arch", nargs='?', type=str, default="BLSTM",
                         help="Different model architecture BLTSM or CNN [Default: \"BLSTM\"]")
     parser.add_argument("--tag", nargs='?', type=str, help="Extra name tag on the saved model.")
+    parser.add_argument("--data_tag", nargs='?', type=str, help="Extra name tag on the dataset.")
     args = parser.parse_args()
 
-    run(args.model, args.arch, args.emb, args.subword, args.attention, args.tag)
+    run(args.model, args.arch, args.emb, args.subword, args.attention, args.data_tag, args.tag)

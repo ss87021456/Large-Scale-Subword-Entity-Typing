@@ -9,13 +9,13 @@ from utils import generic_threading, readlines
 from sklearn.preprocessing import MultiLabelBinarizer
 import os
 
-# python ./src/generate_index.py --input=../share/data_labeled_kpb.tsv --thread=5 --text_only --tag=kbp
+# python ./src/generate_index.py --input=../share/data_labeled_kpb.tsv --thread=20 --tag=kbp
 # python ./src/generate_index.py --input=./data/smaller_preprocessed_sentence_keywords_labeled.tsv
 
 np.random.seed(0) # set random seed
 
 def parallel_index(thread_idx, mention_count, mentions):
-    desc = "Thread {:2d}".format(thread_idx + 1)
+    desc = "Thread {:02d}".format(thread_idx + 1)
     result = list()
     result.append(thread_idx) # use for indicates thread order
     for key in tqdm(mention_count, position=thread_idx, desc=desc):
@@ -36,18 +36,15 @@ def run(model_dir, input, test_size, n_thread=20, tag=None, text_only=False):
         os.makedirs(model_dir)
 
     print("Loading dataset..")
-    if text_only:
-        contents = readlines(input, delimitor="\t")
-        mentions = np.array([itr[0] for itr in contents])
-    else:
-        dataset = pd.read_csv(input, sep='\t', names=['label','context','mention'], dtype=str)
-        mentions = dataset['mention'].values
+    dataset = pd.read_csv(input, sep='\t', names=['label', 'context', 'mention'], dtype=str)
+    dataset['mention'] = dataset['mention'].astype(str)
+    mentions = dataset['mention'].values
 
-        # use for spliting data with mention specific 
-        # np.random.shuffle(mentions)
-        for idx, itr in enumerate(mentions):
-            if type(itr) == float or type(itr) == int:
-                print(idx, itr, dataset['label'][idx], dataset['context'][idx])
+    # use for spliting data with mention specific 
+    # np.random.shuffle(mentions)
+    for idx, itr in enumerate(mentions):
+        if type(itr) == float or type(itr) == int:
+            print(idx, itr, dataset['label'][idx], dataset['context'][idx])
     print("{0} unique mentions...".format(len(set(mentions))))
     unique, counts = np.unique(mentions, return_counts=True)
     mention_count = dict(zip(unique, counts))
@@ -55,8 +52,8 @@ def run(model_dir, input, test_size, n_thread=20, tag=None, text_only=False):
     print("processing mention_index...")
     param = (mentions, )
     key_list = list(mention_count.keys())
-    # [['mention1',[idxes]],['mention2',[idxes]],...]
-    mention_index = generic_threading(n_thread, key_list, parallel_index, param) 
+    # [['mention1',[indices]],['mention2',[indices]],...]
+    mention_index = generic_threading(n_thread, key_list, parallel_index, param)
     mention = []
     indices = []
     order = []
@@ -88,7 +85,8 @@ def run(model_dir, input, test_size, n_thread=20, tag=None, text_only=False):
 
     count = 0
     print("Processing training_index...")
-    print("Training size: {0}, testing size: {1}, validation size: {2}, total size: {3}".format(train_len, test_len, test_len, total_length))
+    print("Training size: {0}, testing size: {1}, validation size: {2}, total size: {3}"
+          .format(train_len, test_len, test_len, total_length))
     ########################################
     # TO-BE REVISED TO A MORE ELEGANT SPLITTING WAY
     np.random.shuffle(unique)

@@ -53,14 +53,15 @@ config.gpu_options.per_process_gpu_memory_fraction = 0.3
 set_session(tf.Session(config=config))
 
 
-def run(model_dir, model_type, model_path, subword=False, attention=False, visualize=False, pre=False):
+def run(model_dir, model_type, model_path, subword=False, attention=False, data_tag=None, visualize=False, pre=False):
+    postfix = ("_" + data_tag) if data_tag is not None else ""
     print(model_dir, model_type, model_path)
     # Parse directory name
     if not model_dir.endswith("/"):
         model_dir += "/"
     # Load models
     sb_tag = "w" if subword else "wo"
-    mlb = pkl.load(open(model_dir + "mlb_{0}_subword_filter.pkl".format(sb_tag), 'rb'))
+    mlb = pkl.load(open(model_dir + "mlb_{0}_subword_filter{1}.pkl".format(sb_tag, postfix), 'rb'))
     label_num = len(mlb.classes_)
 
     # Building Model
@@ -100,9 +101,9 @@ def run(model_dir, model_type, model_path, subword=False, attention=False, visua
     callbacks_list = [checkpoint, early] #early
 
     print("Loading testing data...")
-    X = pkl.load(open(model_dir + "testing_data_{0}_subword_filter.pkl".format(sb_tag), 'rb'))
-    X_m = pkl.load(open(model_dir + "testing_mention_{0}_subword_filter.pkl".format(sb_tag), 'rb'))
-    y = pkl.load(open(model_dir + "testing_label_{0}_subword_filter.pkl".format(sb_tag), 'rb'))
+    X = pkl.load(open(model_dir + "testing_data_{0}_subword_filter{1}.pkl".format(sb_tag, postfix), 'rb'))
+    X_m = pkl.load(open(model_dir + "testing_mention_{0}_subword_filter{1}.pkl".format(sb_tag, postfix), 'rb'))
+    y = pkl.load(open(model_dir + "testing_label_{0}_subword_filter{1}.pkl".format(sb_tag, postfix), 'rb'))
 
     # Visualize number of rows
     test_size = 1000 if visualize else None
@@ -218,7 +219,7 @@ def predict(model, X, X_m, y, model_file, output, amount=None, return_mf1=False)
     if return_mf1:
         return F1
 
-def just_test(model, subword, filename, amount=None):
+def just_test(model, subword, filename, tag=None, postfix=None, amount=None):
     """
     Given the model object and the previously stored weights file,
     this function just restore the weights, load testing data and
@@ -237,9 +238,9 @@ def just_test(model, subword, filename, amount=None):
 
     # Load testing data
     print("Loading testing data...")
-    X = pkl.load(open(model_dir + "testing_data_{0}_subword_filter.pkl".format(sb_tag), 'rb'))
-    X_m = pkl.load(open(model_dir + "testing_mention_{0}_subword_filter.pkl".format(sb_tag), 'rb'))
-    y = pkl.load(open(model_dir + "testing_label_{0}_subword_filter.pkl".format(sb_tag), 'rb'))
+    X = pkl.load(open(model_dir + "testing_data_{0}_subword_filter{1}.pkl".format(sb_tag, postfix), 'rb'))
+    X_m = pkl.load(open(model_dir + "testing_mention_{0}_subword_filter{1}.pkl".format(sb_tag, postfix), 'rb'))
+    y = pkl.load(open(model_dir + "testing_label_{0}_subword_filter{1}.pkl".format(sb_tag, postfix), 'rb'))
 
     predict(model, X, X_m, y, model_file=filename, output="results-test.txt", amount=amount)
 
@@ -253,6 +254,7 @@ if __name__ == '__main__':
     parser.add_argument("--model_type", nargs='?', type=str, default="BLSTM",
                         help="different model architecture BLTSM or CNN [Default: \"BLSTM/\"]")
     parser.add_argument("--model_path", nargs='?', type=str, default="None", help="path to weighted")
+    parser.add_argument("--data_tag", nargs='?', type=str, help="Extra name tag on the dataset.")
     args = parser.parse_args()
 
-    run(args.model_dir, args.model_type, args.model_path, args.subword, args.attention, args.visualize)
+    run(args.model_dir, args.model_type, args.model_path, args.subword, args.attention, args.data_tag, args.visualize)

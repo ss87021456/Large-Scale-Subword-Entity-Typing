@@ -304,7 +304,7 @@ def punctuation_cleanup(thread_idx, data, rules, mode):
         linewords(list of str): List of either corpus (PRELIMINARY) or
                 words (SPLIT_WORDS)
     """
-    desc = "Thread {:2d}".format(thread_idx + 1)
+    desc = "Thread {:02d}".format(thread_idx + 1)
     ########### EXCEPTION HANDLING ########### (TO-BE-IMPELMENTED)
     # assert mode 
 
@@ -376,7 +376,7 @@ def corpus_cleanup(thread_idx, data, parentheses, refine_list):
     Returns:
         result(list of str): Processed version of the input "data"
     """
-    desc = "Thread {:2d}".format(thread_idx + 1)
+    desc = "Thread {:02d}".format(thread_idx + 1)
     #
     result = list()
     for article in tqdm(data, position=thread_idx, desc=desc):
@@ -420,7 +420,7 @@ def keyword_in_sentences(thread_idx, data, keywords, mode="SINGLE"):
                      sentence with one or more keywords.
     """
     # print("Marking the sentence in {:s} mode.".format(mode))
-    desc = "Thread {:2d}".format(thread_idx + 1)
+    desc = "Thread {:02d}".format(thread_idx + 1)
     result = list()
     found, found_sentence = None, None
     #
@@ -484,7 +484,7 @@ def keywords_as_labels(thread_idx, data, keywords, labels, subwords=None,
     Returns:
         result(list of str): List of strings that are to be written to files.
     """
-    desc = "Thread {:2d}".format(thread_idx + 1)
+    desc = "Thread {:02d}".format(thread_idx + 1)
     result = list()
     #
     for line in tqdm(data, position=thread_idx, desc=desc):
