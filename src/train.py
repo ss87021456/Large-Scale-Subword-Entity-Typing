@@ -24,7 +24,7 @@ MAX_NUM_WORDS = 30000
 MAX_NUM_MENTION_WORDS = 20000
 MAX_SEQUENCE_LENGTH = 40
 MAX_MENTION_LENGTH = 5 # 15 if subowrd else 5
-EMBEDDING_DIM = 100
+EMBEDDING_DIM = 300
 
 # Hyper-parameter
 batch_size = 64
@@ -59,24 +59,31 @@ def run(model_dir, model_type, embedding=None, subword=False, attention=False, d
     m_tokenizer_model = model_dir + "m_tokenizer_{0}_subword_filter{1}.pkl".format(sb_tag, postfix)
     ###
     embedding_layer, preload = create_embedding_layer(tokenizer_model=tokenizer_model,
-                                             filename=embedding,
-                                             max_num_words=MAX_NUM_WORDS,
-                                             max_length=MAX_SEQUENCE_LENGTH,
-                                             embedding_dim=EMBEDDING_DIM)
+                                                      filename=embedding,
+                                                      max_num_words=MAX_NUM_WORDS,
+                                                      max_length=MAX_SEQUENCE_LENGTH,
+                                                      embedding_dim=EMBEDDING_DIM)
+    n_words = embedding_layer.input_dim if embedding is not None else MAX_NUM_WORDS
 
     m_embedding_layer, _ = create_embedding_layer(tokenizer_model=m_tokenizer_model,
-                                               filename=embedding,
-                                               max_num_words=MAX_NUM_MENTION_WORDS,
-                                               max_length=MAX_MENTION_LENGTH,
-                                               embedding_dim=EMBEDDING_DIM,
-                                               preload=preload)
+                                                  filename=embedding,
+                                                  max_num_words=MAX_NUM_MENTION_WORDS,
+                                                  max_length=MAX_MENTION_LENGTH,
+                                                  embedding_dim=EMBEDDING_DIM,
+                                                  preload=preload)
+    n_mention = m_embedding_layer.input_dim if embedding is not None else MAX_NUM_MENTION_WORDS
     del preload
-    # exit()
+
     # Building Model
     print("Building computational graph...")
+    print("Building {0} with attention: {1}, subword: {2}".format(model_type, attention, subword))
     if model_type == "BLSTM":
-        print("Building default BLSTM mode with attention:", attention, "subword:", subword)
         model = BLSTM(label_num=label_num,
+                      embedding_dim=EMBEDDING_DIM,
+                      n_words=n_words,
+                      n_mention=n_mention,
+                      len_seq=MAX_SEQUENCE_LENGTH,
+                      len_mention=MAX_MENTION_LENGTH, #15 if subword else 5
                       sentence_emb=embedding_layer,
                       mention_emb=m_embedding_layer,
                       attention=attention,
@@ -84,8 +91,12 @@ def run(model_dir, model_type, embedding=None, subword=False, attention=False, d
                       mode='concatenate',
                       dropout=0.1)
     elif model_type == "CNN":
-        print("Building default CNN mode with attention:",attention,"subword:",subword)
         model = CNN(label_num=label_num,
+                    embedding_dim=EMBEDDING_DIM,
+                    n_words=n_words,
+                    n_mention=n_mention,
+                    len_seq=MAX_SEQUENCE_LENGTH,
+                    len_mention=MAX_MENTION_LENGTH, #15 if subword else 5
                     sentence_emb=embedding_layer,
                     mention_emb=m_embedding_layer,
                     attention=attention,
@@ -93,14 +104,18 @@ def run(model_dir, model_type, embedding=None, subword=False, attention=False, d
                     mode='concatenate',
                     dropout=0.1)
     elif model_type == "Text_CNN":
-        print("Building default Text_CNN mode with attention:",attention,"subword:",subword)
         model = Text_CNN(label_num=label_num,
-                    sentence_emb=embedding_layer,
-                    mention_emb=m_embedding_layer,
-                    attention=attention,
-                    subword=subword,
-                    mode='concatenate',
-                    dropout=0.5)
+                         embedding_dim=EMBEDDING_DIM,
+                         n_words=n_words,
+                         n_mention=n_mention,
+                         len_seq=MAX_SEQUENCE_LENGTH,
+                         len_mention=MAX_MENTION_LENGTH, #15 if subword else 5
+                         sentence_emb=embedding_layer,
+                         mention_emb=m_embedding_layer,
+                         attention=attention,
+                         subword=subword,
+                         mode='concatenate',
+                         dropout=0.5)
 
     print(model.summary())
 

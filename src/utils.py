@@ -160,7 +160,7 @@ def create_embedding_layer(tokenizer_model, filename, max_num_words, max_length,
             embeddings_index = preload
         else:
             print("Loading pre-trained embedding model from {0}...".format(filename))
-            embeddings_index = fastText(filename)
+            embeddings_index = fastText(filename, dim=embedding_dim)
 
         print("Preparing embedding matrix...")
         # Process mention
