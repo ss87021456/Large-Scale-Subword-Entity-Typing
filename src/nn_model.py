@@ -4,15 +4,15 @@ from keras.layers import LSTM, Bidirectional, GlobalMaxPool1D, Dropout, CuDNNLST
 from keras.layers import Conv1D, Conv2D, MaxPooling1D, Flatten, MaxPool2D
 
 
-def attention_3d_block(inputs, max_seq_len=40, embedding_dim=100, SINGLE_ATTENTION_VECTOR=False):
+def attention_3d_block(inputs, len_seq=40, embedding_dim=100, SINGLE_ATTENTION_VECTOR=False):
     # SINGLE_ATTENTION_VECTOR = False
     # MAX_SEQUENCE_LENGTH = 40
     # EMBEDDING_DIM = 100
     # inputs.shape = (batch_size, time_steps, input_dim)
     input_dim = int(inputs.shape[2])
     a = Permute((2, 1))(inputs)
-    a = Reshape((embedding_dim, max_seq_len))(a) # this line is not useful. It's just to know which dimension is what.
-    a = Dense(max_seq_len, activation='softmax')(a)
+    a = Reshape((embedding_dim, len_seq))(a) # this line is not useful. It's just to know which dimension is what.
+    a = Dense(len_seq, activation='softmax')(a)
     if SINGLE_ATTENTION_VECTOR:
         a = Lambda(lambda x: K.mean(x, axis=1), name='dim_reduction')(a)
         a = RepeatVector(embedding_dim)(a)
@@ -37,7 +37,7 @@ def BLSTM(label_num, embedding_dim=100, n_words=30000, n_mention=20000, len_seq=
         x = Embedding(n_words,embedding_dim, input_length=len_seq)(sentence)
 
     if attention: # attention before lstm
-        x = attention_3d_block(x)
+        x = attention_3d_block(x, len_seq=len_seq, embedding_dim=embedding_dim)
     x = Bidirectional(CuDNNLSTM(50, return_sequences=True))(x)
     x = GlobalMaxPool1D()(x)
 
@@ -89,7 +89,7 @@ def CNN(label_num, embedding_dim=100, n_words=30000, n_mention=20000, len_seq=40
         x = Embedding(n_words,embedding_dim,input_length=len_seq)(sentence)
     
     if attention: # attention before lstm
-        x = attention_3d_block(x)
+        x = attention_3d_block(x, len_seq=len_seq, embedding_dim=embedding_dim)
 
     x = Conv1D(num_filters, 5, activation='relu', padding='valid')(x)
     x = MaxPooling1D(2)(x)
@@ -142,7 +142,7 @@ def Text_CNN(label_num, embedding_dim=100, n_words=30000, n_mention=20000, len_s
         x = Embedding(n_words,embedding_dim,input_length=len_seq)(sentence)
     
     if attention: # attention before lstm
-        x = attention_3d_block(x)
+        x = attention_3d_block(x, len_seq=len_seq, embedding_dim=embedding_dim)
 
     reshape = Reshape((len_seq,embedding_dim,1))(x)
     conv_0 = Conv2D(num_filters, kernel_size=(filter_sizes[0], embedding_dim), padding='valid', kernel_initializer='normal', activation='relu')(reshape)
