@@ -1,7 +1,8 @@
 from keras.models import Model
 from keras.layers import Dense, Embedding, Input, concatenate, dot, Permute, Reshape, merge
 from keras.layers import LSTM, Bidirectional, GlobalMaxPool1D, Dropout, CuDNNLSTM
-from keras.layers import Conv1D, Conv2D, MaxPooling1D, Flatten, MaxPool2D
+from keras.layers import Conv1D, Conv2D, MaxPooling1D, Flatten, MaxPool2D, BatchNormalization
+from keras.optimizers import Adam, Adagrad, SGD, RMSprop
 
 
 def attention_3d_block(inputs, len_seq=40, embedding_dim=100, SINGLE_ATTENTION_VECTOR=False):
@@ -21,7 +22,7 @@ def attention_3d_block(inputs, len_seq=40, embedding_dim=100, SINGLE_ATTENTION_V
     return output_attention_mul
 
 def BLSTM(label_num, embedding_dim=100, n_words=30000, n_mention=20000, len_seq=40, len_mention=5,
-          sentence_emb=None, mention_emb=None, attention=False, mode='concatenate', dropout=0.1, subword=False):
+          sentence_emb=None, mention_emb=None, attention=False, mode='concatenate', dropout=0.1, subword=False, category=False, optimizer=None):
     
     # MAX_NUM_WORDS = 30000
     # MAX_NUM_MENTION_WORDS = 11626#20000
@@ -65,13 +66,20 @@ def BLSTM(label_num, embedding_dim=100, n_words=30000, n_mention=20000, len_seq=
 
     x = Dense(200, activation="relu")(x)
     x = Dropout(dropout)(x)
-    x = Dense(label_num, activation="sigmoid")(x)
-    model = Model(inputs=[sentence, mention], outputs=x)
-    model.compile(loss='binary_crossentropy', optimizer='adam')
+
+    if not category:
+        x = Dense(label_num, activation="sigmoid")(x)
+        model = Model(inputs=[sentence, mention], outputs=x)
+        model.compile(loss='binary_crossentropy', optimizer=optimizer)
+    else:
+        x = Dense(label_num, activation="softmax")(x)
+        model = Model(inputs=[sentence, mention], outputs=x)
+        model.compile(loss='categorical_crossentropy', optimizer=optimizer, metrics=['accuracy'])
+
     return model
 
 def CNN(label_num, embedding_dim=100, n_words=30000, n_mention=20000, len_seq=40, len_mention=5,
-        sentence_emb=None, mention_emb=None, attention=False, mode='concatenate', dropout=0.1, subword=False):
+        sentence_emb=None, mention_emb=None, attention=False, mode='concatenate', dropout=0.1, subword=False, optimizer=None):
     
     # n_words = 30000
     # MAX_NUM_MENTION_WORDS = 11626#20000
@@ -118,11 +126,11 @@ def CNN(label_num, embedding_dim=100, n_words=30000, n_mention=20000, len_seq=40
     x = Dropout(dropout)(x)
     x = Dense(label_num, activation="sigmoid")(x)
     model = Model(inputs=[sentence, mention], outputs=x)
-    model.compile(loss='binary_crossentropy', optimizer='adam')
+    model.compile(loss='binary_crossentropy', optimizer=optimizer)
     return model
 
 def Text_CNN(label_num, embedding_dim=100, n_words=30000, n_mention=20000, len_seq=40, len_mention=5,
-             sentence_emb=None, mention_emb=None, attention=False, mode='concatenate', dropout=0.1, subword=False):
+             sentence_emb=None, mention_emb=None, attention=False, mode='concatenate', dropout=0.1, subword=False, category=False, optimizer=None):
     
     # MAX_NUM_WORDS = 30000
     # MAX_NUM_MENTION_WORDS = 20000
@@ -146,8 +154,11 @@ def Text_CNN(label_num, embedding_dim=100, n_words=30000, n_mention=20000, len_s
 
     reshape = Reshape((len_seq,embedding_dim,1))(x)
     conv_0 = Conv2D(num_filters, kernel_size=(filter_sizes[0], embedding_dim), padding='valid', kernel_initializer='normal', activation='relu')(reshape)
+    conv_0 = BatchNormalization()(conv_0)
     conv_1 = Conv2D(num_filters, kernel_size=(filter_sizes[1], embedding_dim), padding='valid', kernel_initializer='normal', activation='relu')(reshape)
+    conv_1 = BatchNormalization()(conv_1)
     conv_2 = Conv2D(num_filters, kernel_size=(filter_sizes[2], embedding_dim), padding='valid', kernel_initializer='normal', activation='relu')(reshape)
+    conv_2 = BatchNormalization()(conv_2)
     maxpool_0 = MaxPool2D(pool_size=(len_seq - filter_sizes[0] + 1, 1), strides=(1,1), padding='valid')(conv_0)
     maxpool_1 = MaxPool2D(pool_size=(len_seq - filter_sizes[1] + 1, 1), strides=(1,1), padding='valid')(conv_1)
     maxpool_2 = MaxPool2D(pool_size=(len_seq - filter_sizes[2] + 1, 1), strides=(1,1), padding='valid')(conv_2)
@@ -185,8 +196,15 @@ def Text_CNN(label_num, embedding_dim=100, n_words=30000, n_mention=20000, len_s
         x = dot([x, x_2], axes=-1)           # Dot product
 
     x = Dense(200, activation="relu")(x)
+    x = BatchNormalization()(x)
     x = Dropout(dropout)(x)
-    x = Dense(label_num, activation="sigmoid")(x)
-    model = Model(inputs=[sentence, mention], outputs=x)
-    model.compile(loss='binary_crossentropy', optimizer='adam')
+    if not category:
+        x = Dense(label_num, activation="sigmoid")(x)
+        model = Model(inputs=[sentence, mention], outputs=x)
+        model.compile(loss='binary_crossentropy', optimizer=optimizer)
+    else:
+        x = Dense(label_num, activation="softmax")(x)
+        model = Model(inputs=[sentence, mention], outputs=x)
+        model.compile(loss='categorical_crossentropy', optimizer=optimizer, metrics=['accuracy'])
+
     return model

@@ -4,13 +4,14 @@ from scipy import sparse
 import argparse, json
 import pickle as pkl
 from utils import split_data
-from sklearn.metrics import precision_recall_fscore_support 
+from sklearn.metrics import precision_recall_fscore_support, accuracy_score
 from keras import backend as K
 from keras.layers import Embedding
 from keras.callbacks import EarlyStopping, ModelCheckpoint, Callback
 from nn_model import BLSTM, CNN
 from tqdm import tqdm
 from time import time
+from keras.metrics import categorical_accuracy
 from datetime import datetime
 
 # testing
@@ -173,7 +174,7 @@ def run(model_dir, model_type, model_path, subword=False, attention=False, data_
     '''
     K.clear_session()
 
-def predict(model, X, X_m, y, model_file, output, amount=None, return_mf1=False):
+def predict(model, X, X_m, y, model_file, output, amount=None, return_mf1=False, category=False):
     """
     Given the model object, data, labels, this function simply predict and evaluate
     the defined metrics with the model on the given data.
@@ -213,13 +214,15 @@ def predict(model, X, X_m, y, model_file, output, amount=None, return_mf1=False)
         if eval_type == 'micro':
             F1 = f
 
+
+
     # Close file pointer
     file_writer.close()
 
     if return_mf1:
         return F1
 
-def just_test(model, subword, filename, tag=None, postfix=None, amount=None):
+def just_test(model, subword, filename, tag=None, postfix=None, amount=None, category=False):
     """
     Given the model object and the previously stored weights file,
     this function just restore the weights, load testing data and
@@ -242,7 +245,7 @@ def just_test(model, subword, filename, tag=None, postfix=None, amount=None):
     X_m = pkl.load(open(model_dir + "testing_mention_{0}_subword_filter{1}.pkl".format(sb_tag, postfix), 'rb'))
     y = pkl.load(open(model_dir + "testing_label_{0}_subword_filter{1}.pkl".format(sb_tag, postfix), 'rb'))
 
-    predict(model, X, X_m, y, model_file=filename, output="results-test.txt", amount=amount)
+    predict(model, X, X_m, y, model_file=filename, output="results-test.txt", amount=amount, category=category)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()

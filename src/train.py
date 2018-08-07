@@ -7,7 +7,9 @@ from keras import backend as K
 from keras.callbacks import EarlyStopping, ModelCheckpoint
 from nn_model import BLSTM, CNN, Text_CNN
 from evaluation import just_test, predict
+from keras.optimizers import Adam, Adagrad, SGD, RMSprop
 
+import numpy as np
 # Training w/o pretrained
 # CUDA_VISIBLE_DEVICES=0 python ./src/train.py --arch=[CNN,BLSTM]
 # CUDA_VISIBLE_DEVICES=0 python ./src/train.py --arch=[CNN,BLSTM] --data_tag=kbp
@@ -28,7 +30,7 @@ EMBEDDING_DIM = 300
 
 # Hyper-parameter
 batch_size = 64
-epochs = 5
+epochs = 1
 
 # Set memory constraint
 import tensorflow as tf
@@ -37,7 +39,7 @@ config = tf.ConfigProto()
 config.gpu_options.per_process_gpu_memory_fraction = 0.3
 set_session(tf.Session(config=config))
 
-def run(model_dir, model_type, embedding=None, subword=False, attention=False, data_tag=None, tag=None):
+def run(model_dir, model_type, embedding=None, subword=False, attention=False, data_tag=None, tag=None, category=False, optimizer='adam', learning_rate=0.001):
     postfix = ("_" + data_tag) if data_tag is not None else ""
     tag = ("_" + tag) if tag is not None else ""
     print(postfix)
@@ -77,6 +79,16 @@ def run(model_dir, model_type, embedding=None, subword=False, attention=False, d
     # Building Model
     print("Building computational graph...")
     print("Building {0} with attention: {1}, subword: {2}".format(model_type, attention, subword))
+    print("Using optimizer {0}".format(optimizer))
+    if optimizer == 'adam':
+        opt = Adam(lr=learning_rate)
+    elif optimizer == 'RMS':
+        opt = RMSprop(lr=learning_rate)
+    elif optimizer == 'Adagrad':
+        opt = Adagrad(lr=learning_rate)
+    elif optimizer == 'SGD':
+        opt = SGD(lr=learning_rate)
+
     if model_type == "BLSTM":
         model = BLSTM(label_num=label_num,
                       embedding_dim=EMBEDDING_DIM,
@@ -89,7 +101,9 @@ def run(model_dir, model_type, embedding=None, subword=False, attention=False, d
                       attention=attention,
                       subword=subword,
                       mode='concatenate',
-                      dropout=0.1)
+                      dropout=0.1,
+                      category=category,
+                      optimizer=opt)
     elif model_type == "CNN":
         model = CNN(label_num=label_num,
                     embedding_dim=EMBEDDING_DIM,
@@ -102,7 +116,9 @@ def run(model_dir, model_type, embedding=None, subword=False, attention=False, d
                     attention=attention,
                     subword=subword,
                     mode='concatenate',
-                    dropout=0.1)
+                    dropout=0.1,
+                    category=category,
+                    optimizer=opt)
     elif model_type == "Text_CNN":
         model = Text_CNN(label_num=label_num,
                          embedding_dim=EMBEDDING_DIM,
@@ -115,7 +131,9 @@ def run(model_dir, model_type, embedding=None, subword=False, attention=False, d
                          attention=attention,
                          subword=subword,
                          mode='concatenate',
-                         dropout=0.5)
+                         dropout=0.5,
+                         category=category,
+                         optimizer=opt)
 
     print(model.summary())
 
@@ -135,6 +153,9 @@ def run(model_dir, model_type, embedding=None, subword=False, attention=False, d
     X_m_train = pkl.load(open(model_dir + "training_mention_{0}_subword_filter{1}.pkl".format(sb_tag, postfix), 'rb'))
     y_train = pkl.load(open(model_dir + "training_label_{0}_subword_filter{1}.pkl".format(sb_tag, postfix), 'rb'))
 
+    #if category:
+    #    y_train =  np.array(mlb.inverse_transform(y_train)).flatten()
+
     print("Begin training...")
     model.fit([X_train, X_m_train],
               y_train,
@@ -152,13 +173,14 @@ def run(model_dir, model_type, embedding=None, subword=False, attention=False, d
     X_m_val = pkl.load(open(model_dir + "validation_mention_{0}_subword_filter{1}.pkl".format(sb_tag, postfix), 'rb'))
     y_val = pkl.load(open(model_dir + "validation_label_{0}_subword_filter{1}.pkl".format(sb_tag, postfix), 'rb'))
 
+
     print("Loading trained weights for validation...")
     for i in range(1, epochs + 1, 1):
         # Deal with model_name for each epoch
         model_name = prefix + model_type + "-weights-{:02d}{:s}.hdf5".format(i, tag)
         model.load_weights(model_name)
 
-        f = predict(model, X_val, X_m_val, y_val, model_name, "results.txt", return_mf1=True)
+        f = predict(model, X_val, X_m_val, y_val, model_name, "results.txt", return_mf1=True, category=category)
 
         # Always choose model trained with more epoch when the F-1 score is same
         if record <= f:
@@ -168,7 +190,7 @@ def run(model_dir, model_type, embedding=None, subword=False, attention=False, d
     print("\nValidation completed, best micro-F1 score is at epoch {:02d}".format(index))
     # Test model with best micro F1 score
     model_name =  prefix + model_type + "-weights-{:02d}{:s}.hdf5".format(index, tag)
-    just_test(model=model, filename=model_name, subword=subword, postfix=postfix)
+    just_test(model=model, filename=model_name, subword=subword, postfix=postfix, category=category)
 
     K.clear_session()
 
@@ -177,12 +199,18 @@ if __name__ == '__main__':
     parser.add_argument("--emb", help="please provide pretrained Embedding Model.")
     parser.add_argument("--subword", action="store_true" , help="Use subword or not")
     parser.add_argument("--attention",action="store_true", help="Use attention or not")
+    parser.add_argument("--category",action="store_true", help="Use category or not")
     parser.add_argument("--model", nargs='?', type=str, default="model/", 
                         help="Directory to load models. [Default: \"model/\"]")
     parser.add_argument("--arch", nargs='?', type=str, default="BLSTM",
                         help="Different model architecture BLTSM or CNN [Default: \"BLSTM\"]")
+    parser.add_argument("--optimizer", nargs='?', type=str, default="adam", 
+                        help="Choose optimizer \"adam\", \"RMS\", \"Adagrad\", \"SGD\".")
+    parser.add_argument('--learning_rate', type=float, default=0.001) # default=0.00001
     parser.add_argument("--tag", nargs='?', type=str, help="Extra name tag on the saved model.")
     parser.add_argument("--data_tag", nargs='?', type=str, help="Extra name tag on the dataset.")
     args = parser.parse_args()
 
-    run(args.model, args.arch, args.emb, args.subword, args.attention, args.data_tag, args.tag)
+    run(args.model, args.arch, args.emb, args.subword,
+        args.attention, args.data_tag, args.tag, args.category,
+        args.optimizer, args.learning_rate)
