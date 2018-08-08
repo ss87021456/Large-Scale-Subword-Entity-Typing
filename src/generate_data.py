@@ -24,6 +24,7 @@ EMBEDDING_DIM = 100
 
 np.random.seed(0)
 
+
 def parallel_index(thread_idx, mention_count, mentions):
     desc = "Thread {:2d}".format(thread_idx + 1)
     result = list()
@@ -34,6 +35,7 @@ def parallel_index(thread_idx, mention_count, mentions):
         result.append(temp)
 
     return result
+
 
 def run(model_dir, input, subword=False, tag=None, vector=True):
     postfix = ("_" + tag) if tag is not None else ""
@@ -49,7 +51,8 @@ def run(model_dir, input, subword=False, tag=None, vector=True):
 
     print("Loading dataset from: {:s}".format(input))
     # dataset = pd.read_csv(input, sep='\t', names=['label','context','mention', 'subword'])
-    dataset = pd.read_csv(input, sep='\t', names=['label', 'context', 'mention'])
+    dataset = pd.read_csv(
+        input, sep='\t', names=['label', 'context', 'mention'])
     dataset['label'] = dataset['label'].astype(str)
     dataset['mention'] = dataset['mention'].astype(str)
 
@@ -60,7 +63,8 @@ def run(model_dir, input, subword=False, tag=None, vector=True):
 
     # Parsing the labels and convert to integer using comma as separetor
     print("Creating MultiLabel Binarizer...")
-    temp = np.array([[int(itr) for itr in element.split(',')] for element in y])
+    temp = np.array(
+        [[int(itr) for itr in element.split(',')] for element in y])
     """
     temp = list()
     for element in y:
@@ -113,10 +117,12 @@ def run(model_dir, input, subword=False, tag=None, vector=True):
 
         # Save context vectors to pickle file
         # Sentence
-        filename = "{:s}{:s}_data_{:s}_subword_filter{:s}.pkl".format(model_dir, prefix, sb_tag, postfix)
+        filename = "{:s}{:s}_data_{:s}_subword_filter{:s}.pkl".format(
+            model_dir, prefix, sb_tag, postfix)
         pkl.dump(X_pad, open(filename, 'wb'))
         # Mention
-        filename = "{:s}{:s}_mention_{:s}_subword_filter{:s}.pkl".format(model_dir, prefix, sb_tag, postfix)
+        filename = "{:s}{:s}_mention_{:s}_subword_filter{:s}.pkl".format(
+            model_dir, prefix, sb_tag, postfix)
         pkl.dump(m_pad, open(filename, 'wb'))
         del X_itr, X_tokenized, X_pad, m_itr, m_tokenized, m_pad
 
@@ -127,31 +133,51 @@ def run(model_dir, input, subword=False, tag=None, vector=True):
         print(" - {0} label shape: {1}".format(prefix, y_bin.shape))
 
         # Save label vectors to pickle file
-        filename =  "{:s}{:s}_label_{:s}_subword_filter{:s}.pkl".format(model_dir, prefix, sb_tag, postfix)
+        filename = "{:s}{:s}_label_{:s}_subword_filter{:s}.pkl".format(
+            model_dir, prefix, sb_tag, postfix)
         pkl.dump(y_bin, open(filename, 'wb'))
 
     # Save all models
     print("Dumping pickle file of tokenizer/m_tokenizer/mlb...")
-    pkl.dump(X_tokenizer, open(model_dir + "tokenizer_{:s}_subword_filter{:s}.pkl".format(sb_tag, postfix), 'wb'))
-    pkl.dump(m_tokenizer, open(model_dir + "m_tokenizer_{:s}_subword_filter{:s}.pkl".format(sb_tag, postfix), 'wb'))
-    pkl.dump(mlb, open(model_dir + "mlb_{:s}_subword_filter{:s}.pkl".format(sb_tag, postfix), 'wb'))
+    pkl.dump(
+        X_tokenizer,
+        open(
+            model_dir + "tokenizer_{:s}_subword_filter{:s}.pkl".format(
+                sb_tag, postfix), 'wb'))
+    pkl.dump(
+        m_tokenizer,
+        open(
+            model_dir + "m_tokenizer_{:s}_subword_filter{:s}.pkl".format(
+                sb_tag, postfix), 'wb'))
+    pkl.dump(
+        mlb,
+        open(
+            model_dir + "mlb_{:s}_subword_filter{:s}.pkl".format(
+                sb_tag, postfix), 'wb'))
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument("--model", nargs='?', type=str, default="model/", 
-                        help="Directory to store models. [Default: \"model/\"]")
+    parser.add_argument(
+        "--model",
+        nargs='?',
+        type=str,
+        default="model/",
+        help="Directory to store models. [Default: \"model/\"]")
     parser.add_argument("--input", help="Input dataset filename.")
     # parser.add_argument("--train_idx", help="Input training index pickle file")
     # parser.add_argument("--test_idx", help="Input testing index pickle file")
     # parser.add_argument("--vali_idx", help="Input validation index pickle file")
-    parser.add_argument("--subword", action="store_true" , help="Use subword or not")
+    parser.add_argument(
+        "--subword", action="store_true", help="Use subword or not")
     parser.add_argument("--tag", type=str, help="Make tags on the files.")
-    parser.add_argument("--vector", action="store_false" , help="Use vector-based subword information.")
+    parser.add_argument(
+        "--vector",
+        action="store_false",
+        help="Use vector-based subword information.")
     args = parser.parse_args()
 
     run(args.model, args.input, args.subword, args.tag, args.vector)
-
     ''' use for spliting data with mention specific 
     print("{0} unique mentions...".format(len(set(mentions))))
     unique, counts = np.unique(mentions, return_counts=True)
@@ -204,8 +230,6 @@ if __name__ == '__main__':
     pkl.dump(train_index, open(model_dir + "train_index.pkl", 'wb'))
     pkl.dump(test_index, open(model_dir + "test_index.pkl", 'wb'))
     '''
-
-
     ''' use for filter out error mention
     print("Loading error mention...")
     error_mention = pkl.load(open("error_mention.pkl", 'rb'))

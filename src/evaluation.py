@@ -22,14 +22,15 @@ from datetime import datetime
 
 # Feature-parameter
 MAX_NUM_WORDS = 30000
-MAX_NUM_MENTION_WORDS = 11626 # 20000
+MAX_NUM_MENTION_WORDS = 11626  # 20000
 MAX_SEQUENCE_LENGTH = 40
-MAX_MENTION_LENGTH = 5 # 15 if subowrd else 5
+MAX_MENTION_LENGTH = 5  # 15 if subowrd else 5
 EMBEDDING_DIM = 100
 
 # Hyper-parameter
 batch_size = 64
 epochs = 5
+
 
 def p_r_f(pred, label):
     overlap_count = len(set(pred) & set(label))
@@ -46,6 +47,7 @@ def p_r_f(pred, label):
 
     return precision, recall, f1
 
+
 # Set memory constraint
 import tensorflow as tf
 from keras.backend.tensorflow_backend import set_session
@@ -54,7 +56,14 @@ config.gpu_options.per_process_gpu_memory_fraction = 0.3
 set_session(tf.Session(config=config))
 
 
-def run(model_dir, model_type, model_path, subword=False, attention=False, data_tag=None, visualize=False, pre=False):
+def run(model_dir,
+        model_type,
+        model_path,
+        subword=False,
+        attention=False,
+        data_tag=None,
+        visualize=False,
+        pre=False):
     postfix = ("_" + data_tag) if data_tag is not None else ""
     print(model_dir, model_type, model_path)
     # Parse directory name
@@ -62,33 +71,40 @@ def run(model_dir, model_type, model_path, subword=False, attention=False, data_
         model_dir += "/"
     # Load models
     sb_tag = "w" if subword else "wo"
-    mlb = pkl.load(open(model_dir + "mlb_{0}_subword_filter{1}.pkl".format(sb_tag, postfix), 'rb'))
+    mlb = pkl.load(
+        open(
+            model_dir + "mlb_{0}_subword_filter{1}.pkl".format(
+                sb_tag, postfix), 'rb'))
     label_num = len(mlb.classes_)
 
     # Building Model
     print("Building computational graph...")
     if model_type == "BLSTM":
-        print("Building default BLSTM mode with attention:",attention,"subword:",subword)
-        model = BLSTM(label_num=label_num,
-                      sentence_emb=None,
-                      mention_emb=None,
-                      attention=attention,
-                      subword=subword,
-                      mode='concatenate',
-                      dropout=0.1)
+        print("Building default BLSTM mode with attention:", attention,
+              "subword:", subword)
+        model = BLSTM(
+            label_num=label_num,
+            sentence_emb=None,
+            mention_emb=None,
+            attention=attention,
+            subword=subword,
+            mode='concatenate',
+            dropout=0.1)
     elif model_type == "CNN":
-        print("Building default CNN mode with attention:",attention,"subword:",subword)
-        model = CNN(label_num=label_num,
-                    sentence_emb=None,
-                    mention_emb=None,
-                    attention=attention,
-                    subword=subword,
-                    mode='concatenate',
-                    dropout=0.1)
+        print("Building default CNN mode with attention:", attention,
+              "subword:", subword)
+        model = CNN(
+            label_num=label_num,
+            sentence_emb=None,
+            mention_emb=None,
+            attention=attention,
+            subword=subword,
+            mode='concatenate',
+            dropout=0.1)
 
     print(model.summary())
 
-    file_path =  model_type + "-weights-{epoch:02d}.hdf5"
+    file_path = model_type + "-weights-{epoch:02d}.hdf5"
     model_name = model_type + "-weights-00.hdf5"
     if attention:
         file_path = "Attention-" + file_path
@@ -97,20 +113,40 @@ def run(model_dir, model_type, model_path, subword=False, attention=False, data_
         file_path = "Subword" + file_path
         model_name = "Subword" + model_name
 
-    checkpoint = ModelCheckpoint(file_path, monitor='val_loss', verbose=1, save_best_only=False, mode='min') # Save every epoch
+    checkpoint = ModelCheckpoint(
+        file_path,
+        monitor='val_loss',
+        verbose=1,
+        save_best_only=False,
+        mode='min')  # Save every epoch
     early = EarlyStopping(monitor="val_loss", mode="min", patience=20)
-    callbacks_list = [checkpoint, early] #early
+    callbacks_list = [checkpoint, early]  #early
 
     print("Loading testing data...")
-    X = pkl.load(open(model_dir + "testing_data_{0}_subword_filter{1}.pkl".format(sb_tag, postfix), 'rb'))
-    X_m = pkl.load(open(model_dir + "testing_mention_{0}_subword_filter{1}.pkl".format(sb_tag, postfix), 'rb'))
-    y = pkl.load(open(model_dir + "testing_label_{0}_subword_filter{1}.pkl".format(sb_tag, postfix), 'rb'))
+    X = pkl.load(
+        open(
+            model_dir + "testing_data_{0}_subword_filter{1}.pkl".format(
+                sb_tag, postfix), 'rb'))
+    X_m = pkl.load(
+        open(
+            model_dir + "testing_mention_{0}_subword_filter{1}.pkl".format(
+                sb_tag, postfix), 'rb'))
+    y = pkl.load(
+        open(
+            model_dir + "testing_label_{0}_subword_filter{1}.pkl".format(
+                sb_tag, postfix), 'rb'))
 
     # Visualize number of rows
     test_size = 1000 if visualize else None
     model.load_weights(model_path)
-    predict(model, X, X_m, y, model_file=model_path, output="results-test.txt", amount=test_size)
-
+    predict(
+        model,
+        X,
+        X_m,
+        y,
+        model_file=model_path,
+        output="results-test.txt",
+        amount=test_size)
     """
     print("Loading file..")
     dataset = pd.read_csv("./data/smaller_preprocessed_sentence_keywords_labeled{0}.tsv"
@@ -174,7 +210,16 @@ def run(model_dir, model_type, model_path, subword=False, attention=False, data_
     '''
     K.clear_session()
 
-def predict(model, X, X_m, y, model_file, output, amount=None, return_mf1=False, category=False):
+
+def predict(model,
+            X,
+            X_m,
+            y,
+            model_file,
+            output,
+            amount=None,
+            return_mf1=False,
+            category=False):
     """
     Given the model object, data, labels, this function simply predict and evaluate
     the defined metrics with the model on the given data.
@@ -208,13 +253,13 @@ def predict(model, X, X_m, y, model_file, output, amount=None, return_mf1=False,
     print("Calculating Precision/Recall/F-1 scores ...")
     eval_types = ['micro', 'macro', 'weighted']
     for eval_type in eval_types:
-        p, r, f, _ = precision_recall_fscore_support(y, y_pred, average=eval_type)
+        p, r, f, _ = precision_recall_fscore_support(
+            y, y_pred, average=eval_type)
         print("[{}]\t{:3.3f}\t{:3.3f}\t{:3.3f}".format(eval_type, p, r, f))
-        file_writer.write("[{}]\t{:3.3f}\t{:3.3f}\t{:3.3f}\n".format(eval_type, p, r, f))
+        file_writer.write("[{}]\t{:3.3f}\t{:3.3f}\t{:3.3f}\n".format(
+            eval_type, p, r, f))
         if eval_type == 'micro':
             F1 = f
-
-
 
     # Close file pointer
     file_writer.close()
@@ -222,7 +267,14 @@ def predict(model, X, X_m, y, model_file, output, amount=None, return_mf1=False,
     if return_mf1:
         return F1
 
-def just_test(model, subword, filename, tag=None, postfix=None, amount=None, category=False):
+
+def just_test(model,
+              subword,
+              filename,
+              tag=None,
+              postfix=None,
+              amount=None,
+              category=False):
     """
     Given the model object and the previously stored weights file,
     this function just restore the weights, load testing data and
@@ -241,23 +293,62 @@ def just_test(model, subword, filename, tag=None, postfix=None, amount=None, cat
 
     # Load testing data
     print("Loading testing data...")
-    X = pkl.load(open(model_dir + "testing_data_{0}_subword_filter{1}.pkl".format(sb_tag, postfix), 'rb'))
-    X_m = pkl.load(open(model_dir + "testing_mention_{0}_subword_filter{1}.pkl".format(sb_tag, postfix), 'rb'))
-    y = pkl.load(open(model_dir + "testing_label_{0}_subword_filter{1}.pkl".format(sb_tag, postfix), 'rb'))
+    X = pkl.load(
+        open(
+            model_dir + "testing_data_{0}_subword_filter{1}.pkl".format(
+                sb_tag, postfix), 'rb'))
+    X_m = pkl.load(
+        open(
+            model_dir + "testing_mention_{0}_subword_filter{1}.pkl".format(
+                sb_tag, postfix), 'rb'))
+    y = pkl.load(
+        open(
+            model_dir + "testing_label_{0}_subword_filter{1}.pkl".format(
+                sb_tag, postfix), 'rb'))
 
-    predict(model, X, X_m, y, model_file=filename, output="results-test.txt", amount=amount, category=category)
+    predict(
+        model,
+        X,
+        X_m,
+        y,
+        model_file=filename,
+        output="results-test.txt",
+        amount=amount,
+        category=category)
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument("--subword", action="store_true" , help="Use subword or not")
-    parser.add_argument("--attention",action="store_true", help="Use attention or not")
-    parser.add_argument("--visualize",action="store_true", help="Visualize or not")
-    parser.add_argument("--model_dir", nargs='?', type=str, default="model/", 
-                        help="Directory to load models. [Default: \"model/\"]")
-    parser.add_argument("--model_type", nargs='?', type=str, default="BLSTM",
-                        help="different model architecture BLTSM or CNN [Default: \"BLSTM/\"]")
-    parser.add_argument("--model_path", nargs='?', type=str, default="None", help="path to weighted")
-    parser.add_argument("--data_tag", nargs='?', type=str, help="Extra name tag on the dataset.")
+    parser.add_argument(
+        "--subword", action="store_true", help="Use subword or not")
+    parser.add_argument(
+        "--attention", action="store_true", help="Use attention or not")
+    parser.add_argument(
+        "--visualize", action="store_true", help="Visualize or not")
+    parser.add_argument(
+        "--model_dir",
+        nargs='?',
+        type=str,
+        default="model/",
+        help="Directory to load models. [Default: \"model/\"]")
+    parser.add_argument(
+        "--model_type",
+        nargs='?',
+        type=str,
+        default="BLSTM",
+        help="different model architecture BLTSM or CNN [Default: \"BLSTM/\"]")
+    parser.add_argument(
+        "--model_path",
+        nargs='?',
+        type=str,
+        default="None",
+        help="path to weighted")
+    parser.add_argument(
+        "--data_tag",
+        nargs='?',
+        type=str,
+        help="Extra name tag on the dataset.")
     args = parser.parse_args()
 
-    run(args.model_dir, args.model_type, args.model_path, args.subword, args.attention, args.data_tag, args.visualize)
+    run(args.model_dir, args.model_type, args.model_path, args.subword,
+        args.attention, args.data_tag, args.visualize)

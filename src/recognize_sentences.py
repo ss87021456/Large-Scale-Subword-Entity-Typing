@@ -6,11 +6,17 @@ from tqdm import tqdm
 from itertools import chain
 from utils import write_to_file, keyword_in_sentences, readlines, generic_threading, merge_dict
 
-
 # python src/recognize_sentences.py data/smaller_preprocessed_sentence.txt data/ --trim --mode=MULTI --thread=10
 
-def recognize_sentences(corpus, keywords_path, mode, trim=True, label=False,
-                        output=None, thread=None, limit=None):
+
+def recognize_sentences(corpus,
+                        keywords_path,
+                        mode,
+                        trim=True,
+                        label=False,
+                        output=None,
+                        thread=None,
+                        limit=None):
     """
     Arguments:
         corpus(str): Path to the corpus file.
@@ -33,7 +39,6 @@ def recognize_sentences(corpus, keywords_path, mode, trim=True, label=False,
     keywords = list(entity.keys())
     param = (keywords, mode)
     result = generic_threading(thread, raw_data, keyword_in_sentences, param)
-
     """
     # write all result to file
     if split:
@@ -55,27 +60,37 @@ def recognize_sentences(corpus, keywords_path, mode, trim=True, label=False,
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("corpus", help="Input sentences to be recognized.")
-    parser.add_argument("keywords_path", help="Put all dictionaries \
+    parser.add_argument(
+        "keywords_path",
+        help="Put all dictionaries \
                          end with \"_leaf.json\".")
     # optional arguments
     parser.add_argument("--mode", choices=["SINGLE", "MULTI"], \
                         nargs='?' , default="MULTI", help="Single mention or \
-                        multi-mentions per sentence.")
+                        multi-mentions per sentence."                                                     )
     # parser.add_argument("--split", action="store_true", help="Split the dataset.")
     # parser.add_argument("--validation", nargs='?', const=0.1, type=float,
     #                     help="The ratio of validation dataset when --split is given.")
     # parser.add_argument("--testing", nargs='?', const=0.1, type=float,
     #                     help="The ratio of testing dataset when --split is given.")
     parser.add_argument("--output", help="Sentences with key words")
-    parser.add_argument("--thread", type=int, help="Number of threads \
+    parser.add_argument(
+        "--thread",
+        type=int,
+        help="Number of threads \
                         to run, default: 2 * number_of_cores")
-    parser.add_argument("--label", action="store_true",
-                        help="Replace entity name with labels.")
-    parser.add_argument("--trim", action="store_true", 
-                        help="Use trimmed hierarchy tree labels.")
+    parser.add_argument(
+        "--label",
+        action="store_true",
+        help="Replace entity name with labels.")
+    parser.add_argument(
+        "--trim",
+        action="store_true",
+        help="Use trimmed hierarchy tree labels.")
     # parser.add_argument("--disjoint", action="store_true",
     #                     help="Make the mentions exclusive between partitions.")
-    parser.add_argument("--limit", type=int, help="Number of maximum lines to load.")
+    parser.add_argument(
+        "--limit", type=int, help="Number of maximum lines to load.")
     args = parser.parse_args()
 
     recognize_sentences(args.corpus, args.keywords_path, args.mode, args.trim,

@@ -1,10 +1,10 @@
 from utils import readlines, write_to_file
 import argparse
-
 """
 python src/demo_corpus.py [file] --rand --amount=10
 
 """
+
 
 def sample_data_for_demo(files, amount, rand):
     """
@@ -24,12 +24,16 @@ def sample_data_for_demo(files, amount, rand):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument("files", nargs='+', type=str, 
-                        help="Input files to be sampled.")
-    parser.add_argument("--amount", nargs='?', type=int, const=10,
-                        help="Number of samples drawn from the files.")
-    parser.add_argument("--rand", action="store_true",
-                        help="Randomly draw samples from file.")
+    parser.add_argument(
+        "files", nargs='+', type=str, help="Input files to be sampled.")
+    parser.add_argument(
+        "--amount",
+        nargs='?',
+        type=int,
+        const=10,
+        help="Number of samples drawn from the files.")
+    parser.add_argument(
+        "--rand", action="store_true", help="Randomly draw samples from file.")
     args = parser.parse_args()
 
     sample_data_for_demo(args.files, args.amount, args.rand)

@@ -1,6 +1,7 @@
 from gensim.models import KeyedVectors
 from random_vec import RandomVec
 
+
 class fastText():
     def __init__(self, filename, dim=100):
         self.model = {}

@@ -4,10 +4,10 @@ import numpy as np
 
 # Check if there's any mention appears across the sets
 file = "data/smaller_preprocessed_sentence_keywords_labeled.tsv"
-dataset = pd.read_csv(file, sep='\t', names=['label','context','mention'])
+dataset = pd.read_csv(file, sep='\t', names=['label', 'context', 'mention'])
 mentions = dataset['mention'].values[:None]
 train_idx = pkl.load(open("model/train_index.pkl", 'rb'))
-test_idx  = pkl.load(open("model/test_index.pkl", 'rb'))
+test_idx = pkl.load(open("model/test_index.pkl", 'rb'))
 val_idx = pkl.load(open("model/validation_index.pkl", 'rb'))
 del dataset
 

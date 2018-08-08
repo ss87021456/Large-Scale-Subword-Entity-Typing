@@ -8,7 +8,6 @@ from utils import write_to_file, readlines, generic_threading, keywords_as_label
 import pandas as pd
 from collections import Counter
 import csv
-
 """
 python src/label.py ../share/data.txt --from_file --tag=kpb
 
@@ -22,7 +21,13 @@ python src/label.py data/ --labels=data/label.json --replace \
 python src/label.py data/ --corpus=data/smaller_preprocessed_sentence_keywords.tsv --stat
 """
 
-def fit_encoder(keywords_path, model=None, trim=True, from_file=False, output=None, tag=None):
+
+def fit_encoder(keywords_path,
+                model=None,
+                trim=True,
+                from_file=False,
+                output=None,
+                tag=None):
     """
     Arguments:
         keywords(str): Path to directory of keywords dictionary.
@@ -53,7 +58,9 @@ def fit_encoder(keywords_path, model=None, trim=True, from_file=False, output=No
     print("Initializing LabelEncoder for encoding unique types...")
     encoder = LabelEncoder()
 
-    unique_types = list(np.unique(mentions if from_file else list(chain.from_iterable(mentions))))
+    unique_types = list(
+        np.unique(
+            mentions if from_file else list(chain.from_iterable(mentions))))
     print(" - Total number of unique types: {0}".format(len(unique_types)))
 
     # Fit LabelEncoder
@@ -82,7 +89,10 @@ def fit_encoder(keywords_path, model=None, trim=True, from_file=False, output=No
         print("* Label corpus in place")
         filename = keywords_path[:-4] + "_labeled{:s}.tsv".format(postfix)
         encoded = encoder.transform(mentions)
-        contents = ["\t".join([str(itr_l), itr_c[1], itr_c[2]]) for itr_l, itr_c in zip(encoded, contents)]
+        contents = [
+            "\t".join([str(itr_l), itr_c[1], itr_c[2]])
+            for itr_l, itr_c in zip(encoded, contents)
+        ]
         print(contents[732315])
         write_to_file(filename, contents)
         # contents['label'] = encoded
@@ -90,8 +100,17 @@ def fit_encoder(keywords_path, model=None, trim=True, from_file=False, output=No
         # print(contents['mention'][732315])
         print("Converted to file: {:s}".format(filename))
 
-def replace_labels(keywords_path, corpus, labels, output, subwords=None, mode="MULTI",
-                   duplicate=True, thread=5, limit=None, tag=None):
+
+def replace_labels(keywords_path,
+                   corpus,
+                   labels,
+                   output,
+                   subwords=None,
+                   mode="MULTI",
+                   duplicate=True,
+                   thread=5,
+                   limit=None,
+                   tag=None):
     """
 
     Arguments:
@@ -138,6 +157,7 @@ def replace_labels(keywords_path, corpus, labels, output, subwords=None, mode="M
     # Write result to file
     write_to_file(output, result)
 
+
 def acquire_statistic(corpus, keywords_path, output=None, tag=None):
     """
     """
@@ -166,41 +186,61 @@ def acquire_statistic(corpus, keywords_path, output=None, tag=None):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument("keywords_path", type=str,
-                        help="Path to where mention dictionaries are saved.")
+    parser.add_argument(
+        "keywords_path",
+        type=str,
+        help="Path to where mention dictionaries are saved.")
     parser.add_argument("--model", type=str, help="Output encoder name.")
     parser.add_argument("--output", type=str, help="Sentences with key words")
     parser.add_argument("--tag", type=str, help="Make tags on the files.")
-    parser.add_argument("--from_file", action="store_true", help="Load just from single file.")
+    parser.add_argument(
+        "--from_file", action="store_true", help="Load just from single file.")
     parser.add_argument("--mode", choices=["SINGLE", "MULTI"], \
                         nargs='?' , default="MULTI", help="Single mention or \
-                        multi-mentions per sentence.")
+                        multi-mentions per sentence."                                                     )
     #
-    parser.add_argument("--stat", action="store_true",
-                        help="Acquire statistic about the amount of data in mentions.")
+    parser.add_argument(
+        "--stat",
+        action="store_true",
+        help="Acquire statistic about the amount of data in mentions.")
     #
-    parser.add_argument("--find_parents", action="store_true",
-                        help="Find parents for all types.")
+    parser.add_argument(
+        "--find_parents",
+        action="store_true",
+        help="Find parents for all types.")
     #
-    parser.add_argument("--replace", action="store_true", help="Replace labels.")
-    parser.add_argument("--labels", help="Points to data/label.json \
+    parser.add_argument(
+        "--replace", action="store_true", help="Replace labels.")
+    parser.add_argument(
+        "--labels",
+        help="Points to data/label.json \
                         (when replacing labels).")
-    parser.add_argument("--trim", action="store_true", help="Use trimmed hierarchy tree.")
-    parser.add_argument("--no_duplicate", action="store_false",
-                        help="Do not duplicate sentences if multiple mentions are found.")
-    parser.add_argument("--corpus", help="Input labeled sentences to be replaced.")
+    parser.add_argument(
+        "--trim", action="store_true", help="Use trimmed hierarchy tree.")
+    parser.add_argument(
+        "--no_duplicate",
+        action="store_false",
+        help="Do not duplicate sentences if multiple mentions are found.")
+    parser.add_argument(
+        "--corpus", help="Input labeled sentences to be replaced.")
     parser.add_argument("--subwords", help="Subword information to be added.")
-    parser.add_argument("--thread", type=int, help="Number of threads \
-                        to run, default: 2 * number_of_cores") 
-    parser.add_argument("--limit", type=int, help="Number of maximum lines to load.")
+    parser.add_argument(
+        "--thread",
+        type=int,
+        help="Number of threads \
+                        to run, default: 2 * number_of_cores")
+    parser.add_argument(
+        "--limit", type=int, help="Number of maximum lines to load.")
 
     args = parser.parse_args()
 
     if args.replace:
-        replace_labels(args.keywords_path, args.corpus, args.labels, args.output,
-                       args.subwords, args.mode, args.no_duplicate, args.thread,
-                       args.from_file, args.limit, args.tag)
+        replace_labels(args.keywords_path, args.corpus, args.labels,
+                       args.output, args.subwords, args.mode,
+                       args.no_duplicate, args.thread, args.from_file,
+                       args.limit, args.tag)
     elif args.stat:
         acquire_statistic(args.corpus, args.keywords_path, args.output)
     else:
-        fit_encoder(args.keywords_path, args.model, args.trim, args.from_file, args.output, args.tag)
+        fit_encoder(args.keywords_path, args.model, args.trim, args.from_file,
+                    args.output, args.tag)

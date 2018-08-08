@@ -3,8 +3,8 @@ from utils import load_rules, generic_threading, punctuation_cleanup, readlines,
 from tqdm import tqdm
 from itertools import chain
 
-
 # python src/preliminary.py data/smaller.tsv src/refine_rules/preliminary.tsv --thread=5
+
 
 def preliminary_cleanup(corpus, rule, output=None, thread=None, limit=None):
     """
@@ -41,11 +41,18 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("corpus", help="Input sentences to be recognized.")
     parser.add_argument("rule", help="Cleanup rules (.tsv).")
-    parser.add_argument("--output", help="Output file name. \
+    parser.add_argument(
+        "--output",
+        help="Output file name. \
                         [Default Postfix: \"_preprocessed.tsv\"].")
-    parser.add_argument("--thread", type=int, help="Number of threads \
+    parser.add_argument(
+        "--thread",
+        type=int,
+        help="Number of threads \
                         to run. [Default: 2 * number_of_cores]")
-    parser.add_argument("--limit", type=int, help="Number of maximum lines to load.")
+    parser.add_argument(
+        "--limit", type=int, help="Number of maximum lines to load.")
     args = parser.parse_args()
 
-    preliminary_cleanup(args.corpus, args.rule, args.output, args.thread, args.limit)
+    preliminary_cleanup(args.corpus, args.rule, args.output, args.thread,
+                        args.limit)

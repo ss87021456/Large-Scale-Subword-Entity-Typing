@@ -5,8 +5,8 @@ from itertools import chain
 from tqdm import tqdm
 from utils import write_to_file, readlines, load_rules, generic_threading, punctuation_cleanup
 
-
 # python src/extract_vocabulary.py data/smaller_preprocessed.tsv src/refine_rules/voc_cleanup.tsv --thread=5
+
 
 def extract_vocabularies(corpus, rule, output=None, thread=None):
     """
@@ -45,9 +45,14 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("corpus", help="Input sentences to be recognized.")
     parser.add_argument("rule", help="Rules to purify vocabularies.")
-    parser.add_argument("--output", help="File name for vocabulary list to\
+    parser.add_argument(
+        "--output",
+        help="File name for vocabulary list to\
                         be saved. [Default: vocabulary_list.json]")
-    parser.add_argument("--thread", type=int, help="Number of threads \
+    parser.add_argument(
+        "--thread",
+        type=int,
+        help="Number of threads \
                         to run. [Default: 2 * number_of_cores]")
 
     args = parser.parse_args()

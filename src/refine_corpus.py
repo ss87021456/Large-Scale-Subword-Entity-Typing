@@ -3,8 +3,8 @@ from tqdm import tqdm
 from itertools import chain
 from utils import write_to_file, load_rules, readlines, generic_threading, corpus_cleanup
 
-
 # python src/refine_corpus.py data/smaller_preprocessed_cleaned.txt src/refine_rules/ --thread=5
+
 
 def refine_corpus(corpus, rule_path, output=None, thread=None):
     """
@@ -35,7 +35,7 @@ def refine_corpus(corpus, rule_path, output=None, thread=None):
     # Threading
     param = (parentheses, refine_list)
     result = generic_threading(thread, raw_data, corpus_cleanup, param)
-    
+
     # Write all result to file
     write_to_file(output, result)
 
@@ -43,10 +43,15 @@ def refine_corpus(corpus, rule_path, output=None, thread=None):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("corpus", help="Input sentences to be recognized.")
-    parser.add_argument("rule_path", help="Path to the rules defined in \
+    parser.add_argument(
+        "rule_path",
+        help="Path to the rules defined in \
                         \"parentheses.tsv\" and \"refine_list.tsv\".")
     parser.add_argument("--output", help="Sentences with key words")
-    parser.add_argument("--thread", type=int, help="Number of threads \
+    parser.add_argument(
+        "--thread",
+        type=int,
+        help="Number of threads \
                         to run. [Default: 2 * number_of_cores]")
 
     args = parser.parse_args()

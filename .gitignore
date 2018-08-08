@@ -6,3 +6,6 @@ src/__pycache__/
 *.swp
 *.hdf5
 *.pkl
+*.txt
+*.emb
+*.vec

@@ -4,7 +4,6 @@ import numpy as np
 from itertools import chain
 from collections import Counter
 from utils import write_to_file, readlines, merge_dict
-
 """
 python src/hierarchical_eval.py --labels=data/label.json \
 --mention=mention_list.txt --prediction=... \
@@ -15,7 +14,14 @@ python src/hierarchical_eval.py --labels=data/label.json \
 --k_parents=5 --hierarchy=data/ --merge
 """
 
-def k_parents_eval(l_file, m_file, pred_file, k_parents, hierarchy_path, merge=False, output=None):
+
+def k_parents_eval(l_file,
+                   m_file,
+                   pred_file,
+                   k_parents,
+                   hierarchy_path,
+                   merge=False,
+                   output=None):
     """
     Args:
         l_file(str): Labels file containing dictionary of {MENTION: LABEL}.
@@ -71,8 +77,8 @@ def k_parents_eval(l_file, m_file, pred_file, k_parents, hierarchy_path, merge=F
     pred = [[itr[0].split(","), itr[1].split(",")] for itr in pred]
 
     # Parse str to integer and lookup for the type (in context)
-    print("\nCalculating {:d}-layer parents accuracy (MODE: {:s}):"
-          .format(k_parents, "MERGE" if merge else "RAW"))
+    print("\nCalculating {:d}-layer parents accuracy (MODE: {:s}):".format(
+        k_parents, "MERGE" if merge else "RAW"))
     acc_collection, depth = list(), list()
     # For each instance
     for idx, itr in enumerate(pred):
@@ -85,7 +91,9 @@ def k_parents_eval(l_file, m_file, pred_file, k_parents, hierarchy_path, merge=F
 
         # Lookup the dictionary containing the path of each node
         # Each entry contains list(All paths) of list(Path)
-        prediction = [-1 if itr == "" else labels_dict[int(itr)] for itr in prediction]
+        prediction = [
+            -1 if itr == "" else labels_dict[int(itr)] for itr in prediction
+        ]
         ground_truth = [labels_dict[int(itr)] for itr in ground_truth]
 
         # Calculate accuracy
@@ -96,7 +104,8 @@ def k_parents_eval(l_file, m_file, pred_file, k_parents, hierarchy_path, merge=F
             for itr_k in range(k_parents):
                 # print("Layer {:d}: {:s}".format(itr_k, itr_path[itr_k]))
                 try:
-                    per_path_acc.append(1. if itr_path[itr_k] in prediction else 0.)
+                    per_path_acc.append(1. if itr_path[itr_k] in prediction
+                                        else 0.)
                 # The result if NaN if the path is not long enough
                 except:
                     per_path_acc.append(-1. if merge else np.nan)
@@ -122,27 +131,34 @@ def k_parents_eval(l_file, m_file, pred_file, k_parents, hierarchy_path, merge=F
     print(" LAYER# | N_INSTANCES | ACCURACY | #NODES")
     print("=========================================")
     for itr, n in zip(range(k_parents), n_instances):
-        print("Layer {:2d}:  {:10d} |   {:.2f}% | {:5d}"
-              .format(itr + 1, n, 100. * accuracy[itr], statistics[itr]))
+        print("Layer {:2d}:  {:10d} |   {:.2f}% | {:5d}".format(
+            itr + 1, n, 100. * accuracy[itr], statistics[itr]))
     # info
     depth = np.array(list(chain.from_iterable(depth)))
     print("=========================================")
-    print("Depth: MEAN={:2.2f} | MAX={:2.2f} | MIN={:2.2f}"
-          .format(depth.mean(), depth.max(), depth.min()))
+    print("Depth: MEAN={:2.2f} | MAX={:2.2f} | MIN={:2.2f}".format(
+        depth.mean(), depth.max(), depth.min()))
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument("--labels", help="Label for mapping types to label values.")
-    parser.add_argument("--mention", help="Mention of each instance, for evaluation.")
+    parser.add_argument(
+        "--labels", help="Label for mapping types to label values.")
+    parser.add_argument(
+        "--mention", help="Mention of each instance, for evaluation.")
     parser.add_argument("--output", help="Sentences with key words")
     parser.add_argument("--prediction", help="Dumped prediction.")
-    parser.add_argument("--k_parents", type=int, default=5, help="Dumped prediction.")
-    parser.add_argument("--hierarchy", help="Hierarchy information for k-parent evaluation.")
-    parser.add_argument("--merge", action="store_true", help="Calculate MERGED accuracy: "
-                        "If an instance's type is correctly predicted on at least one path "
-                        "at layer k, than we'll count it as a correct prediction at that "
-                        "layer (the true accuracy is aprroximated.)")
+    parser.add_argument(
+        "--k_parents", type=int, default=5, help="Dumped prediction.")
+    parser.add_argument(
+        "--hierarchy", help="Hierarchy information for k-parent evaluation.")
+    parser.add_argument(
+        "--merge",
+        action="store_true",
+        help="Calculate MERGED accuracy: "
+        "If an instance's type is correctly predicted on at least one path "
+        "at layer k, than we'll count it as a correct prediction at that "
+        "layer (the true accuracy is aprroximated.)")
 
     args = parser.parse_args()
 

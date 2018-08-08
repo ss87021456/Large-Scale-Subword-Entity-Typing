@@ -11,10 +11,10 @@ from tqdm import tqdm
 from pprint import pprint
 from copy import copy
 
-
 # python src/parse_entity.py data/MeSH_type_hierarchy.txt --trim --threshold=1
 # python src/parse_entity.py data/UMLS_type_hierarchy.txt --trim --threshold=1
 # python src/parse_entity.py data/custom_subwords_v2.txt --subword
+
 
 def entity_parser(file, trim=True, threshold=1, plot=False):
     """
@@ -94,8 +94,7 @@ def entity_parser(file, trim=True, threshold=1, plot=False):
         # Leaf node correspond to a entity
         if entity[key][-1] == '*':
             # copy the types
-            type_list = [value[keys.index(itr)]
-                         for itr in entity[key][:-1]]
+            type_list = [value[keys.index(itr)] for itr in entity[key][:-1]]
             # parsing the mentions (TBC)
             mention = type_list[-1]
             # print("{0}".format(mention))
@@ -111,9 +110,11 @@ def entity_parser(file, trim=True, threshold=1, plot=False):
                 mention = [mention]
                 pass
             # create a dictionary with types and mentions
-            entity[key] = {"TYPE": type_list,
-                           "MENTION": mention,
-                           "PATH": [copy(type_list)]}
+            entity[key] = {
+                "TYPE": type_list,
+                "MENTION": mention,
+                "PATH": [copy(type_list)]
+            }
             # print(mention)
             pass
         else:
@@ -241,7 +242,8 @@ def entity_parser(file, trim=True, threshold=1, plot=False):
             y = list(np.cumsum(y))
             #
             plt.plot(x, y)
-            plt.title("Cumulative label occurence (Total: {0})".format(n_total_types))
+            plt.title("Cumulative label occurence (Total: {0})".format(
+                n_total_types))
             plt.xlabel("occurence (occurence > 100 are treated as 100)")
             # plt.ylabel("# of labels")
             plt.ylabel("Percentage of all labels(%)")
@@ -272,10 +274,10 @@ def entity_parser(file, trim=True, threshold=1, plot=False):
         reduced = (n_org_labels - n_trim_labels)
         reduced_per = 100. * reduced / n_org_labels
 
-        print("Trimmed labels from {:8d} to {:8d} (threshold = {:3d})"
-              .format(n_org_labels, n_trim_labels, threshold))
-        print(" - Reduced labels by {:2.2f}% ({:5d} labels)"
-              .format(reduced_per, reduced))
+        print("Trimmed labels from {:8d} to {:8d} (threshold = {:3d})".format(
+            n_org_labels, n_trim_labels, threshold))
+        print(" - Reduced labels by {:2.2f}% ({:5d} labels)".format(
+            reduced_per, reduced))
         print(len(trimmed_leaf))
 
         # Save trimmed labels to file
@@ -283,6 +285,7 @@ def entity_parser(file, trim=True, threshold=1, plot=False):
         write_to_file(trimmed, trimmed_leaf)
     else:
         print("Threshold = 0, no trimming.")
+
 
 def extract_mentions(path, trim=True):
     """
@@ -293,6 +296,7 @@ def extract_mentions(path, trim=True):
     print(len(mentions))
     write_to_file("mention_list.txt", mentions)
     pass
+
 
 def parse_subwords(file):
     """
@@ -328,14 +332,20 @@ def parse_subwords(file):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("file", help="File to be parsed.")
-    parser.add_argument("--subword", action="store_true",
-                        help="Parse subword list.")
-    parser.add_argument("--trim", action="store_true",
-                        help="Trim the hierarchy tree.")
-    parser.add_argument("--threshold", nargs='?', type=int, default=2, 
-                        help="occurence below threshold would be filtered out.")
-    parser.add_argument("--plot", action="store_true", 
-                        help="Plot statistics if the argument is given.")
+    parser.add_argument(
+        "--subword", action="store_true", help="Parse subword list.")
+    parser.add_argument(
+        "--trim", action="store_true", help="Trim the hierarchy tree.")
+    parser.add_argument(
+        "--threshold",
+        nargs='?',
+        type=int,
+        default=2,
+        help="occurence below threshold would be filtered out.")
+    parser.add_argument(
+        "--plot",
+        action="store_true",
+        help="Plot statistics if the argument is given.")
 
     args = parser.parse_args()
 

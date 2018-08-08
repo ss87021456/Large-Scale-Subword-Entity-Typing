@@ -12,7 +12,7 @@ from string import punctuation
 from itertools import chain
 from nltk.corpus import stopwords
 from keras.layers import Embedding
-from fastText_model import fastText # pretrain-model
+from fastText_model import fastText  # pretrain-model
 import pickle as pkl
 
 
@@ -29,6 +29,7 @@ def vprint(msg, verbose=False):
     else:
         pass
 
+
 def vpprint(msg, verbose=False):
     """
     """
@@ -36,6 +37,7 @@ def vpprint(msg, verbose=False):
         pprint(msg)
     else:
         pass
+
 
 def load_rules(file):
     """
@@ -50,7 +52,13 @@ def load_rules(file):
     #
     return rules
 
-def readlines(file, begin=None, limit=None, delimitor=None, rand=False, skip=False):
+
+def readlines(file,
+              begin=None,
+              limit=None,
+              delimitor=None,
+              rand=False,
+              skip=False):
     """
     Read and split all content in the files line by line.
 
@@ -77,7 +85,7 @@ def readlines(file, begin=None, limit=None, delimitor=None, rand=False, skip=Fal
                 result = list()
                 for abstract in data:
                     tab_index = abstract.find('\t')
-                    abstract = abstract[tab_index+1:] # skip PMID\t
+                    abstract = abstract[tab_index + 1:]  # skip PMID\t
                     result.append(abstract)
                 data = result
     else:
@@ -131,8 +139,13 @@ def write_to_file(file, data):
             exit()
     print("File saved in {:s}".format(file))
 
-def create_embedding_layer(tokenizer_model, filename, max_num_words, max_length,
-                           embedding_dim, preload=None):
+
+def create_embedding_layer(tokenizer_model,
+                           filename,
+                           max_num_words,
+                           max_length,
+                           embedding_dim,
+                           preload=None):
     """
     Args:
         tokenizer_model(str): Pre-trained tokenizer for the data.
@@ -159,7 +172,8 @@ def create_embedding_layer(tokenizer_model, filename, max_num_words, max_length,
             print("Pre-loaded embedding layer is given, use pre-loaded one.")
             embeddings_index = preload
         else:
-            print("Loading pre-trained embedding model from {0}...".format(filename))
+            print("Loading pre-trained embedding model from {0}...".format(
+                filename))
             embeddings_index = fastText(filename, dim=embedding_dim)
 
         print("Preparing embedding matrix...")
@@ -174,16 +188,21 @@ def create_embedding_layer(tokenizer_model, filename, max_num_words, max_length,
                 # words not found in embedding index will be all-zeros.
                 embedding_matrix[idx] = embedding_vector
         # keras.layers.Embedding
-        embedding_layer = Embedding(num_words, embedding_dim,
-                                    weights=[embedding_matrix],
-                                    input_length=max_length,
-                                    trainable=True)
+        embedding_layer = Embedding(
+            num_words,
+            embedding_dim,
+            weights=[embedding_matrix],
+            input_length=max_length,
+            trainable=True)
     else:
-        print("No pre-trained embedding is given, training embedding from scratch.")
+        print(
+            "No pre-trained embedding is given, training embedding from scratch."
+        )
         embedding_layer, embeddings_index = None, None
 
     # Return embedding_layer only if reuse is not asserted
     return (embedding_layer, embeddings_index)
+
 
 def split_data(data, n_slice, mode="TUPLE"):
     """
@@ -218,6 +237,7 @@ def split_data(data, n_slice, mode="TUPLE"):
             return None
     #
     return partitioned_data
+
 
 def generic_threading(n_jobs, data, method, param=None, shared=False):
     """
@@ -257,6 +277,7 @@ def generic_threading(n_jobs, data, method, param=None, shared=False):
     print("All threads completed.")
     return result if not shared else None
 
+
 def multi_mentions(name):
     """
 
@@ -278,13 +299,15 @@ def multi_mentions(name):
     # A, B, C -> A, BA, CBA
     elif ", " in name:
         parsed = name.split(", ")
-        synonym = [" ".join(reversed(parsed[: i + 1]))
-                   for i in range(len(parsed))]
+        synonym = [
+            " ".join(reversed(parsed[:i + 1])) for i in range(len(parsed))
+        ]
     # normal (no synonyms)
     else:
         synonym = [name]
 
     return synonym
+
 
 def punctuation_cleanup(thread_idx, data, rules, mode):
     """
@@ -306,11 +329,11 @@ def punctuation_cleanup(thread_idx, data, rules, mode):
     """
     desc = "Thread {:02d}".format(thread_idx + 1)
     ########### EXCEPTION HANDLING ########### (TO-BE-IMPELMENTED)
-    # assert mode 
+    # assert mode
 
     linewords = list()
     for article in tqdm(data, position=thread_idx, desc=desc):
-    # for article in data:
+        # for article in data:
         # replace tabs as spaces
         article = article.replace("\t", " ")
         # SPLIT_WORDS: used in finding vocabularies
@@ -323,15 +346,19 @@ def punctuation_cleanup(thread_idx, data, rules, mode):
                 # symbols at the end
                 if pattern.startswith("*"):
                     symbol = pattern[1:]
-                    vocabulary = [i[:-len(symbol)] if i.endswith(symbol)
-                                  and not "-" in i else i
-                                  for i in vocabulary]
+                    vocabulary = [
+                        i[:-len(symbol)]
+                        if i.endswith(symbol) and not "-" in i else i
+                        for i in vocabulary
+                    ]
                 # symbols in the beginning
                 elif pattern.endswith("*"):
                     symbol = pattern[:-1]
-                    vocabulary = [i[len(symbol):] if i.startswith(symbol)
-                                  and not "-" in i else i
-                                  for i in vocabulary]
+                    vocabulary = [
+                        i[len(symbol):]
+                        if i.startswith(symbol) and not "-" in i else i
+                        for i in vocabulary
+                    ]
                 else:
                     vocabulary = [i.replace(pattern, "") for i in vocabulary]
 
@@ -347,7 +374,8 @@ def punctuation_cleanup(thread_idx, data, rules, mode):
                 if tag.startswith("*"):
                     tag = tag[1:]
                     for itr_found in found:
-                        article = article.replace(itr_found, itr_found.replace(tag, tag + " "))
+                        article = article.replace(
+                            itr_found, itr_found.replace(tag, tag + " "))
                 else:
                     for itr_found in found:
                         article = article.replace(itr_found, tag)
@@ -358,6 +386,7 @@ def punctuation_cleanup(thread_idx, data, rules, mode):
     if mode == "SPLIT_WORDS":
         linewords = list(chain.from_iterable(linewords))
     return linewords
+
 
 def corpus_cleanup(thread_idx, data, parentheses, refine_list):
     """
@@ -380,9 +409,9 @@ def corpus_cleanup(thread_idx, data, parentheses, refine_list):
     #
     result = list()
     for article in tqdm(data, position=thread_idx, desc=desc):
-        article = article[article.find("\t") + 1:] # skip PMID\t
+        article = article[article.find("\t") + 1:]  # skip PMID\t
         # refine the corpus
-        # Find contents within parentheses 
+        # Find contents within parentheses
         contents = re.findall(r"\(.*?\)", article)
         for itr_content in contents:
             for itr_tag in parentheses:
@@ -403,6 +432,7 @@ def corpus_cleanup(thread_idx, data, parentheses, refine_list):
         result.append(article.lower())
 
     return result
+
 
 def keyword_in_sentences(thread_idx, data, keywords, mode="SINGLE"):
     """
@@ -468,8 +498,14 @@ def keyword_in_sentences(thread_idx, data, keywords, mode="SINGLE"):
             result.append(line + "\t" + "\t".join(found_keyword))
     return result
 
-def keywords_as_labels(thread_idx, data, keywords, labels, subwords=None,
-                       mode=None, duplicate=True):
+
+def keywords_as_labels(thread_idx,
+                       data,
+                       keywords,
+                       labels,
+                       subwords=None,
+                       mode=None,
+                       duplicate=True):
     """
     Arguments:
         thread_idx(int): Order of threads, used to align progressbars.
@@ -531,7 +567,10 @@ def keywords_as_labels(thread_idx, data, keywords, labels, subwords=None,
 
                         # Remove punctuations which SHOULD BE CONSISTENT with that used in subword model
                         # ***TO-BE-IMPLEMENTED AS LOADING RULES FROM EXTERNAL FILE***
-                        words = [re.sub("[" + punctuation + "0-9]", "", itr) for itr in words]
+                        words = [
+                            re.sub("[" + punctuation + "0-9]", "", itr)
+                            for itr in words
+                        ]
 
                         # Acquire all subwords for each word in mentions
                         subword_list = list()
@@ -562,7 +601,9 @@ def keywords_as_labels(thread_idx, data, keywords, labels, subwords=None,
 
                         # Mention Features: [mention _ subwords]
                         ###mention_features = itr_mention + " " + " ".join(filtered_subword_list[1:] if len(words) == 1 else filtered_subword_list)
-                        mention_features = itr_mention + "\t" + " ".join(subword_list[1:] if len(words) == 1 else subword_list)
+                        mention_features = itr_mention + "\t" + " ".join(
+                            subword_list[1:]
+                            if len(words) == 1 else subword_list)
 
                     # If no subword information is given, then the feature is just the mentions
                     else:
@@ -584,6 +625,7 @@ def keywords_as_labels(thread_idx, data, keywords, labels, subwords=None,
             pass
 
     return result
+
 
 def merge_dict(path, trim=True, save_to_file=False, postfix=None):
     """
