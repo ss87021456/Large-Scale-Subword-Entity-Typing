@@ -26,11 +26,11 @@ MAX_NUM_WORDS = 30000
 MAX_NUM_MENTION_WORDS = 20000
 MAX_SEQUENCE_LENGTH = 40
 MAX_MENTION_LENGTH = 5  # 15 if subowrd else 5
-EMBEDDING_DIM = 300
+EMBEDDING_DIM = 100
 
 # Hyper-parameter
-batch_size = 64
-epochs = 1
+# batch_size = 64
+# epochs = 1
 
 # Set memory constraint
 import tensorflow as tf
@@ -48,6 +48,8 @@ def run(model_dir,
         data_tag=None,
         tag=None,
         category=False,
+        batch_size=64,
+        epochs=5,
         optimizer='adam',
         learning_rate=0.001):
     postfix = ("_" + data_tag) if data_tag is not None else ""
@@ -284,6 +286,14 @@ if __name__ == '__main__':
         type=str,
         default="BLSTM",
         help="Different model architecture BLTSM or CNN [Default: \"BLSTM\"]")
+    # Training hyperparameters
+    parser.add_argument(
+        "--batch_size", type=int, default=64, help="MiniBatch size.")
+    parser.add_argument(
+        "--epochs",
+        type=int,
+        default=5,
+        help="The number of epochs to train the model.")
     parser.add_argument(
         "--optimizer",
         nargs='?',
@@ -305,5 +315,5 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     run(args.model, args.arch, args.emb, args.subword, args.attention,
-        args.data_tag, args.tag, args.category, args.optimizer,
-        args.learning_rate)
+        args.data_tag, args.tag, args.category, args.batch_size, args.epochs,
+        args.optimizer, args.learning_rate)

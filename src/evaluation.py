@@ -240,9 +240,16 @@ def predict(model,
     y_pred = model.predict([X[:amount], X_m[:amount]])
     print("Done (took {:3.3f}s)".format(time() - start_time))
 
-    y_pred[y_pred >= 0.5] = 1.
-    y_pred[y_pred < 0.5] = 0.
-    y_pred = sparse.csr_matrix(y_pred)
+    print(y_pred)
+    if category:
+        y_pred = (y_pred == y_pred.max(axis=1)[:, None]).astype(int)
+    else:
+        y_pred[y_pred >= 0.5] = 1.
+        y_pred[y_pred < 0.5] = 0.
+
+    print(y_pred)
+    print(y_pred.sum(axis=1))
+    y_pred = spaese.csr_matrix(y_pred)
 
     F1 = 0.
     file_writer = open(output, "a")

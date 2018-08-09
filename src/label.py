@@ -197,7 +197,7 @@ if __name__ == '__main__':
         "--from_file", action="store_true", help="Load just from single file.")
     parser.add_argument("--mode", choices=["SINGLE", "MULTI"], \
                         nargs='?' , default="MULTI", help="Single mention or \
-                        multi-mentions per sentence."                                                     )
+                        multi-mentions per sentence."                                                                                                                                                               )
     #
     parser.add_argument(
         "--stat",
