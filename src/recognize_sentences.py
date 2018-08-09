@@ -67,7 +67,7 @@ if __name__ == '__main__':
     # optional arguments
     parser.add_argument("--mode", choices=["SINGLE", "MULTI"], \
                         nargs='?' , default="MULTI", help="Single mention or \
-                        multi-mentions per sentence."                                                                                                                                                               )
+                        multi-mentions per sentence."                                                                                                                                                                                                                    )
     # parser.add_argument("--split", action="store_true", help="Split the dataset.")
     # parser.add_argument("--validation", nargs='?', const=0.1, type=float,
     #                     help="The ratio of validation dataset when --split is given.")
