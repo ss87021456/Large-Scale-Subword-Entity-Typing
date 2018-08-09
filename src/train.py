@@ -110,7 +110,6 @@ def run(model_dir,
     print("Building {0} with attention: {1}, subword: {2}".format(
         model_type, attention, subword))
     print("Using {0} optimizer (lr={1})".format(optimizer, learning_rate))
-    print(opt)
     if optimizer == 'adam':
         opt = Adam(lr=learning_rate)
     elif optimizer == 'RMS':
@@ -119,6 +118,7 @@ def run(model_dir,
         opt = Adagrad(lr=learning_rate)
     elif optimizer == 'SGD':
         opt = SGD(lr=learning_rate)
+    print(opt)
 
     if model_type == "BLSTM":
         model = BLSTM(
