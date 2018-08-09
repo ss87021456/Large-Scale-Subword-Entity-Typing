@@ -93,7 +93,7 @@ def fit_encoder(keywords_path,
             "\t".join([str(itr_l), itr_c[1], itr_c[2]])
             for itr_l, itr_c in zip(encoded, contents)
         ]
-        print(contents[732315])
+        
         write_to_file(filename, contents)
         # contents['label'] = encoded
         # contents.to_csv(filename, sep="\t", header=False, index=False)

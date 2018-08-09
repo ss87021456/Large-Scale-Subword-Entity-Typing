@@ -54,7 +54,7 @@ def run(model_dir,
         learning_rate=0.001):
     postfix = ("_" + data_tag) if data_tag is not None else ""
     tag = ("_" + tag) if tag is not None else ""
-    print(postfix)
+    
     # Parse directory name
     if not model_dir.endswith("/"):
         model_dir += "/"
@@ -105,7 +105,7 @@ def run(model_dir,
     print("Building computational graph...")
     print("Building {0} with attention: {1}, subword: {2}".format(
         model_type, attention, subword))
-    print("Using optimizer {0}".format(optimizer))
+    print("Using {0} optimizer (lr={1})".format(optimizer, learning_rate))
     if optimizer == 'adam':
         opt = Adam(lr=learning_rate)
     elif optimizer == 'RMS':
