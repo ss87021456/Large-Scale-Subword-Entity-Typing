@@ -195,9 +195,12 @@ if __name__ == '__main__':
     parser.add_argument("--tag", type=str, help="Make tags on the files.")
     parser.add_argument(
         "--from_file", action="store_true", help="Load just from single file.")
-    parser.add_argument("--mode", choices=["SINGLE", "MULTI"], \
-                        nargs='?' , default="MULTI", help="Single mention or \
-                        multi-mentions per sentence."                                                                                                                                                                                                                                                                                                                              )
+    parser.add_argument(
+        "--mode",
+        choices=["SINGLE", "MULTI"],
+        nargs='?',
+        default="MULTI",
+        help="Single mention or multi-mentions per sentence.")
     #
     parser.add_argument(
         "--stat",
@@ -212,9 +215,7 @@ if __name__ == '__main__':
     parser.add_argument(
         "--replace", action="store_true", help="Replace labels.")
     parser.add_argument(
-        "--labels",
-        help="Points to data/label.json \
-                        (when replacing labels).")
+        "--labels", help="Points to data/label.json (when replacing labels).")
     parser.add_argument(
         "--trim", action="store_true", help="Use trimmed hierarchy tree.")
     parser.add_argument(
@@ -227,8 +228,7 @@ if __name__ == '__main__':
     parser.add_argument(
         "--thread",
         type=int,
-        help="Number of threads \
-                        to run, default: 2 * number_of_cores")
+        help="Number of threads to run, default: 2 * number_of_cores")
     parser.add_argument(
         "--limit", type=int, help="Number of maximum lines to load.")
 

@@ -61,24 +61,19 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("corpus", help="Input sentences to be recognized.")
     parser.add_argument(
-        "keywords_path",
-        help="Put all dictionaries \
-                         end with \"_leaf.json\".")
+        "keywords_path", help="Put all dictionaries end with \"_leaf.json\".")
     # optional arguments
-    parser.add_argument("--mode", choices=["SINGLE", "MULTI"], \
-                        nargs='?' , default="MULTI", help="Single mention or \
-                        multi-mentions per sentence."                                                                                                                                                                                                                                                                                                                              )
-    # parser.add_argument("--split", action="store_true", help="Split the dataset.")
-    # parser.add_argument("--validation", nargs='?', const=0.1, type=float,
-    #                     help="The ratio of validation dataset when --split is given.")
-    # parser.add_argument("--testing", nargs='?', const=0.1, type=float,
-    #                     help="The ratio of testing dataset when --split is given.")
+    parser.add_argument(
+        "--mode",
+        choices=["SINGLE", "MULTI"],
+        nargs='?',
+        default="MULTI",
+        help="Single mention or multi-mentions per sentence.")
     parser.add_argument("--output", help="Sentences with key words")
     parser.add_argument(
         "--thread",
         type=int,
-        help="Number of threads \
-                        to run, default: 2 * number_of_cores")
+        help="Number of threads to run, default: 2 * number_of_cores")
     parser.add_argument(
         "--label",
         action="store_true",
@@ -87,8 +82,6 @@ if __name__ == '__main__':
         "--trim",
         action="store_true",
         help="Use trimmed hierarchy tree labels.")
-    # parser.add_argument("--disjoint", action="store_true",
-    #                     help="Make the mentions exclusive between partitions.")
     parser.add_argument(
         "--limit", type=int, help="Number of maximum lines to load.")
     args = parser.parse_args()
