@@ -1,5 +1,6 @@
 from scipy import sparse
 import argparse
+import numpy as np
 import pickle as pkl
 from utils import create_embedding_layer
 from sklearn.metrics import precision_recall_fscore_support
@@ -9,7 +10,6 @@ from nn_model import BLSTM, CNN, Text_CNN
 from evaluation import just_test, predict
 from keras.optimizers import Adam, Adagrad, SGD, RMSprop
 
-import numpy as np
 # Training w/o pretrained
 # CUDA_VISIBLE_DEVICES=0 python ./src/train.py --arch=[CNN,BLSTM]
 # CUDA_VISIBLE_DEVICES=0 python ./src/train.py --arch=[CNN,BLSTM] --data_tag=kbp
@@ -26,7 +26,7 @@ MAX_NUM_WORDS = 30000
 MAX_NUM_MENTION_WORDS = 20000
 MAX_SEQUENCE_LENGTH = 40
 MAX_MENTION_LENGTH = 5  # 15 if subowrd else 5
-EMBEDDING_DIM = 100
+# EMBEDDING_DIM = 100
 
 # Hyper-parameter
 # batch_size = 64
@@ -43,6 +43,7 @@ set_session(tf.Session(config=config))
 def run(model_dir,
         model_type,
         embedding=None,
+        embedding_dim=100,
         subword=False,
         attention=False,
         data_tag=None,
@@ -54,7 +55,7 @@ def run(model_dir,
         learning_rate=0.001):
     postfix = ("_" + data_tag) if data_tag is not None else ""
     tag = ("_" + tag) if tag is not None else ""
-    
+
     # Parse directory name
     if not model_dir.endswith("/"):
         model_dir += "/"
@@ -82,13 +83,16 @@ def run(model_dir,
         sb_tag, postfix)
     m_tokenizer_model = model_dir + "m_tokenizer_{0}_subword_filter{1}.pkl".format(
         sb_tag, postfix)
-    ###
+
+    ### TO-DOs: Support separate embedding parameters/pretrained models.
+    print("Creating embedding layers... (embedding_dim = {:d})".format(
+        embedding_dim))
     embedding_layer, preload = create_embedding_layer(
         tokenizer_model=tokenizer_model,
         filename=embedding,
         max_num_words=MAX_NUM_WORDS,
         max_length=MAX_SEQUENCE_LENGTH,
-        embedding_dim=EMBEDDING_DIM)
+        embedding_dim=embedding_dim)
     n_words = embedding_layer.input_dim if embedding is not None else MAX_NUM_WORDS
 
     m_embedding_layer, _ = create_embedding_layer(
@@ -96,7 +100,7 @@ def run(model_dir,
         filename=embedding,
         max_num_words=MAX_NUM_MENTION_WORDS,
         max_length=MAX_MENTION_LENGTH,
-        embedding_dim=EMBEDDING_DIM,
+        embedding_dim=embedding_dim,
         preload=preload)
     n_mention = m_embedding_layer.input_dim if embedding is not None else MAX_NUM_MENTION_WORDS
     del preload
@@ -106,6 +110,7 @@ def run(model_dir,
     print("Building {0} with attention: {1}, subword: {2}".format(
         model_type, attention, subword))
     print("Using {0} optimizer (lr={1})".format(optimizer, learning_rate))
+    print(opt)
     if optimizer == 'adam':
         opt = Adam(lr=learning_rate)
     elif optimizer == 'RMS':
@@ -118,7 +123,7 @@ def run(model_dir,
     if model_type == "BLSTM":
         model = BLSTM(
             label_num=label_num,
-            embedding_dim=EMBEDDING_DIM,
+            embedding_dim=embedding_dim,
             n_words=n_words,
             n_mention=n_mention,
             len_seq=MAX_SEQUENCE_LENGTH,
@@ -134,7 +139,7 @@ def run(model_dir,
     elif model_type == "CNN":
         model = CNN(
             label_num=label_num,
-            embedding_dim=EMBEDDING_DIM,
+            embedding_dim=embedding_dim,
             n_words=n_words,
             n_mention=n_mention,
             len_seq=MAX_SEQUENCE_LENGTH,
@@ -150,7 +155,7 @@ def run(model_dir,
     elif model_type == "Text_CNN":
         model = Text_CNN(
             label_num=label_num,
-            embedding_dim=EMBEDDING_DIM,
+            embedding_dim=embedding_dim,
             n_words=n_words,
             n_mention=n_mention,
             len_seq=MAX_SEQUENCE_LENGTH,
@@ -269,6 +274,11 @@ if __name__ == '__main__':
     parser.add_argument(
         "--emb", help="please provide pretrained Embedding Model.")
     parser.add_argument(
+        "--embedding_dim",
+        type=int,
+        default=100,
+        help="Embedding dimension for embedding layers.")
+    parser.add_argument(
         "--subword", action="store_true", help="Use subword or not")
     parser.add_argument(
         "--attention", action="store_true", help="Use attention or not")
@@ -314,6 +324,6 @@ if __name__ == '__main__':
         help="Extra name tag on the dataset.")
     args = parser.parse_args()
 
-    run(args.model, args.arch, args.emb, args.subword, args.attention,
-        args.data_tag, args.tag, args.category, args.batch_size, args.epochs,
-        args.optimizer, args.learning_rate)
+    run(args.model, args.arch, args.emb, args.embedding_dim, args.subword,
+        args.attention, args.data_tag, args.tag, args.category,
+        args.batch_size, args.epochs, args.optimizer, args.learning_rate)

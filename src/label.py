@@ -93,7 +93,7 @@ def fit_encoder(keywords_path,
             "\t".join([str(itr_l), itr_c[1], itr_c[2]])
             for itr_l, itr_c in zip(encoded, contents)
         ]
-        
+
         write_to_file(filename, contents)
         # contents['label'] = encoded
         # contents.to_csv(filename, sep="\t", header=False, index=False)
@@ -197,7 +197,7 @@ if __name__ == '__main__':
         "--from_file", action="store_true", help="Load just from single file.")
     parser.add_argument("--mode", choices=["SINGLE", "MULTI"], \
                         nargs='?' , default="MULTI", help="Single mention or \
-                        multi-mentions per sentence."                                                                                                                                                                                                                    )
+                        multi-mentions per sentence."                                                                                                                                                                                                                                                                                                                              )
     #
     parser.add_argument(
         "--stat",
