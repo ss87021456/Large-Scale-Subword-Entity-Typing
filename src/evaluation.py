@@ -249,7 +249,7 @@ def predict(model,
 
     print(y_pred)
     print(y_pred.sum(axis=1))
-    y_pred = spaese.csr_matrix(y_pred)
+    y_pred = sparse.csr_matrix(y_pred)
 
     F1 = 0.
     file_writer = open(output, "a")
