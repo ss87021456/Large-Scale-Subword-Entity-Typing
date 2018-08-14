@@ -219,7 +219,7 @@ def predict(model,
             output,
             amount=None,
             return_mf1=False,
-            category=False):
+            use_softmax=False):
     """
     Given the model object, data, labels, this function simply predict and evaluate
     the defined metrics with the model on the given data.
@@ -240,15 +240,15 @@ def predict(model,
     y_pred = model.predict([X[:amount], X_m[:amount]])
     print("Done (took {:3.3f}s)".format(time() - start_time))
 
-    print(y_pred)
-    if category:
+    # print(y_pred)
+    if use_softmax:
         y_pred = (y_pred == y_pred.max(axis=1)[:, None]).astype(int)
     else:
         y_pred[y_pred >= 0.5] = 1.
         y_pred[y_pred < 0.5] = 0.
 
-    print(y_pred)
-    print(y_pred.sum(axis=1))
+    # print(y_pred)
+    # print(y_pred.sum(axis=1))
     y_pred = sparse.csr_matrix(y_pred)
 
     F1 = 0.
@@ -281,7 +281,7 @@ def just_test(model,
               tag=None,
               postfix=None,
               amount=None,
-              category=False):
+              use_softmax=False):
     """
     Given the model object and the previously stored weights file,
     this function just restore the weights, load testing data and
@@ -321,7 +321,7 @@ def just_test(model,
         model_file=filename,
         output="results-test.txt",
         amount=amount,
-        category=category)
+        use_softmax=use_softmax)
 
 
 if __name__ == '__main__':

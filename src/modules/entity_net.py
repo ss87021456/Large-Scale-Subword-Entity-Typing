@@ -1,10 +1,10 @@
+import pickle as pkl
 from keras.models import Model
 from keras.layers import Dense, Embedding, Input, concatenate, dot, Permute, Reshape, multiply  # merge
 from keras.layers import LSTM, Bidirectional, GlobalMaxPool1D, Dropout, CuDNNLSTM
 from keras.layers import Conv1D, Conv2D, MaxPooling1D, Flatten, MaxPool2D, BatchNormalization
 from keras.optimizers import Adam, Adagrad, SGD, RMSprop
-from keras import backend as K
-from keras.engine.topology import Layer
+from modules.fastText_model import fastText
 import numpy as np
 
 
@@ -27,7 +27,7 @@ def Embedding_Layer(tokenizer_model,
         embeddings_index(): 
     """
     # Load trained tokenizer model
-    tokenizer = pkl.load(open(tokenizer_model, 'rb'))
+    tokenizer = pkl.load(open(tokenizer_model, "rb"))
     word_index = tokenizer.word_index
     # Parameters for embedding layer
     num_words = min(max_num_words, len(word_index) + 1)
@@ -77,22 +77,23 @@ def attention_3d_block(inputs,
                        len_seq=40,
                        embedding_dim=100,
                        SINGLE_ATTENTION_VECTOR=False):
-    # SINGLE_ATTENTION_VECTOR = False
-    # MAX_SEQUENCE_LENGTH = 40
-    # EMBEDDING_DIM = 100
-    # inputs.shape = (batch_size, time_steps, input_dim)
-    input_dim = int(inputs.shape[2])
+    """
+    Args:
+        inputs
+        len_seq
+        embedding_dim
+        SINGLE_ATTENTION_VECTOR
+    """
     a = Permute((2, 1))(inputs)
     # this line is not useful. It's just to know which dimension is what.
     a = Reshape((embedding_dim, len_seq))(a)
-    a = Dense(len_seq, activation='softmax')(a)
+    a = Dense(len_seq, activation="softmax")(a)
     if SINGLE_ATTENTION_VECTOR:
-        a = Lambda(lambda x: K.mean(x, axis=1), name='dim_reduction')(a)
+        a = Lambda(lambda x: K.mean(x, axis=1), name="dim_reduction")(a)
         a = RepeatVector(embedding_dim)(a)
-    a_probs = Permute((2, 1), name='attention_vec')(a)
-    # output_attention_mul = merge(
-    #     [inputs, a_probs], name='attention_mul', mode='mul')
-    output_attention_mul = multiply([inputs, a_probs], name='attention_mul')
+    a_probs = Permute((2, 1), name="attention_vec")(a)
+
+    output_attention_mul = multiply([inputs, a_probs], name="attention_mul")
     return output_attention_mul
 
 
@@ -117,12 +118,12 @@ def TextCNN(input,
         x = Conv2D(
             num_filters,
             kernel_size=kernel_size,
-            padding='valid',
-            kernel_initializer='normal',
-            activation='relu')(input)
+            padding="valid",
+            kernel_initializer="normal",
+            activation="relu")(input)
         if batch_norm:
             x = BatchNormalization()(x)
-        x = MaxPool2D(pool_size=pool_size, strides=(1, 1), padding='valid')(x)
+        x = MaxPool2D(pool_size=pool_size, strides=(1, 1), padding="valid")(x)
         x = Dropout(dropout)(x)
         return x
 
@@ -154,7 +155,16 @@ def TextCNN(input,
     return output
 
 
-def EntityTypingNet(model_type,
+def BiLSTM(input):
+    """
+    Encapsulated Bi-Directional LSTM and GlobalMaxPool1D
+    """
+    x = Bidirectional(CuDNNLSTM(units=50, return_sequences=True))(input)
+    x = GlobalMaxPool1D()(x)
+    return x
+
+
+def EntityTypingNet(architecture,
                     n_classes,
                     context_tokenizer,
                     mention_tokenizer,
@@ -168,15 +178,15 @@ def EntityTypingNet(model_type,
                     len_context=40,
                     len_mention=5,
                     attention=False,
-                    merge_mode='concatenate',
-                    dropout=0.1,
+                    merge_mode="concatenate",
+                    dropout=0.50,
                     subword=False,
                     use_softmax=False,
-                    optimizer=None,
+                    optimizer="adam",
                     learning_rate=0.001):
     """
     Arguments:
-        model_type(str): Indicate which model to be used.
+        architecture(str): Indicate which model to be used.
         n_classes(int): The number of class for the task.
         context_tokenizer(str): Path to context tokenizer.
         mention_tokenizer(str): Path to mention tokenizer.
@@ -207,7 +217,12 @@ def EntityTypingNet(model_type,
         learning_rate(float): Learning rate for the optimizer.
     """
     #
+    if same_emb:
+        print("Using same embedding for both context and mention.")
+        mention_emb = context_emb
+        mention_embedding_dim = context_embedding_dim
     """
+    TO-DOs: Make robust check on the given parameters
     if same_emb and (context_emb is None) and (mention_emb is None):
 
     if same_emb:
@@ -229,18 +244,11 @@ def EntityTypingNet(model_type,
     #
     filter_sizes = [1, 2, 3]
     num_filters = 64
-    model_type = model_type.lower()
+    architecture = architecture.lower()
+    optimizer = optimizer.lower()
     # Two-stream inputs:
     # (1) Context (sentence)
-    context = Input(shape=(len_context, ), name='Context')
-    """
-    # Pretrain sentence_embedding
-    if sentence_emb is not None:
-        x_context = sentence_emb(context)
-    else:
-        x_context = Embedding(
-            n_words, embedding_dim, input_length=len_context)(context)
-    """
+    context = Input(shape=(len_context, ), name="Context")
 
     context_embedding, preload = Embedding_Layer(
         tokenizer_model=context_tokenizer,
@@ -261,43 +269,31 @@ def EntityTypingNet(model_type,
 
     # (2) Mention
     # Embedding for mention/subword
-    mention = Input(shape=(len_mention, ), name='Mention')
+    mention = Input(shape=(len_mention, ), name="Mention")
+    # TO-DOs:
     # Vectorization on subwords
-    # Pretrain mention_embedding
 
-    """
-    if mention_emb is not None:
-        x_mention = mention_emb(mention)
-    else:
-        x_mention = Embedding(
-            n_mention, mention_embedding_dim,
-            input_length=len_mention)(mention)
-    """
     mention_embedding, _ = Embedding_Layer(
         tokenizer_model=mention_tokenizer,
         max_num_words=n_mention,
         input_length=len_mention,
         embedding_dim=mention_embedding_dim,
         filename=mention_emb,
-        preload=preload)
+        preload=preload if same_emb else None)
 
     del preload
 
     x_mention = mention_embedding(mention)
 
     # Bi-Directional LSTM
-    if model_type == "blstm":
+    if architecture == "blstm":
         # (1) Context
-        x_context = Bidirectional(CuDNNLSTM(50,
-                                            return_sequences=True))(x_context)
-        x_context = GlobalMaxPool1D()(x_context)
+        x_context = BiLSTM(x_context)
         # (2) Mention
-        x_mention = Bidirectional(CuDNNLSTM(50,
-                                            return_sequences=True))(x_mention)
-        x_mention = GlobalMaxPool1D()(x_mention)
+        x_mention = BiLSTM(x_mention)
 
     # Text CNN by Kim
-    elif model_type == "cnn" or model_type == "text_cnn":
+    elif architecture == "cnn" or architecture == "text_cnn":
         # (1) Context
         x_context = TextCNN(
             input=x_context,
@@ -311,20 +307,23 @@ def EntityTypingNet(model_type,
         # (2) Mention
         x_mention = TextCNN(
             input=x_mention,
-            input_dim=(len_mention, embedding_dim),
+            input_dim=(len_mention, mention_embedding_dim),
             embedding_dim=mention_embedding_dim,
             length=len_mention,
             num_filters=num_filters,
             filter_sizes=filter_sizes,
             dropout=dropout,
             batch_norm=False)
+    else:
+        x_context = None
+        x_mention = None
 
     # Concatenate
-    if merge_mode == 'concatenate':
+    if merge_mode == "concatenate":
         x = concatenate([x_context, x_mention])
         x = Dropout(dropout)(x)
     # Inner product
-    elif merge_mode == 'dot':
+    elif merge_mode == "dot":
         x = dot([x_context, x_mention], axes=-1)
 
     x = Dense(200, activation="relu")(x)
@@ -338,21 +337,21 @@ def EntityTypingNet(model_type,
     # Optimizer
     print("Using {0} optimizer (lr={1})".format(optimizer, learning_rate))
     opt = None
-    if optimizer == 'adam':
+    if optimizer == "adam":
         opt = Adam(lr=learning_rate)
-    elif optimizer == 'RMS':
+    elif optimizer == "rms":
         opt = RMSprop(lr=learning_rate)
-    elif optimizer == 'Adagrad':
+    elif optimizer == "adagrad":
         opt = Adagrad(lr=learning_rate)
-    elif optimizer == 'SGD':
+    elif optimizer == "sgd":
         opt = SGD(lr=learning_rate)
 
     if use_softmax:
         model.compile(
-            loss='categorical_crossentropy',
+            loss="categorical_crossentropy",
             optimizer=opt,
-            metrics=['accuracy'])
+            metrics=["accuracy"])
     else:
-        model.compile(loss='binary_crossentropy', optimizer=opt)
+        model.compile(loss="binary_crossentropy", optimizer=opt)
 
     return model

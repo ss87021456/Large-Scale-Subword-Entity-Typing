@@ -11,8 +11,6 @@ from tqdm import tqdm
 from string import punctuation
 from itertools import chain
 from nltk.corpus import stopwords
-from keras.layers import Embedding
-from fastText_model import fastText  # pretrain-model
 import pickle as pkl
 
 
@@ -138,70 +136,6 @@ def write_to_file(file, data):
             print("[Type Error] Please specify type as JSON or TSV")
             exit()
     print("File saved in {:s}".format(file))
-
-
-def create_embedding_layer(tokenizer_model,
-                           filename,
-                           max_num_words,
-                           max_length,
-                           embedding_dim,
-                           preload=None):
-    """
-    Args:
-        tokenizer_model(str): Pre-trained tokenizer for the data.
-        filename(str): Filename of pre-trained embeddings.
-        max_num_words(int): Maximum number of words in a sentence.
-        max_length(int): Input length of the model
-        embedding_dim(int): The dimension of the embedding vectors.
-        preload(): Pre-loaded embedding object.
-        reuse(bool): Reuse the loaded embedding object to save time.
-    Returns:
-        embedding_layer(keras.layers.Embedding): Keras Embedding layer object.
-        embeddings_index(): 
-    """
-    # Load trained tokenizer model
-    tokenizer = pkl.load(open(tokenizer_model, 'rb'))
-    word_index = tokenizer.word_index
-    # Parameters for embedding layer
-    num_words = min(max_num_words, len(word_index) + 1)
-    embedding_matrix = np.zeros((num_words, embedding_dim))
-
-    if filename is not None:
-        # Parse embedding matrix
-        if preload is not None:
-            print("Pre-loaded embedding layer is given, use pre-loaded one.")
-            embeddings_index = preload
-        else:
-            print("Loading pre-trained embedding model from {0}...".format(
-                filename))
-            embeddings_index = fastText(filename, dim=embedding_dim)
-
-        print("Preparing embedding matrix...")
-        # Process mention
-        for word, idx in word_index.items():
-            #
-            if idx >= num_words:
-                break
-            # Fetch pre-trained vector
-            embedding_vector = embeddings_index[word]
-            if embedding_vector is not None:
-                # words not found in embedding index will be all-zeros.
-                embedding_matrix[idx] = embedding_vector
-        # keras.layers.Embedding
-        embedding_layer = Embedding(
-            num_words,
-            embedding_dim,
-            weights=[embedding_matrix],
-            input_length=max_length,
-            trainable=True)
-    else:
-        print(
-            "No pre-trained embedding is given, training embedding from scratch."
-        )
-        embedding_layer, embeddings_index = None, None
-
-    # Return embedding_layer only if reuse is not asserted
-    return (embedding_layer, embeddings_index)
 
 
 def split_data(data, n_slice, mode="TUPLE"):
