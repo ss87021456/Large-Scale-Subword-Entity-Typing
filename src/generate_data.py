@@ -12,6 +12,7 @@ from keras.preprocessing import text, sequence
 import os
 
 # python ./src/generate_data.py --input=../share/data_labeled_kpb.tsv --tag=kbp
+# python ./src/generate_data.py --input=../share/kbp_ascii_labeled_kpb.tsv --tag=kbp
 # python ./src/generate_data.py --input=./data/smaller_preprocessed_sentence_keywords_labeled.tsv
 # python ./src/generate_data.py --input=./data/smaller_preprocessed_sentence_keywords_labeled_subwords.tsv --subword
 
@@ -52,29 +53,36 @@ def run(model_dir, input, subword=False, tag=None, vector=True):
     print("Loading dataset from: {:s}".format(input))
     # dataset = pd.read_csv(input, sep='\t', names=['label','context','mention', 'subword'])
     dataset = pd.read_csv(
-        input, sep='\t', names=['label', 'context', 'mention'])
+        input, sep='\t', names=['label', 'context', 'mention', 'begin', 'end'])
     dataset['label'] = dataset['label'].astype(str)
     dataset['mention'] = dataset['mention'].astype(str)
 
     X = dataset['context'].values
-    y = dataset['label'].values
     mentions = dataset['mention'].values
     # subwords = dataset['subword'].values
 
     # Parsing the labels and convert to integer using comma as separetor
+    print(dataset.shape)
+    print(dataset.ix[57514])
+    print()
+    print(dataset.ix[57514]['context'])
+    print()
+    print(dataset.ix[57514]['mention'])
+    print()
+    print(dataset.ix[57514]['begin'])
+    print()
+    print(dataset.ix[57514]['end'])
+    """
+    for idx, itr in enumerate(dataset['begin'].values):
+        print(idx, [int(e) for e in itr.split(',')])
+    """
+    y = np.array([[int(itr) for itr in e.split(',')] for e in dataset['label'].values])
+    b_position = [[int(itr) for itr in e.split(',')] for e in dataset['begin'].values]
+    e_position = [[int(itr) for itr in e.split(',')] for e in dataset['end'].values]
+    print(b_position)
+    print(e_position)
+    exit()
     print("Creating MultiLabel Binarizer...")
-    temp = np.array(
-        [[int(itr) for itr in element.split(',')] for element in y])
-    """
-    temp = list()
-    for element in y:
-        values = [int(itr) for itr in element.split(',')]
-        # values = list(map(int, values))
-        temp.append(values)
-    # Convert to np.array
-    temp = np.array(temp)
-    """
-    del y
 
     # Parse subwords
     # subwords = [str(itr).split(" ") for itr in subwords]
@@ -106,6 +114,7 @@ def run(model_dir, input, subword=False, tag=None, vector=True):
         if itr == "train":
             X_tokenizer.fit_on_texts(list(X_itr))
             m_tokenizer.fit_on_texts(list(m_itr))
+
         # Tokenize the current context
         X_tokenized = X_tokenizer.texts_to_sequences(X_itr)
         m_tokenized = m_tokenizer.texts_to_sequences(m_itr)
@@ -115,13 +124,14 @@ def run(model_dir, input, subword=False, tag=None, vector=True):
         X_pad = sequence.pad_sequences(X_tokenized, maxlen=MAX_SEQUENCE_LENGTH)
         m_pad = sequence.pad_sequences(m_tokenized, maxlen=MAX_MENTION_LENGTH)
 
+        exit()
         # Save context vectors to pickle file
         # Sentence
-        filename = "{:s}{:s}_data_{:s}_subword_filter{:s}.pkl".format(
+        filename = "{:s}{:s}_data_{:s}_subword{:s}.pkl".format(
             model_dir, prefix, sb_tag, postfix)
         pkl.dump(X_pad, open(filename, 'wb'))
         # Mention
-        filename = "{:s}{:s}_mention_{:s}_subword_filter{:s}.pkl".format(
+        filename = "{:s}{:s}_mention_{:s}_subword{:s}.pkl".format(
             model_dir, prefix, sb_tag, postfix)
         pkl.dump(m_pad, open(filename, 'wb'))
         del X_itr, X_tokenized, X_pad, m_itr, m_tokenized, m_pad
@@ -133,7 +143,7 @@ def run(model_dir, input, subword=False, tag=None, vector=True):
         print(" - {0} label shape: {1}".format(prefix, y_bin.shape))
 
         # Save label vectors to pickle file
-        filename = "{:s}{:s}_label_{:s}_subword_filter{:s}.pkl".format(
+        filename = "{:s}{:s}_label_{:s}_subword{:s}.pkl".format(
             model_dir, prefix, sb_tag, postfix)
         pkl.dump(y_bin, open(filename, 'wb'))
 
@@ -142,17 +152,17 @@ def run(model_dir, input, subword=False, tag=None, vector=True):
     pkl.dump(
         X_tokenizer,
         open(
-            model_dir + "tokenizer_{:s}_subword_filter{:s}.pkl".format(
+            model_dir + "tokenizer_{:s}_subword{:s}.pkl".format(
                 sb_tag, postfix), 'wb'))
     pkl.dump(
         m_tokenizer,
         open(
-            model_dir + "m_tokenizer_{:s}_subword_filter{:s}.pkl".format(
+            model_dir + "m_tokenizer_{:s}_subword{:s}.pkl".format(
                 sb_tag, postfix), 'wb'))
     pkl.dump(
         mlb,
         open(
-            model_dir + "mlb_{:s}_subword_filter{:s}.pkl".format(
+            model_dir + "mlb_{:s}_subword{:s}.pkl".format(
                 sb_tag, postfix), 'wb'))
 
 

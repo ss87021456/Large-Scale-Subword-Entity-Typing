@@ -534,7 +534,8 @@ def keywords_as_labels(thread_idx,
                         ###filtered_subword_list = sorted(filtered_subword_list, key=len, reverse=True)
 
                         # Mention Features: [mention _ subwords]
-                        ###mention_features = itr_mention + " " + " ".join(filtered_subword_list[1:] if len(words) == 1 else filtered_subword_list)
+                        # mention_features = itr_mention + " " + " ".join(filtered_subword_list[1:] 
+                        #                    if len(words) == 1 else filtered_subword_list)
                         mention_features = itr_mention + "\t" + " ".join(
                             subword_list[1:]
                             if len(words) == 1 else subword_list)
@@ -543,9 +544,16 @@ def keywords_as_labels(thread_idx,
                     else:
                         mention_features = itr_mention
 
+                    # Add indicator
+                    # print("sentence: ", sentence)
+                    # lhs = None
+                    # rhs = None
                     # Add content to list
                     # [LABELS] \t [SENTENCE] \t [MENTION + SUBWORDS]
                     content = [",".join(replace), sentence, mention_features]
+                    # content = [",".join(replace), sentence, mention_features, lhs, rhs]
+                    # print(content)
+                    # exit()
                     result.append("\t".join(content))
 
             # ***NOT DUPLICATING THE SENTENCE IF THERE ARE MORE THAN ONE MENTIONS***
@@ -557,6 +565,48 @@ def keywords_as_labels(thread_idx,
         # Undefined mode
         else:
             pass
+
+    return result
+
+
+def mark_positions(thread_idx, data):
+    desc = "Thread {:02d}".format(thread_idx + 1)
+    result = list()
+
+    for itr in tqdm(data, position=thread_idx, desc=desc):
+        # Extract context and mention from entry
+        context, mention = itr[1].split(" "), itr[2].split(" ")
+        # Find possible candidate indices
+        begin_candidates = [idx for idx, itr in enumerate(context) if itr == mention[0]]
+        # Use windos to extract candidates words in the sentence
+        words_candidates = [context[itr:itr + len(mention)] for itr in begin_candidates]
+        # Compare the candidates and the target mention
+        comparison = [" ".join(mention) == " ".join(itr) for itr in words_candidates]
+
+        # Collect positions [begin, end]
+        begin, end = list(), list()
+        for idx, entry in zip(begin_candidates, comparison):
+            if entry:
+                begin.append(str(idx))
+                end.append(str(idx + len(mention) - 1))
+            else:
+                pass
+        # Add positions to entry
+        itr += [",".join(begin), ",".join(end)]
+        """
+        if sum(comparison) > 1:
+            print()
+            print(context)
+            print("begin candidates: ", begin_candidates)
+            print("words_candidates: ", words_candidates)
+            print(mention)
+            print("comparison: ", comparison)
+            print(" * Multiple valid mentions")
+            itr += [",".join(begin), ",".join(end)]
+            print(itr)
+            exit()
+        """
+        result.append(itr)
 
     return result
 

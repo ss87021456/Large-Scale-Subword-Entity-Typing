@@ -4,12 +4,14 @@ import numpy as np
 from itertools import chain
 from sklearn.externals import joblib
 from sklearn.preprocessing import LabelEncoder
-from utils import write_to_file, readlines, generic_threading, keywords_as_labels, merge_dict
+from utils import write_to_file, readlines, generic_threading
+from utils import keywords_as_labels, merge_dict, mark_positions
 import pandas as pd
 from collections import Counter
 import csv
 """
 python src/label.py ../share/data.txt --from_file --tag=kpb
+python src/label.py ../share/kbp_ascii.tsv --from_file --tag=kpb
 
 python src/label.py data/ --trim
 python src/label.py data/ --labels=data/label.json --replace \
@@ -26,6 +28,7 @@ def fit_encoder(keywords_path,
                 model=None,
                 trim=True,
                 from_file=False,
+                thread=10,
                 output=None,
                 tag=None):
     """
@@ -45,14 +48,14 @@ def fit_encoder(keywords_path,
     # Load keywords
     if from_file:
         contents = readlines(keywords_path, delimitor="\t")
-        mentions = [itr[0] for itr in contents]
+        labels = [itr[0] for itr in contents]
         # contents = pd.read_csv(keywords_path, sep="\t", names=['label','context','mention'], dtype={'mention': str}, quoting=csv.QUOTE_NONE)
-        # mentions = contents['label'].values
+        # labels = contents['label'].values
     else:
         # contents = json.load(open(keywords, "r"))
         contents = merge_dict(keywords_path, trim=trim)
-        # Unique the mentions
-        mentions = list(contents.values())
+        # Unique the labels
+        labels = list(contents.values())
 
     # LabelEncoder
     print("Initializing LabelEncoder for encoding unique types...")
@@ -60,7 +63,7 @@ def fit_encoder(keywords_path,
 
     unique_types = list(
         np.unique(
-            mentions if from_file else list(chain.from_iterable(mentions))))
+            labels if from_file else list(chain.from_iterable(labels))))
     print(" - Total number of unique types: {0}".format(len(unique_types)))
 
     # Fit LabelEncoder
@@ -85,12 +88,17 @@ def fit_encoder(keywords_path,
     output_dict = dict(zip([int(itr) for itr in codes], unique_types))
     write_to_file(r_output, output_dict)
 
-    if from_file is not None:
+    if from_file:
         print("* Label corpus in place")
         filename = keywords_path[:-4] + "_labeled{:s}.tsv".format(postfix)
-        encoded = encoder.transform(mentions)
+        encoded = encoder.transform(labels)
+        # Mark position of the mention in the contexts
+        contents = mark_positions(0, contents)
+        # [NOTE] Single-threading seems enough for now (2M entries in 20 seconds)
+        # contents = generic_threading(thread, contents, mark_positions)
+        #
         contents = [
-            "\t".join([str(itr_l), itr_c[1], itr_c[2]])
+            "\t".join([str(itr_l)] + itr_c[1:])
             for itr_l, itr_c in zip(encoded, contents)
         ]
 
@@ -243,4 +251,4 @@ if __name__ == '__main__':
         acquire_statistic(args.corpus, args.keywords_path, args.output)
     else:
         fit_encoder(args.keywords_path, args.model, args.trim, args.from_file,
-                    args.output, args.tag)
+                    args.thread, args.output, args.tag)

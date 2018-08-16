@@ -39,7 +39,7 @@ def run(model_dir, input, test_size, n_thread=20, tag=None, text_only=False):
 
     print("Loading dataset..")
     dataset = pd.read_csv(
-        input, sep='\t', names=['label', 'context', 'mention'], dtype=str)
+        input, sep='\t', names=['label', 'context', 'mention', 'begin', 'end'], dtype=str, quoting=csv.QUOTE_NONE)
     dataset['mention'] = dataset['mention'].astype(str)
     mentions = dataset['mention'].values
 
