@@ -4,7 +4,7 @@ import argparse
 import itertools
 from tqdm import tqdm
 import pickle as pkl
-from utils import generic_threading
+from utils import generic_threading, readlines
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import MultiLabelBinarizer
 from sklearn.feature_extraction.text import CountVectorizer
@@ -51,9 +51,13 @@ def run(model_dir, input, subword=False, tag=None, vector=True):
     sb_tag = "w" if subword else "wo"
 
     print("Loading dataset from: {:s}".format(input))
-    # dataset = pd.read_csv(input, sep='\t', names=['label','context','mention', 'subword'])
-    dataset = pd.read_csv(
-        input, sep='\t', names=['label', 'context', 'mention', 'begin', 'end'])
+    cols = ['label', 'context', 'mention', 'begin', 'end']
+
+    dataset = readlines(input, delimitor="\t")
+    dataset = pd.DataFrame(dataset, columns=cols, dtype=str)
+    """
+    dataset = pd.read_csv(input, sep='\t', names=cols)
+    """
     dataset['label'] = dataset['label'].astype(str)
     dataset['mention'] = dataset['mention'].astype(str)
 
@@ -62,6 +66,8 @@ def run(model_dir, input, subword=False, tag=None, vector=True):
     # subwords = dataset['subword'].values
 
     # Parsing the labels and convert to integer using comma as separetor
+    ##################################################
+    """
     print(dataset.shape)
     print(dataset.ix[57514])
     print()
@@ -73,16 +79,16 @@ def run(model_dir, input, subword=False, tag=None, vector=True):
     print()
     print(dataset.ix[57514]['end'])
     """
+    ##################################################
+    """
     for idx, itr in enumerate(dataset['begin'].values):
         print(idx, [int(e) for e in itr.split(',')])
     """
     y = np.array([[int(itr) for itr in e.split(',')] for e in dataset['label'].values])
     b_position = [[int(itr) for itr in e.split(',')] for e in dataset['begin'].values]
+    b_position = np.array(b_position)
     e_position = [[int(itr) for itr in e.split(',')] for e in dataset['end'].values]
-    print(b_position)
-    print(e_position)
-    exit()
-    print("Creating MultiLabel Binarizer...")
+    e_position = np.array(e_position)
 
     # Parse subwords
     # subwords = [str(itr).split(" ") for itr in subwords]
@@ -90,12 +96,13 @@ def run(model_dir, input, subword=False, tag=None, vector=True):
     ### Choose criteria to only include useful subwords
     ### Choose vector dimension
 
+    print("Creating MultiLabel Binarizer...")
     # Initialize content tokenizer
     X_tokenizer = text.Tokenizer(num_words=MAX_NUM_WORDS)
     m_tokenizer = text.Tokenizer(num_words=MAX_NUM_MENTION_WORDS)
     # Fit MLB
     mlb = MultiLabelBinarizer(sparse_output=True)
-    mlb.fit(temp)
+    mlb.fit(y)
 
     partitions = ["train", "test", "validation"]
     for itr in partitions:
@@ -107,6 +114,8 @@ def run(model_dir, input, subword=False, tag=None, vector=True):
         # Index the content according to the given indices
         X_itr = X[indices]
         m_itr = mentions[indices]
+        b_itr = b_position[indices]
+        e_itr = e_position[indices]
 
         # Tokenization on the context
         print("Tokenize {0} sentences and mentions...".format(prefix))
@@ -123,6 +132,30 @@ def run(model_dir, input, subword=False, tag=None, vector=True):
         print("Padding {0} sentences and mention vectors...".format(prefix))
         X_pad = sequence.pad_sequences(X_tokenized, maxlen=MAX_SEQUENCE_LENGTH)
         m_pad = sequence.pad_sequences(m_tokenized, maxlen=MAX_MENTION_LENGTH)
+
+        # Add indicator
+        indicator = np.empty(X_pad.shape)
+        for idx, (b, e) in enumerate(zip(b_itr, e_itr)):
+            print(b, e)
+            if len(b) > 1:
+                pass
+            else:
+                bb = b[0] - MAX_SEQUENCE_LENGTH
+                ee = e[0] - MAX_SEQUENCE_LENGTH
+                # Mention: 2
+                indicator[idx, bb:ee + 1] = 2
+                # Left: 1
+                indicator[idx, :bb] = 1
+                # Right: 3
+                indicator[idx, ee + 1:] = 3
+                # Mark padding as zero
+                padded_idx = np.where(X_pad[idx, :] == 0)[0]
+                indicator[idx, padded_idx] = 0
+                ############################################
+                print(X_pad[idx,])
+                print(indicator[idx,])
+                ############################################
+                exit()
 
         exit()
         # Save context vectors to pickle file
