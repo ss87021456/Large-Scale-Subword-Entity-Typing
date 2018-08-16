@@ -84,10 +84,13 @@ def run(model_dir, input, subword=False, tag=None, vector=True):
     for idx, itr in enumerate(dataset['begin'].values):
         print(idx, [int(e) for e in itr.split(',')])
     """
-    y = np.array([[int(itr) for itr in e.split(',')] for e in dataset['label'].values])
-    b_position = [[int(itr) for itr in e.split(',')] for e in dataset['begin'].values]
+    y = np.array(
+        [[int(itr) for itr in e.split(',')] for e in dataset['label'].values])
+    b_position = [[int(itr) for itr in element.split(',')]
+                  for element in dataset['begin'].values]
     b_position = np.array(b_position)
-    e_position = [[int(itr) for itr in e.split(',')] for e in dataset['end'].values]
+    e_position = [[int(itr) for itr in element.split(',')]
+                  for element in dataset['end'].values]
     e_position = np.array(e_position)
 
     # Parse subwords
@@ -128,34 +131,126 @@ def run(model_dir, input, subword=False, tag=None, vector=True):
         X_tokenized = X_tokenizer.texts_to_sequences(X_itr)
         m_tokenized = m_tokenizer.texts_to_sequences(m_itr)
 
+        ######################################################################
+        # For debugging and choosing MAX_SEQUENCE_LENGTH
+        length = [len(itr) for itr in X_tokenized]
+        _gt = sum([itr > MAX_SEQUENCE_LENGTH for itr in length])
+        _eq = sum([itr == MAX_SEQUENCE_LENGTH for itr in length])
+        _lt = sum([itr < MAX_SEQUENCE_LENGTH for itr in length])
+        print(" * MAX_SEQUENCE_LENGTH = {}".format(MAX_SEQUENCE_LENGTH))
+        print(" - GT: {:d} ({:2.2f}%)".format(_gt,
+                                              100. * _gt / len(X_tokenized)))
+        print(" - EQ: {:d} ({:2.2f}%)".format(_eq,
+                                              100. * _eq / len(X_tokenized)))
+        print(" - LT: {:d} ({:2.2f}%)".format(_lt,
+                                              100. * _lt / len(X_tokenized)))
+        # Check for extreme
+        max_len, max_idx = max(length), np.argmax(length)
+        print(" - MAX: {} at {} ({}:{})".format(
+            max_len, max_idx, b_position[max_len], e_position[max_len]))
+        # Check how many mentions will be truncated
+
+        b_info = [bb for itr in b_itr for bb in itr]
+        e_info = [ee for itr in e_itr for ee in itr]
+        # Out-of-Range (OOR)
+        b_oor = sum([bb > MAX_SEQUENCE_LENGTH for bb in b_info])
+        e_oor = sum([ee > MAX_SEQUENCE_LENGTH for ee in e_info])
+        print(
+            "\n * Mention indices Out-of-Seq (OOS) [B: begin, E: end, P: Part of mention]"
+        )
+        print(" - B : {:d} ({:2.2f}%)".format(b_oor,
+                                              100. * b_oor / len(X_tokenized)))
+        print(" - E : {:d} ({:2.2f}%)".format(e_oor,
+                                              100. * e_oor / len(X_tokenized)))
+
+        partial = (np.array(b_info) > MAX_SEQUENCE_LENGTH) * (
+            np.array(e_info) > MAX_SEQUENCE_LENGTH)
+        partial = partial.sum()
+        print(" - P : {:d} ({:2.2f}%)".format(
+            partial, 100. * partial / len(X_tokenized)))
+        print(" - MAX_B: {}:{}".format(max(b_info), e_info[np.argmax(b_info)]))
+        print(" - MAX_E: {}:{}".format(b_info[np.argmax(e_info)], max(e_info)))
+        # Suggestions
+        print("\n * Suggestions:")
+        for itr in range(1, 20):
+            current_max = MAX_SEQUENCE_LENGTH + 10 * itr
+            b_tr = sum([bb > current_max for bb in b_info])
+            e_tr = sum([ee > current_max for ee in e_info])
+            print(" - Raise to {}".format(current_max))
+            print(" - B : {:d} ({:2.2f}%)".format(
+                b_tr, 100. * b_tr / len(X_tokenized)))
+            print(" - E : {:d} ({:2.2f}%)".format(
+                e_tr, 100. * e_tr / len(X_tokenized)))
+
+            partial = (np.array(b_info) > current_max) * (np.array(e_info) >
+                                                          current_max)
+            partial = partial.sum()
+            print(" - P : {:d} ({:2.2f}%)".format(
+                partial, 100. * partial / len(X_tokenized)))
+        exit()
+        ######################################################################
         # Padding contexts
         print("Padding {0} sentences and mention vectors...".format(prefix))
-        X_pad = sequence.pad_sequences(X_tokenized, maxlen=MAX_SEQUENCE_LENGTH)
-        m_pad = sequence.pad_sequences(m_tokenized, maxlen=MAX_MENTION_LENGTH)
+        X_pad = sequence.pad_sequences(
+            X_tokenized,
+            maxlen=MAX_SEQUENCE_LENGTH,
+            padding="post",
+            truncating="post")
+        m_pad = sequence.pad_sequences(
+            m_tokenized,
+            maxlen=MAX_MENTION_LENGTH,
+            padding="post",
+            truncating="post")
 
         # Add indicator
         indicator = np.empty(X_pad.shape)
         for idx, (b, e) in enumerate(zip(b_itr, e_itr)):
-            print(b, e)
+            print("positions: ", b, e)
             if len(b) > 1:
-                pass
+                exit()
+                print(b, e)
+                for idx in range(len(b) - 1):
+                    b0 = b[idx]
+                    e0 = e[idx]
+                    b1 = b[idx + 1]
+                    e1 = e[idx + 1]
+                    if idx == 0:
+                        indicator[idx, b0:e0 + 1] = 2
+                        indicator[idx, :b0] = 1
+                    # Calculate the number of words between two mention
+                    in_between = b1 - e0 - 1
+                    # [b0 e0] LLL RRR [b1 e1]
+                    # Mention
+                    indicator[idx, b1:e1 + 1] = 2
+                    # to the Left
+                    l_idx = (e0 + 1)
+                    r_idx = in_between // 2 + 1
+                    indicator[idx, l_idx:r_idx] = 1
+                    # to the Right
+                    l_idx = (e0 + 1) + in_between // 2
+                    r_idx = b1
+                    indicator[idx, l_idx:r_idx] = 3
+                    pass
+
             else:
-                bb = b[0] - MAX_SEQUENCE_LENGTH
-                ee = e[0] - MAX_SEQUENCE_LENGTH
+                bb = b[0]  # - MAX_SEQUENCE_LENGTH
+                ee = e[0]  # - MAX_SEQUENCE_LENGTH
                 # Mention: 2
                 indicator[idx, bb:ee + 1] = 2
                 # Left: 1
                 indicator[idx, :bb] = 1
                 # Right: 3
                 indicator[idx, ee + 1:] = 3
-                # Mark padding as zero
-                padded_idx = np.where(X_pad[idx, :] == 0)[0]
-                indicator[idx, padded_idx] = 0
-                ############################################
-                print(X_pad[idx,])
-                print(indicator[idx,])
-                ############################################
-                exit()
+
+            # Mark padding as zero
+            padded_idx = np.where(X_pad[idx, :] == 0)[0]
+            indicator[idx, padded_idx] = 0
+            ############################################
+            print(X_pad[idx, ])
+            print(indicator[idx, ])
+            print()
+            ############################################
+            # exit()
 
         exit()
         # Save context vectors to pickle file
@@ -194,9 +289,8 @@ def run(model_dir, input, subword=False, tag=None, vector=True):
                 sb_tag, postfix), 'wb'))
     pkl.dump(
         mlb,
-        open(
-            model_dir + "mlb_{:s}_subword{:s}.pkl".format(
-                sb_tag, postfix), 'wb'))
+        open(model_dir + "mlb_{:s}_subword{:s}.pkl".format(sb_tag, postfix),
+             'wb'))
 
 
 if __name__ == '__main__':
