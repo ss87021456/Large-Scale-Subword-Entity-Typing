@@ -17,7 +17,7 @@ import os
 # python ./src/generate_data.py --input=./data/smaller_preprocessed_sentence_keywords_labeled_subwords.tsv --subword
 
 # Feature-parameter..
-MAX_NUM_WORDS = 30000
+MAX_NUM_WORDS = 100000
 MAX_NUM_MENTION_WORDS = 20000
 MAX_SEQUENCE_LENGTH = 40
 MAX_MENTION_LENGTH = 5
@@ -66,24 +66,6 @@ def run(model_dir, input, subword=False, tag=None, vector=True):
     # subwords = dataset['subword'].values
 
     # Parsing the labels and convert to integer using comma as separetor
-    ##################################################
-    """
-    print(dataset.shape)
-    print(dataset.ix[57514])
-    print()
-    print(dataset.ix[57514]['context'])
-    print()
-    print(dataset.ix[57514]['mention'])
-    print()
-    print(dataset.ix[57514]['begin'])
-    print()
-    print(dataset.ix[57514]['end'])
-    """
-    ##################################################
-    """
-    for idx, itr in enumerate(dataset['begin'].values):
-        print(idx, [int(e) for e in itr.split(',')])
-    """
     y = np.array(
         [[int(itr) for itr in e.split(',')] for e in dataset['label'].values])
     b_position = [[int(itr) for itr in element.split(',')]
@@ -124,6 +106,7 @@ def run(model_dir, input, subword=False, tag=None, vector=True):
         print("Tokenize {0} sentences and mentions...".format(prefix))
         # Trim the token size w.r.t training context
         if itr == "train":
+            print(" - Fitting tokenizers on training data.\n")
             X_tokenizer.fit_on_texts(list(X_itr))
             m_tokenizer.fit_on_texts(list(m_itr))
 
@@ -145,9 +128,9 @@ def run(model_dir, input, subword=False, tag=None, vector=True):
         print(" - LT: {:d} ({:2.2f}%)".format(_lt,
                                               100. * _lt / len(X_tokenized)))
         # Check for extreme
-        max_len, max_idx = max(length), np.argmax(length)
-        print(" - MAX: {} at {} ({}:{})".format(
-            max_len, max_idx, b_position[max_len], e_position[max_len]))
+        # max_len, max_idx = max(length), np.argmax(length)
+        # print(" - MAX: {} at {} ({}:{})".format(
+        #     max_len, max_idx, b_itr[max_idx], e_itr[max_idx]))
         # Check how many mentions will be truncated
 
         b_info = [bb for itr in b_itr for bb in itr]
@@ -187,15 +170,20 @@ def run(model_dir, input, subword=False, tag=None, vector=True):
             partial = partial.sum()
             print(" - P : {:d} ({:2.2f}%)".format(
                 partial, 100. * partial / len(X_tokenized)))
-        exit()
+        # exit()
         ######################################################################
         # Padding contexts
         print("Padding {0} sentences and mention vectors...".format(prefix))
+        """
+            Fill sequence with -1 to indicate true 0 instead of messing up
+        with the first word (index = 0) given by tokenizer.
+        """
         X_pad = sequence.pad_sequences(
             X_tokenized,
             maxlen=MAX_SEQUENCE_LENGTH,
             padding="post",
             truncating="post")
+            # value=-1)
         m_pad = sequence.pad_sequences(
             m_tokenized,
             maxlen=MAX_MENTION_LENGTH,
@@ -207,31 +195,46 @@ def run(model_dir, input, subword=False, tag=None, vector=True):
         for idx, (b, e) in enumerate(zip(b_itr, e_itr)):
             print("positions: ", b, e)
             if len(b) > 1:
-                exit()
+                # exit()
                 print(b, e)
+                # Look one ahead, e.g. P1, P2 are positions, the loop run
+                # just once, current P1, look ahead at P2
                 for idx in range(len(b) - 1):
-                    b0 = b[idx]
-                    e0 = e[idx]
-                    b1 = b[idx + 1]
-                    e1 = e[idx + 1]
+                    # P1
+                    b0, e0 = b[idx], e[idx]
+                    # P2
+                    b1, e1 = b[idx + 1], e[idx + 1]
                     if idx == 0:
+                        # Fill in mention indicator for the first occurence
                         indicator[idx, b0:e0 + 1] = 2
+                        # Fill in Left before thr first occurence
                         indicator[idx, :b0] = 1
+                    else:
+                        pass
+
+                    # Fill in L/R for words in-between the two consecutive
+                    # occurence. First half for R second half for L. Tie
+                    # breaking (for odd number of in-between words): more L
+                    # e.g. [b0 e0] RRR LLL [b1 e1]  (in_between = 6)
+                    # e.g. [b0 e0] RRR LLLL [b1 e1] (in_between = 7)
                     # Calculate the number of words between two mention
                     in_between = b1 - e0 - 1
-                    # [b0 e0] LLL RRR [b1 e1]
                     # Mention
                     indicator[idx, b1:e1 + 1] = 2
-                    # to the Left
-                    l_idx = (e0 + 1)
-                    r_idx = in_between // 2 + 1
-                    indicator[idx, l_idx:r_idx] = 1
                     # to the Right
+                    # FROM: current end + 1
+                    # TILL: current end + 1 + half length of in-between words
+                    l_idx = (e0 + 1)
+                    r_idx = (e0 + 1) + in_between // 2 + 1
+                    indicator[idx, l_idx:r_idx] = 3
+                    # to the Left
+                    # FROM: current end + half length of in-between words
+                    # TILL: next begin
                     l_idx = (e0 + 1) + in_between // 2
                     r_idx = b1
-                    indicator[idx, l_idx:r_idx] = 3
+                    indicator[idx, l_idx:r_idx] = 1
                     pass
-
+                exit()
             else:
                 bb = b[0]  # - MAX_SEQUENCE_LENGTH
                 ee = e[0]  # - MAX_SEQUENCE_LENGTH
@@ -243,10 +246,26 @@ def run(model_dir, input, subword=False, tag=None, vector=True):
                 indicator[idx, ee + 1:] = 3
 
             # Mark padding as zero
+            # Use -1 may incur
+            # padded_idx = np.where(X_pad[idx, :] == -1)[0]
             padded_idx = np.where(X_pad[idx, :] == 0)[0]
-            indicator[idx, padded_idx] = 0
-            ############################################
+            #indicator[idx, padded_idx] = 0
+            indicator[idx, len(X_itr[idx].split(" ")):] = 0
+            print(X_itr[idx])
+            print(len(X_itr[idx].split(" ")))
+            print(m_itr[idx])
             print(X_pad[idx, ])
+            """
+                Fill padded positions with 0, i.e. fill indicator with zero
+            after the end of sequence (index after length_of_sentence.)
+
+            ISSUE: If array "indicator" is initialize as empty array, some
+                Out-of-Vocabulary (OOV) words at the end of the sequence
+                would remain as padded values.
+            """
+            # X_pad[idx, len(X_itr[idx].split(" ")):] = 0
+            # print(X_pad[idx, ])
+            ############################################
             print(indicator[idx, ])
             print()
             ############################################
