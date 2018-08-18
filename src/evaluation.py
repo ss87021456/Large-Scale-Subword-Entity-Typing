@@ -281,7 +281,8 @@ def just_test(model,
               tag=None,
               postfix=None,
               amount=None,
-              use_softmax=False):
+              use_softmax=False,
+              indicator=False):
     """
     Given the model object and the previously stored weights file,
     this function just restore the weights, load testing data and
@@ -304,24 +305,41 @@ def just_test(model,
         open(
             model_dir + "testing_data_{0}_subword_filter{1}.pkl".format(
                 sb_tag, postfix), 'rb'))
-    X_m = pkl.load(
-        open(
-            model_dir + "testing_mention_{0}_subword_filter{1}.pkl".format(
-                sb_tag, postfix), 'rb'))
+    if indicator:
+        X_i = pkl.load(
+            open(
+                model_dir + "testing_indicator_{0}_subword_filter{1}.pkl".format(
+                    sb_tag, postfix), 'rb'))
+    else:
+        X_m = pkl.load(
+            open(
+                model_dir + "testing_mention_{0}_subword_filter{1}.pkl".format(
+                    sb_tag, postfix), 'rb'))
     y = pkl.load(
         open(
             model_dir + "testing_label_{0}_subword_filter{1}.pkl".format(
                 sb_tag, postfix), 'rb'))
 
-    predict(
-        model,
-        X,
-        X_m,
-        y,
-        model_file=filename,
-        output="results-test.txt",
-        amount=amount,
-        use_softmax=use_softmax)
+    if indicator:
+        predict(
+            model,
+            X,
+            X_i,
+            y,
+            model_file=filename,
+            output="results-test.txt",
+            amount=amount,
+            use_softmax=use_softmax)
+    else:
+        predict(
+            model,
+            X,
+            X_m,
+            y,
+            model_file=filename,
+            output="results-test.txt",
+            amount=amount,
+            use_softmax=use_softmax)
 
 
 if __name__ == '__main__':

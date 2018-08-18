@@ -78,7 +78,8 @@ def run(args):
         subword=args.subword,
         use_softmax=args.use_softmax,
         optimizer=args.optimizer,
-        learning_rate=args.learning_rate)
+        learning_rate=args.learning_rate,
+        indicator=args.indicator)
 
     print(model.summary())
 
@@ -104,11 +105,17 @@ def run(args):
         open(
             args.model_dir + "training_data_{0}_subword_filter{1}.pkl".format(
                 sb_tag, postfix), 'rb'))
-    X_m_train = pkl.load(
-        open(
-            args.model_dir +
-            "training_mention_{0}_subword_filter{1}.pkl".format(
-                sb_tag, postfix), 'rb'))
+    if args.indicator:
+        X_indicator = pkl.load(
+            open(
+                args.model_dir + "training_indicator_{0}_subword_filter{1}.pkl".format(
+                    sb_tag, postfix), 'rb'))
+    else:
+        X_m_train = pkl.load(
+            open(
+                args.model_dir +
+                "training_mention_{0}_subword_filter{1}.pkl".format(
+                    sb_tag, postfix), 'rb'))
     y_train = pkl.load(
         open(
             args.model_dir + "training_label_{0}_subword_filter{1}.pkl".format(
@@ -118,7 +125,16 @@ def run(args):
     #    y_train =  np.array(mlb.inverse_transform(y_train)).flatten()
 
     print("Begin training...")
-    model.fit(
+    if args.indicator:
+        model.fit(
+        [X_train, X_indicator],
+        y_train,
+        batch_size=args.batch_size,
+        epochs=args.epochs,
+        validation_split=0.01,
+        callbacks=callbacks_list)
+    else:
+        model.fit(
         [X_train, X_m_train],
         y_train,
         batch_size=args.batch_size,
@@ -136,11 +152,18 @@ def run(args):
             args.model_dir +
             "validation_data_{0}_subword_filter{1}.pkl".format(
                 sb_tag, postfix), 'rb'))
-    X_m_val = pkl.load(
-        open(
-            args.model_dir +
-            "validation_mention_{0}_subword_filter{1}.pkl".format(
-                sb_tag, postfix), 'rb'))
+    if args.indicator:
+        X_indicator_val = pkl.load(
+            open(
+                args.model_dir +
+                "validation_indicator_{0}_subword_filter{1}.pkl".format(
+                    sb_tag, postfix), 'rb'))
+    else:
+        X_m_val = pkl.load(
+            open(
+                args.model_dir +
+                "validation_mention_{0}_subword_filter{1}.pkl".format(
+                    sb_tag, postfix), 'rb'))
     y_val = pkl.load(
         open(
             args.model_dir +
@@ -154,15 +177,26 @@ def run(args):
             i, args.tag)
         model.load_weights(model_name)
 
-        f = predict(
-            model,
-            X_val,
-            X_m_val,
-            y_val,
-            model_name,
-            "results.txt",
-            return_mf1=True,
-            use_softmax=args.use_softmax)
+        if args.indicator:
+            f = predict(
+                model,
+                X_val,
+                X_indicator_val,
+                y_val,
+                model_name,
+                "results.txt",
+                return_mf1=True,
+                use_softmax=args.use_softmax)
+        else:
+            f = predict(
+                model,
+                X_val,
+                X_m_val,
+                y_val,
+                model_name,
+                "results.txt",
+                return_mf1=True,
+                use_softmax=args.use_softmax)
 
         # Always choose model trained with more epoch when the F-1 score is same
         if record <= f:
@@ -179,7 +213,8 @@ def run(args):
         filename=model_name,
         subword=args.subword,
         postfix=postfix,
-        use_softmax=args.use_softmax)
+        use_softmax=args.use_softmax,
+        indicator=args.indicator)
 
     K.clear_session()
 
@@ -221,6 +256,8 @@ if __name__ == '__main__':
     parser.add_argument(
         "--subword", action="store_true", help="Use subword or not")
     parser.add_argument(
+        "--indicator", action="store_true", help="Use indicator or not")
+    parser.add_argument(
         "--merge_mode",
         type=str,
         default="concatenate",
@@ -258,6 +295,7 @@ if __name__ == '__main__':
         "--tag", type=str, help="Extra name tag on the saved model.")
     parser.add_argument(
         "--data_tag", type=str, help="Extra name tag on the dataset.")
+
     args = parser.parse_args()
 
     run(args)

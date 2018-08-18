@@ -6,7 +6,7 @@ from tqdm import tqdm
 import pickle as pkl
 from utils import generic_threading, readlines
 from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import MultiLabelBinarizer
+from sklearn.preprocessing import MultiLabelBinarizer, OneHotEncoder
 from sklearn.feature_extraction.text import CountVectorizer
 from keras.preprocessing import text, sequence
 import os
@@ -191,20 +191,22 @@ def run(model_dir, input, subword=False, tag=None, vector=True):
             truncating="post")
 
         # Add indicator
+        count, old_count = 0, 0
         indicator = np.empty(X_pad.shape)
         for idx, (b, e) in enumerate(zip(b_itr, e_itr)):
-            print("positions: ", b, e)
+            #print("positions: ", b, e)
             if len(b) > 1:
+                count += 1
                 # exit()
-                print(b, e)
+                #print(b, e)
                 # Look one ahead, e.g. P1, P2 are positions, the loop run
                 # just once, current P1, look ahead at P2
-                for idx in range(len(b) - 1):
+                for mini_idx in range(len(b) - 1):
                     # P1
-                    b0, e0 = b[idx], e[idx]
+                    b0, e0 = b[mini_idx], e[mini_idx]
                     # P2
-                    b1, e1 = b[idx + 1], e[idx + 1]
-                    if idx == 0:
+                    b1, e1 = b[mini_idx + 1], e[mini_idx + 1]
+                    if mini_idx == 0:
                         # Fill in mention indicator for the first occurence
                         indicator[idx, b0:e0 + 1] = 2
                         # Fill in Left before thr first occurence
@@ -234,7 +236,7 @@ def run(model_dir, input, subword=False, tag=None, vector=True):
                     r_idx = b1
                     indicator[idx, l_idx:r_idx] = 1
                     pass
-                exit()
+                
             else:
                 bb = b[0]  # - MAX_SEQUENCE_LENGTH
                 ee = e[0]  # - MAX_SEQUENCE_LENGTH
@@ -251,10 +253,13 @@ def run(model_dir, input, subword=False, tag=None, vector=True):
             padded_idx = np.where(X_pad[idx, :] == 0)[0]
             #indicator[idx, padded_idx] = 0
             indicator[idx, len(X_itr[idx].split(" ")):] = 0
-            print(X_itr[idx])
-            print(len(X_itr[idx].split(" ")))
-            print(m_itr[idx])
-            print(X_pad[idx, ])
+            #if count > old_count:
+                #print(X_itr[idx])
+                #print(len(X_itr[idx].split(" ")))
+                #print(m_itr[idx])
+                #print(X_pad[idx, ])
+                #print(indicator[idx, ])
+                #print()
             """
                 Fill padded positions with 0, i.e. fill indicator with zero
             after the end of sequence (index after length_of_sentence.)
@@ -266,12 +271,20 @@ def run(model_dir, input, subword=False, tag=None, vector=True):
             # X_pad[idx, len(X_itr[idx].split(" ")):] = 0
             # print(X_pad[idx, ])
             ############################################
-            print(indicator[idx, ])
-            print()
+            
             ############################################
             # exit()
-
-        exit()
+            #if count > 5:
+            #    exit()
+            #old_count = count
+        '''
+        indicator_enc = OneHotEncoder()
+        indicator = indicator[:, :, np.newaxis]
+        indicator_enc.fit(indicator[0, :])
+        indicator = np.array([indicator_enc.transform(tmp) for tmp in indicator])
+        '''
+        print("show indicator example", indicator[0], indicator.shape)
+        #exit()
         # Save context vectors to pickle file
         # Sentence
         filename = "{:s}{:s}_data_{:s}_subword{:s}.pkl".format(
@@ -281,11 +294,15 @@ def run(model_dir, input, subword=False, tag=None, vector=True):
         filename = "{:s}{:s}_mention_{:s}_subword{:s}.pkl".format(
             model_dir, prefix, sb_tag, postfix)
         pkl.dump(m_pad, open(filename, 'wb'))
-        del X_itr, X_tokenized, X_pad, m_itr, m_tokenized, m_pad
+        # Indicator
+        filename = "{:s}{:s}_indicator_{:s}_subword{:s}.pkl".format(
+            model_dir, prefix, sb_tag, postfix)
+        pkl.dump(indicator, open(filename, 'wb'))
+        del X_itr, X_tokenized, X_pad, m_itr, m_tokenized, m_pad, indicator
 
         # Binarizer the labels
         print("Binarizering labels..")
-        y_itr = temp[indices]
+        y_itr = y[indices]
         y_bin = mlb.transform(y_itr)
         print(" - {0} label shape: {1}".format(prefix, y_bin.shape))
 

@@ -105,7 +105,7 @@ def TextCNN(input,
             filter_sizes,
             dropout,
             batch_norm=True):
-
+    print("test",input.shape)
     reshape_dim = input_dim + (1, )
     x = Reshape(reshape_dim)(input)
 
@@ -183,7 +183,8 @@ def EntityTypingNet(architecture,
                     subword=False,
                     use_softmax=False,
                     optimizer="adam",
-                    learning_rate=0.001):
+                    learning_rate=0.001,
+                    indicator=False):
     """
     Arguments:
         architecture(str): Indicate which model to be used.
@@ -267,64 +268,84 @@ def EntityTypingNet(architecture,
     else:
         pass
 
-    # (2) Mention
-    # Embedding for mention/subword
-    mention = Input(shape=(len_mention, ), name="Mention")
-    # TO-DOs:
-    # Vectorization on subwords
+    if indicator:
+        indicate = Input(shape=(len_context, ), name="Indicate")
+        x_indicate = Reshape((len_context, 1))(indicate)
+    else:
+        # (2) Mention
+        # Embedding for mention/subword
+        mention = Input(shape=(len_mention, ), name="Mention")
+        # TO-DOs:
+        # Vectorization on subwords
+    
+        mention_embedding, _ = Embedding_Layer(
+            tokenizer_model=mention_tokenizer,
+            max_num_words=n_mention,
+            input_length=len_mention,
+            embedding_dim=mention_embedding_dim,
+            filename=mention_emb,
+            preload=preload if same_emb else None)
 
-    mention_embedding, _ = Embedding_Layer(
-        tokenizer_model=mention_tokenizer,
-        max_num_words=n_mention,
-        input_length=len_mention,
-        embedding_dim=mention_embedding_dim,
-        filename=mention_emb,
-        preload=preload if same_emb else None)
+        del preload
 
-    del preload
-
-    x_mention = mention_embedding(mention)
+        x_mention = mention_embedding(mention)
 
     # Bi-Directional LSTM
     if architecture == "blstm":
-        # (1) Context
-        x_context = BiLSTM(x_context)
-        # (2) Mention
-        x_mention = BiLSTM(x_mention)
+        if indicator:
+            x_context = concatenate([x_context, x_indicate])
+            x_context = BiLSTM(x_context)
+        else:
+            x_context = BiLSTM(x_context)
+            x_mention = BiLSTM(x_mention)
 
     # Text CNN by Kim
     elif architecture == "cnn" or architecture == "text_cnn":
         # (1) Context
-        x_context = TextCNN(
-            input=x_context,
-            input_dim=(len_context, context_embedding_dim),
-            embedding_dim=context_embedding_dim,
-            length=len_context,
-            num_filters=num_filters,
-            filter_sizes=filter_sizes,
-            dropout=dropout,
-            batch_norm=True)
-        # (2) Mention
-        x_mention = TextCNN(
-            input=x_mention,
-            input_dim=(len_mention, mention_embedding_dim),
-            embedding_dim=mention_embedding_dim,
-            length=len_mention,
-            num_filters=num_filters,
-            filter_sizes=filter_sizes,
-            dropout=dropout,
-            batch_norm=False)
+        if indicator:
+            x_context = concatenate([x_context, x_indicate])
+            x_context = TextCNN(
+                input=x_context,
+                input_dim=(len_context, context_embedding_dim+1),
+                embedding_dim=context_embedding_dim+1,
+                length=len_context,
+                num_filters=num_filters,
+                filter_sizes=filter_sizes,
+                dropout=dropout,
+                batch_norm=True)
+        else:
+            x_context = TextCNN(
+                input=x_context,
+                input_dim=(len_context, context_embedding_dim),
+                embedding_dim=context_embedding_dim,
+                length=len_context,
+                num_filters=num_filters,
+                filter_sizes=filter_sizes,
+                dropout=dropout,
+                batch_norm=True)
+            x_mention = TextCNN(
+                input=x_mention,
+                input_dim=(len_mention, mention_embedding_dim),
+                embedding_dim=mention_embedding_dim,
+                length=len_mention,
+                num_filters=num_filters,
+                filter_sizes=filter_sizes,
+                dropout=dropout,
+                batch_norm=False)
     else:
         x_context = None
         x_mention = None
 
     # Concatenate
-    if merge_mode == "concatenate":
-        x = concatenate([x_context, x_mention])
-        x = Dropout(dropout)(x)
-    # Inner product
-    elif merge_mode == "dot":
-        x = dot([x_context, x_mention], axes=-1)
+    if indicator:
+        x = Dropout(dropout)(x_context)
+    else:
+        if merge_mode == "concatenate":
+            x = concatenate([x_context, x_mention])
+            x = Dropout(dropout)(x)
+        # Inner product
+        elif merge_mode == "dot":
+            x = dot([x_context, x_mention], axes=-1)
 
     x = Dense(200, activation="relu")(x)
     x = BatchNormalization()(x)
@@ -332,7 +353,10 @@ def EntityTypingNet(architecture,
 
     activation = "softmax" if use_softmax else "sigmoid"
     x = Dense(n_classes, activation=activation)(x)
-    model = Model(inputs=[context, mention], outputs=x)
+    if indicator:
+        model = Model(inputs=[context, indicate], outputs=x)
+    else:
+        model = Model(inputs=[context, mention], outputs=x)
 
     # Optimizer
     print("Using {0} optimizer (lr={1})".format(optimizer, learning_rate))
