@@ -173,6 +173,30 @@ def split_data(data, n_slice, mode="TUPLE"):
     return partitioned_data
 
 
+def load_pkl_data(root, split_type, postfix, indicator=False):
+    """
+    Args:
+        root():
+        split_type():
+        postfix():
+        indicator():
+    """
+
+    print("\nLoading {:s} data...".format(split_type))
+    filename = "{:s}{:s}_context{:s}.pkl".format(root, split_type, postfix)
+    X = pkl.load(open(filename, "rb"))
+
+    filename = "{:s}{:s}{:s}{:s}.pkl".format(
+        root, split_type, "_indicator" if indicator else "_mention", postfix)
+    Z = pkl.load(open(filename, "rb"))
+
+    # Load labels
+    filename = "{:s}{:s}_label{:s}.pkl".format(root, split_type, postfix)
+    y = pkl.load(open(filename, "rb"))
+
+    return X, Z, y
+
+
 def generic_threading(n_jobs, data, method, param=None, shared=False):
     """
     Generic threading method.
@@ -534,7 +558,7 @@ def keywords_as_labels(thread_idx,
                         ###filtered_subword_list = sorted(filtered_subword_list, key=len, reverse=True)
 
                         # Mention Features: [mention _ subwords]
-                        # mention_features = itr_mention + " " + " ".join(filtered_subword_list[1:] 
+                        # mention_features = itr_mention + " " + " ".join(filtered_subword_list[1:]
                         #                    if len(words) == 1 else filtered_subword_list)
                         mention_features = itr_mention + "\t" + " ".join(
                             subword_list[1:]
@@ -577,11 +601,17 @@ def mark_positions(thread_idx, data):
         # Extract context and mention from entry
         context, mention = itr[1].split(" "), itr[2].split(" ")
         # Find possible candidate indices
-        begin_candidates = [idx for idx, itr in enumerate(context) if itr == mention[0]]
+        begin_candidates = [
+            idx for idx, itr in enumerate(context) if itr == mention[0]
+        ]
         # Use windos to extract candidates words in the sentence
-        words_candidates = [context[itr:itr + len(mention)] for itr in begin_candidates]
+        words_candidates = [
+            context[itr:itr + len(mention)] for itr in begin_candidates
+        ]
         # Compare the candidates and the target mention
-        comparison = [" ".join(mention) == " ".join(itr) for itr in words_candidates]
+        comparison = [
+            " ".join(mention) == " ".join(itr) for itr in words_candidates
+        ]
 
         # Collect positions [begin, end]
         begin, end = list(), list()

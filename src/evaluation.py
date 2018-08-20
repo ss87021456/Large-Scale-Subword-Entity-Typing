@@ -3,7 +3,7 @@ import numpy as np
 from scipy import sparse
 import argparse, json
 import pickle as pkl
-from utils import split_data
+from utils import split_data, load_pkl_data
 from sklearn.metrics import precision_recall_fscore_support, accuracy_score
 from keras import backend as K
 from keras.layers import Embedding
@@ -127,7 +127,7 @@ def run(model_dir,
         open(
             model_dir + "testing_data_{0}_subword_filter{1}.pkl".format(
                 sb_tag, postfix), 'rb'))
-    X_m = pkl.load(
+    Z = pkl.load(
         open(
             model_dir + "testing_mention_{0}_subword_filter{1}.pkl".format(
                 sb_tag, postfix), 'rb'))
@@ -142,7 +142,7 @@ def run(model_dir,
     predict(
         model,
         X,
-        X_m,
+        Z,
         y,
         model_file=model_path,
         output="results-test.txt",
@@ -213,7 +213,7 @@ def run(model_dir,
 
 def predict(model,
             X,
-            X_m,
+            Z,
             y,
             model_file,
             output,
@@ -227,7 +227,7 @@ def predict(model,
     Args:
         model(): Keras model object
         X(): Context
-        X_m(): Mention
+        Z(): Mention
         y(): Targets labels
         model_file(str): Filename of the loaded weights
         output(): The filename of the evaluation metrics logging file.
@@ -237,7 +237,7 @@ def predict(model,
 
     print("Predicting with saved model: {0} ... ".format(model_file), end='')
     start_time = time()
-    y_pred = model.predict([X[:amount], X_m[:amount]])
+    y_pred = model.predict([X[:amount], Z[:amount]])
     print("Done (took {:3.3f}s)".format(time() - start_time))
 
     # print(y_pred)
@@ -276,9 +276,7 @@ def predict(model,
 
 
 def just_test(model,
-              subword,
               filename,
-              tag=None,
               postfix=None,
               amount=None,
               use_softmax=False,
@@ -290,56 +288,24 @@ def just_test(model,
 
     Args:
         model(): Keras model object.
-        subword(bool): Indicating if the model uses subword information or not.
         filename(str): Filename of the trained weight file.
         amount(int): Use only first "amount" of data.
     """
     model_dir = "model/"
-    sb_tag = "w" if subword else "wo"
     print("Restoring best weights from: {:s}".format(filename))
     model.load_weights(filename)
 
-    # Load testing data
-    print("Loading testing data...")
-    X = pkl.load(
-        open(
-            model_dir + "testing_data_{0}_subword_filter{1}.pkl".format(
-                sb_tag, postfix), 'rb'))
-    if indicator:
-        X_i = pkl.load(
-            open(
-                model_dir + "testing_indicator_{0}_subword_filter{1}.pkl".format(
-                    sb_tag, postfix), 'rb'))
-    else:
-        X_m = pkl.load(
-            open(
-                model_dir + "testing_mention_{0}_subword_filter{1}.pkl".format(
-                    sb_tag, postfix), 'rb'))
-    y = pkl.load(
-        open(
-            model_dir + "testing_label_{0}_subword_filter{1}.pkl".format(
-                sb_tag, postfix), 'rb'))
-
-    if indicator:
-        predict(
-            model,
-            X,
-            X_i,
-            y,
-            model_file=filename,
-            output="results-test.txt",
-            amount=amount,
-            use_softmax=use_softmax)
-    else:
-        predict(
-            model,
-            X,
-            X_m,
-            y,
-            model_file=filename,
-            output="results-test.txt",
-            amount=amount,
-            use_softmax=use_softmax)
+    X, Z, y = load_pkl_data(model_dir, "testing", postfix, indicator=indicator)
+    
+    predict(
+        model,
+        X,
+        Z,
+        y,
+        model_file=filename,
+        output="results-test.txt",
+        amount=amount,
+        use_softmax=use_softmax)
 
 
 if __name__ == '__main__':

@@ -8,6 +8,7 @@ import pickle as pkl
 from utils import generic_threading, readlines
 from sklearn.preprocessing import MultiLabelBinarizer
 import os
+import csv
 
 # python ./src/generate_index.py --input=../share/data_labeled_kpb.tsv --thread=20 --tag=kbp
 # python ./src/generate_index.py --input=./data/smaller_preprocessed_sentence_keywords_labeled.tsv
@@ -39,7 +40,11 @@ def run(model_dir, input, test_size, n_thread=20, tag=None, text_only=False):
 
     print("Loading dataset..")
     dataset = pd.read_csv(
-        input, sep='\t', names=['label', 'context', 'mention', 'begin', 'end'], dtype=str, quoting=csv.QUOTE_NONE)
+        input,
+        sep='\t',
+        names=['label', 'context', 'mention', 'begin', 'end'],
+        dtype=str,
+        quoting=csv.QUOTE_NONE)
     dataset['mention'] = dataset['mention'].astype(str)
     mentions = dataset['mention'].values
 
@@ -72,8 +77,7 @@ def run(model_dir, input, test_size, n_thread=20, tag=None, text_only=False):
     ########################################
     # TO-BE-VERIFIED CODE NECESSITY
     for thread_idx in order_idx:
-        for mention_pair in mention_index[thread_idx][
-                1:]:  # take the thread in order
+        for mention_pair in mention_index[thread_idx][1:]:
             mention.append(mention_pair[0])
             indices.append(mention_pair[1])
     ########################################
@@ -90,26 +94,22 @@ def run(model_dir, input, test_size, n_thread=20, tag=None, text_only=False):
 
     count = 0
     print("Processing training_index...")
-    print(
-        "Training size: {0}, testing size: {1}, validation size: {2}, total size: {3}"
-        .format(train_len, test_len, test_len, total_length))
     ########################################
     # TO-BE REVISED TO A MORE ELEGANT SPLITTING WAY
     np.random.shuffle(unique)
     for mention in tqdm(unique):
-        if count < train_len:  # for training dataset
+        if count < train_len:
             count += mention_count[mention]
             train_index.append(mention_index[mention])
-        elif count >= train_len and count < (
-                train_len + test_len):  # for validation dataset
+        elif count >= train_len and count < (train_len + test_len):
             count += mention_count[mention]
             validation_index.append(mention_index[mention])
-        else:  # rest are for testing dataset
+        else:
             count += mention_count[mention]
             test_index.append(mention_index[mention])
     ########################################
 
-    # flatten list
+    # Flatten list
     print("Flatten train/validation/test index...")
     train_index = list(itertools.chain.from_iterable(train_index))
     validation_index = list(itertools.chain.from_iterable(validation_index))
@@ -128,21 +128,13 @@ def run(model_dir, input, test_size, n_thread=20, tag=None, text_only=False):
     np.random.shuffle(train_index)
     np.random.shuffle(validation_index)
     np.random.shuffle(test_index)
-    pkl.dump(train_index,
-             open(model_dir + "train_index{:s}.pkl".format(postfix), 'wb'))
-    pkl.dump(
-        validation_index,
-        open(model_dir + "validation_index{:s}.pkl".format(postfix), 'wb'))
-    pkl.dump(test_index,
-             open(model_dir + "test_index{:s}.pkl".format(postfix), 'wb'))
 
-    print("Loading pkl...")
-    train_index = pkl.load(
-        open(model_dir + "train_index{:s}.pkl".format(postfix), 'rb'))
-    test_index = pkl.load(
-        open(model_dir + "test_index{:s}.pkl".format(postfix), 'rb'))
-    validation_index = pkl.load(
-        open(model_dir + "validation_index{:s}.pkl".format(postfix), 'rb'))
+    filename = "{:s}training_index{:s}.pkl".format(model_dir, postfix)
+    pkl.dump(train_index, open(filename, 'wb'))
+    filename = "{:s}validation_index{:s}.pkl".format(model_dir, postfix)
+    pkl.dump(validation_index, open(filename, 'wb'))
+    filename = "{:s}testing_index{:s}.pkl".format(model_dir, postfix)
+    pkl.dump(test_index, open(filename, 'wb'))
 
     print("Writing new_test_mention_list{:s}..".format(postfix))
     X_test_mention = mentions[test_index]
@@ -154,8 +146,8 @@ def run(model_dir, input, test_size, n_thread=20, tag=None, text_only=False):
         len(set(X_validation_mention))))
     print("{0} test unique mentions...".format(len(set(X_test_mention))))
 
-    with open(model_dir + "test_mention_list{:s}.txt".format(postfix),
-              "w") as f:
+    filename = model_dir + "test_mention_list{:s}.txt".format(postfix)
+    with open(filename, "w") as f:
         for mention in X_test_mention:
             f.write(mention + "\n")
 

@@ -6,6 +6,7 @@ from sklearn.metrics import precision_recall_fscore_support
 from keras import backend as K
 from keras.callbacks import EarlyStopping, ModelCheckpoint
 from evaluation import just_test, predict
+from utils import load_pkl_data
 from keras.optimizers import Adam, Adagrad, SGD, RMSprop
 from modules.entity_net import EntityTypingNet
 
@@ -20,11 +21,11 @@ from modules.entity_net import EntityTypingNet
 # Additional option --subword --attention
 # /home/chiawei2/nlp_tool/fastText-0.1.0/vector/fastText_Pubmed.vec
 
-# Feature-parameter
-MAX_NUM_WORDS = 30000
+# Feature parameters
+MAX_NUM_WORDS = 100000
 MAX_NUM_MENTION_WORDS = 20000
-MAX_SEQUENCE_LENGTH = 40
-MAX_MENTION_LENGTH = 5  # 15 if subowrd else 5
+MAX_SEQUENCE_LENGTH = 100
+MAX_MENTION_LENGTH = 5  # 15 if subword else 5
 
 # Set memory constraint
 import tensorflow as tf
@@ -35,8 +36,11 @@ set_session(tf.Session(config=config))
 
 
 def run(args):
-    postfix = ("_" + args.data_tag) if args.data_tag is not None else ""
     args.tag = ("_" + args.tag) if args.tag is not None else ""
+    postfix = "{:s}{:s}".format("_subword"
+                                if args.use_subword else "", ("_" + args.data_tag)
+                                if args.data_tag is not None else "")
+    print("postfix", postfix)
 
     # Parse directory name
     if not args.model_dir.endswith("/"):
@@ -44,14 +48,13 @@ def run(args):
 
     #########################################
     # Load models (TO-BE-REVISED)
-    sb_tag = "w" if args.subword else "wo"
-    mlb_ = "mlb_{0}_subword_filter{1}.pkl".format(sb_tag, postfix)
-    mlb = pkl.load(open(args.model_dir + mlb_, 'rb'))
+    mlb_ = "{:s}mlb{:s}.pkl".format(args.model_dir, postfix)
+    mlb = pkl.load(open(mlb_, "rb"))
     n_classes = len(mlb.classes_)
-    args.context_tokenizer = args.model_dir + "tokenizer_{0}_subword_filter{1}.pkl".format(
-        sb_tag, postfix)
-    args.mention_tokenizer = args.model_dir + "m_tokenizer_{0}_subword_filter{1}.pkl".format(
-        sb_tag, postfix)
+    args.context_tokenizer = args.model_dir + "X_tokenizer{:s}.pkl".format(
+        postfix)
+    args.mention_tokenizer = args.model_dir + "m_tokenizer{:s}.pkl".format(
+        postfix)
     #########################################
     # print(args)
 
@@ -73,69 +76,43 @@ def run(args):
         len_context=MAX_SEQUENCE_LENGTH,
         len_mention=MAX_MENTION_LENGTH,
         attention=args.attention,
+        subword=args.use_subword,
+        indicator=args.indicator,
         merge_mode=args.merge_mode,
         dropout=args.dropout,
-        subword=args.subword,
         use_softmax=args.use_softmax,
         optimizer=args.optimizer,
-        learning_rate=args.learning_rate,
-        indicator=args.indicator)
+        learning_rate=args.learning_rate)
 
     print(model.summary())
 
-    prefix = "{0}{1}".format("Subword-" if args.subword else "", "Attention-"
+    prefix = "{0}{1}".format("-Subword"
+                             if args.use_subword else "", "-Attention"
                              if args.attention else "")
     # Save weights at each epoch
-    file_path = prefix + args.arch + "-weights-{epoch:02d}" + "{:s}.hdf5".format(
-        args.tag)
+    save_prefix = "{:s}{:s}-weights{:s}".format(args.arch, prefix, args.tag)
+    filename = save_prefix + "-{epoch:02d}.hdf5"
 
     # Save every epoch
     checkpoint = ModelCheckpoint(
-        file_path,
-        monitor='val_loss',
+        filename,
+        monitor="val_loss",
         verbose=1,
         save_best_only=False,
-        mode='min')
+        mode="min")
     early = EarlyStopping(monitor="val_loss", mode="min", patience=20)
     callbacks_list = [checkpoint, early]
 
-    # Training
-    print("Loading training data...")
-    X_train = pkl.load(
-        open(
-            args.model_dir + "training_data_{0}_subword_filter{1}.pkl".format(
-                sb_tag, postfix), 'rb'))
-    if args.indicator:
-        X_indicator = pkl.load(
-            open(
-                args.model_dir + "training_indicator_{0}_subword_filter{1}.pkl".format(
-                    sb_tag, postfix), 'rb'))
-    else:
-        X_m_train = pkl.load(
-            open(
-                args.model_dir +
-                "training_mention_{0}_subword_filter{1}.pkl".format(
-                    sb_tag, postfix), 'rb'))
-    y_train = pkl.load(
-        open(
-            args.model_dir + "training_label_{0}_subword_filter{1}.pkl".format(
-                sb_tag, postfix), 'rb'))
+    X_train, Z_train, y_train = load_pkl_data(
+        args.model_dir, "training", postfix, indicator=args.indicator)
+    # input = [X_train, Z_train]
 
     #if category:
     #    y_train =  np.array(mlb.inverse_transform(y_train)).flatten()
 
     print("Begin training...")
-    if args.indicator:
-        model.fit(
-        [X_train, X_indicator],
-        y_train,
-        batch_size=args.batch_size,
-        epochs=args.epochs,
-        validation_split=0.01,
-        callbacks=callbacks_list)
-    else:
-        model.fit(
-        [X_train, X_m_train],
+    model.fit(
+        [X_train, Z_train],
         y_train,
         batch_size=args.batch_size,
         epochs=args.epochs,
@@ -145,73 +122,37 @@ def run(args):
     # Evaluation
     record = 0
     index = 0
-    # Validation data
-    print("\nLoading validation data...")
-    X_val = pkl.load(
-        open(
-            args.model_dir +
-            "validation_data_{0}_subword_filter{1}.pkl".format(
-                sb_tag, postfix), 'rb'))
-    if args.indicator:
-        X_indicator_val = pkl.load(
-            open(
-                args.model_dir +
-                "validation_indicator_{0}_subword_filter{1}.pkl".format(
-                    sb_tag, postfix), 'rb'))
-    else:
-        X_m_val = pkl.load(
-            open(
-                args.model_dir +
-                "validation_mention_{0}_subword_filter{1}.pkl".format(
-                    sb_tag, postfix), 'rb'))
-    y_val = pkl.load(
-        open(
-            args.model_dir +
-            "validation_label_{0}_subword_filter{1}.pkl".format(
-                sb_tag, postfix), 'rb'))
+
+    X_val, Z_val, y_val = load_pkl_data(
+        args.model_dir, "validation", postfix, indicator=args.indicator)
 
     print("Loading trained weights for validation...")
     for i in range(1, args.epochs + 1, 1):
         # Deal with model_name for each epoch
-        model_name = prefix + args.arch + "-weights-{:02d}{:s}.hdf5".format(
-            i, args.tag)
+        model_name = "{:s}-{:02d}.hdf5".format(save_prefix, i)
         model.load_weights(model_name)
 
-        if args.indicator:
-            f = predict(
-                model,
-                X_val,
-                X_indicator_val,
-                y_val,
-                model_name,
-                "results.txt",
-                return_mf1=True,
-                use_softmax=args.use_softmax)
-        else:
-            f = predict(
-                model,
-                X_val,
-                X_m_val,
-                y_val,
-                model_name,
-                "results.txt",
-                return_mf1=True,
-                use_softmax=args.use_softmax)
+        f = predict(
+            model,
+            X_val,
+            Z_val,
+            y_val,
+            model_name,
+            "results.txt",
+            return_mf1=True,
+            use_softmax=args.use_softmax)
 
         # Always choose model trained with more epoch when the F-1 score is same
         if record <= f:
             record = f
             index = i
 
-    print("\nValidation completed, best micro-F1 score is at epoch {:02d}".
-          format(index))
+    print("\n * Best micro-F1 at Validation: epoch #{:02d}".format(index))
     # Test model with best micro F1 score
-    model_name = prefix + args.arch + "-weights-{:02d}{:s}.hdf5".format(
-        index, args.tag)
+    model_name = "{:s}-{:02d}.hdf5".format(save_prefix, index)
     just_test(
         model=model,
         filename=model_name,
-        subword=args.subword,
         postfix=postfix,
         use_softmax=args.use_softmax,
         indicator=args.indicator)
@@ -219,7 +160,7 @@ def run(args):
     K.clear_session()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     # Tokenizers
     parser.add_argument(
@@ -254,7 +195,7 @@ if __name__ == '__main__':
     parser.add_argument(
         "--attention", action="store_true", help="Use attention or not")
     parser.add_argument(
-        "--subword", action="store_true", help="Use subword or not")
+        "--use_subword", action="store_true", help="Use subword or not")
     parser.add_argument(
         "--indicator", action="store_true", help="Use indicator or not")
     parser.add_argument(
