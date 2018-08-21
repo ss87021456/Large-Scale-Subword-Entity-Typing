@@ -296,7 +296,7 @@ def just_test(model,
     model.load_weights(filename)
 
     X, Z, y = load_pkl_data(model_dir, "testing", postfix, indicator=indicator)
-    
+
     predict(
         model,
         X,

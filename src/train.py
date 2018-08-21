@@ -39,8 +39,7 @@ def run(args):
     # Add underscore to the tag
     args.tag = ("_" + args.tag) if args.tag is not None else ""
     # Parse prefix and postfix
-    prefix = "{0}{1}".format("-Subword"
-                             if args.subword else "", "-Attention"
+    prefix = "{0}{1}".format("-Subword" if args.subword else "", "-Attention"
                              if args.attention else "")
 
     postfix = "{:s}{:s}".format("_subword"

@@ -278,7 +278,7 @@ def EntityTypingNet(architecture,
         mention = Input(shape=(len_mention, ), name="Mention")
         # TO-DOs:
         # Vectorization on subwords
-    
+
         mention_embedding, _ = Embedding_Layer(
             tokenizer_model=mention_tokenizer,
             max_num_words=n_mention,
@@ -307,8 +307,8 @@ def EntityTypingNet(architecture,
             x_context = concatenate([x_context, x_indicate])
             x_context = TextCNN(
                 input=x_context,
-                input_dim=(len_context, context_embedding_dim+1),
-                embedding_dim=context_embedding_dim+1,
+                input_dim=(len_context, context_embedding_dim + 1),
+                embedding_dim=context_embedding_dim + 1,
                 length=len_context,
                 num_filters=num_filters,
                 filter_sizes=filter_sizes,

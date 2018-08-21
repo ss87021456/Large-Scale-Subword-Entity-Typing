@@ -62,8 +62,7 @@ def fit_encoder(keywords_path,
     encoder = LabelEncoder()
 
     unique_types = list(
-        np.unique(
-            labels if from_file else list(chain.from_iterable(labels))))
+        np.unique(labels if from_file else list(chain.from_iterable(labels))))
     print(" - Total number of unique types: {0}".format(len(unique_types)))
 
     # Fit LabelEncoder

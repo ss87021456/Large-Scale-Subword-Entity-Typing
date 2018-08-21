@@ -39,8 +39,8 @@ def parallel_index(thread_idx, mention_count, mentions):
 
 def run(model_dir, input, use_subword=False, tag=None, vector=True):
     #
-    postfix = "{:s}{:s}".format("_subword" if use_subword else "",
-                                ("_" + tag) if tag is not None else "")
+    postfix = "{:s}{:s}".format("_subword" if use_subword else "", ("_" + tag)
+                                if tag is not None else "")
     #
     MAX_MENTION_LENGTH = 5 if not use_subword else 15
     print("MAX_MENTION_LENGTH = {0}".format(MAX_MENTION_LENGTH))
