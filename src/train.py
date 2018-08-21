@@ -36,11 +36,16 @@ set_session(tf.Session(config=config))
 
 
 def run(args):
+    # Add underscore to the tag
     args.tag = ("_" + args.tag) if args.tag is not None else ""
+    # Parse prefix and postfix
+    prefix = "{0}{1}".format("-Subword"
+                             if args.subword else "", "-Attention"
+                             if args.attention else "")
+
     postfix = "{:s}{:s}".format("_subword"
-                                if args.use_subword else "", ("_" + args.data_tag)
+                                if args.subword else "", ("_" + args.data_tag)
                                 if args.data_tag is not None else "")
-    print("postfix", postfix)
 
     # Parse directory name
     if not args.model_dir.endswith("/"):
@@ -56,7 +61,6 @@ def run(args):
     args.mention_tokenizer = args.model_dir + "m_tokenizer{:s}.pkl".format(
         postfix)
     #########################################
-    # print(args)
 
     # Building Model
     print("Building computational graph...")
@@ -76,7 +80,7 @@ def run(args):
         len_context=MAX_SEQUENCE_LENGTH,
         len_mention=MAX_MENTION_LENGTH,
         attention=args.attention,
-        subword=args.use_subword,
+        subword=args.subword,
         indicator=args.indicator,
         merge_mode=args.merge_mode,
         dropout=args.dropout,
@@ -86,14 +90,10 @@ def run(args):
 
     print(model.summary())
 
-    prefix = "{0}{1}".format("-Subword"
-                             if args.use_subword else "", "-Attention"
-                             if args.attention else "")
-    # Save weights at each epoch
+    # Save weights at the end of each epoch
     save_prefix = "{:s}{:s}-weights{:s}".format(args.arch, prefix, args.tag)
     filename = save_prefix + "-{epoch:02d}.hdf5"
 
-    # Save every epoch
     checkpoint = ModelCheckpoint(
         filename,
         monitor="val_loss",
@@ -107,7 +107,7 @@ def run(args):
         args.model_dir, "training", postfix, indicator=args.indicator)
     # input = [X_train, Z_train]
 
-    #if category:
+    #if args.use_softmax:
     #    y_train =  np.array(mlb.inverse_transform(y_train)).flatten()
 
     print("Begin training...")
@@ -195,7 +195,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--attention", action="store_true", help="Use attention or not")
     parser.add_argument(
-        "--use_subword", action="store_true", help="Use subword or not")
+        "--subword", action="store_true", help="Use subword or not")
     parser.add_argument(
         "--indicator", action="store_true", help="Use indicator or not")
     parser.add_argument(

@@ -105,7 +105,7 @@ def TextCNN(input,
             filter_sizes,
             dropout,
             batch_norm=True):
-    print("test",input.shape)
+
     reshape_dim = input_dim + (1, )
     x = Reshape(reshape_dim)(input)
 
@@ -178,13 +178,13 @@ def EntityTypingNet(architecture,
                     len_context=40,
                     len_mention=5,
                     attention=False,
+                    subword=False,
+                    indicator=False,
                     merge_mode="concatenate",
                     dropout=0.50,
-                    subword=False,
                     use_softmax=False,
                     optimizer="adam",
-                    learning_rate=0.001,
-                    indicator=False):
+                    learning_rate=0.001):
     """
     Arguments:
         architecture(str): Indicate which model to be used.
@@ -206,10 +206,11 @@ def EntityTypingNet(architecture,
         len_mention(int):
         attention(bool): When asserted, attention layer would be added
             to the context stream.
+        subword():
+        indicator():
         merge_mode(str): The type of operation to combine features
             from context and mention.
         dropout(float): The dropout rate for the entire model.
-        subword
         use_softmax(bool): When asserted, the final layer would be
             Softmax activation layer for single-class classification
             otherwise the activation layer would be Sigmoid and use
@@ -269,7 +270,7 @@ def EntityTypingNet(architecture,
         pass
 
     if indicator:
-        indicate = Input(shape=(len_context, ), name="Indicate")
+        indicate = Input(shape=(len_context, ), name="Indicator")
         x_indicate = Reshape((len_context, 1))(indicate)
     else:
         # (2) Mention
