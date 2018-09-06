@@ -91,8 +91,8 @@ def parse_description(args):
 
     # Dictionary with word as keys and description as values
     keys = [itr["wordnet"].lower() for itr in raw]
-    values = [{"defintion": itr["defintion"]} for itr in raw]
-    # values = [{"defintion": itr['defintion'], "entities": itr["entities"]} for itr in raw]
+    values = [{"definition": itr["defintion"]} for itr in raw]
+    # values = [{"definition": itr['defintion'], "entities": itr["entities"]} for itr in raw]
     dic = dict(zip(keys, values))
     assert len(dic) == raw_len
     print(" * {} entries created.".format(len(dic)))

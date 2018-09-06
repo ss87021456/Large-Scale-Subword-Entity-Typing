@@ -12,7 +12,8 @@ import csv
 """
 For KBP partial dataset
 python src/label.py ../share/kbp_ascii.tsv --from_file --tag=kbp --fit
-python src/label.py ../share/kbp_ascii.tsv --labels=data/label_kbp.json --from_file --replace
+python src/label.py ../share/kbp_ascii.tsv --labels=data/label_kbp.json \
+--desc=wordnet_desc.json --from_file --replace
 
 For PubMed smaller.tsv
 python src/label.py data/ --trim --fit
@@ -28,7 +29,6 @@ def fit_encoder(keywords_path,
                 model=None,
                 trim=True,
                 from_file=False,
-                desc=None,
                 thread=10,
                 output=None,
                 tag=None):
@@ -92,10 +92,10 @@ def replace_labels(keywords_path,
                    subwords=None,
                    mode="MULTI",
                    from_file=False,
-                   duplicate=True,
-                   thread=5,
                    desc=None,
+                   duplicate=True,
                    limit=None,
+                   thread=5,
                    tag=None):
     """
     Arguments:
@@ -111,6 +111,7 @@ def replace_labels(keywords_path,
     else:
         output = keywords_path[:-4] + "_labeled{:s}.tsv".format(postfix)
 
+    descriptions = json.load(open(desc, "r"))
     # Load lines from corpus
     print("Adding labels to the dataset according to their mentions:")
     print(" - Mention: {:s}".format(mode))
@@ -127,7 +128,13 @@ def replace_labels(keywords_path,
         print("* Label corpus in place")
         contents = readlines(keywords_path, limit=limit, delimitor="\t")
         # Mark position of the mention in the contexts
+        print(" * Adding indicator to the dataset")
         contents = mark_positions(thread_idx=0, data=contents)
+        # Add label descriptions if given
+        if desc is not None:
+            print(" * Adding label descriptions to the dataset")
+            descriptions = json.load(open(desc, "r"))
+            contents = [(itr + [descriptions[itr[0]]["definition"]]) for itr in contents]
 
         # Replace types (text) to labels (int)
         encoded = [lookup[itr[0]] for itr in contents]
@@ -229,6 +236,8 @@ if __name__ == '__main__':
     parser.add_argument(
         "--labels", help="Points to data/label.json (when replacing labels).")
     parser.add_argument(
+        "--add_desc", action="store_true", help="Add label descriptions.")
+    parser.add_argument(
         "--trim", action="store_true", help="Use trimmed hierarchy tree.")
     parser.add_argument(
         "--no_duplicate",
@@ -249,13 +258,13 @@ if __name__ == '__main__':
     if args.replace:
         replace_labels(args.keywords_path, args.corpus, args.labels,
                        args.output, args.subwords, args.mode,
-                       args.no_duplicate, args.thread, args.from_file,
-                       args.desc, args.limit, args.tag)
+                       args.from_file, args.desc, args.no_duplicate,
+                       args.limit, args.thread, args.tag)
     elif args.stat:
         acquire_statistic(args.corpus, args.keywords_path, args.output)
     elif args.fit:
         fit_encoder(args.keywords_path, args.model, args.trim, args.from_file,
-                    args.desc, args.thread, args.output, args.tag)
+                    args.thread, args.output, args.tag)
     else:
         print("No job to be done.")
         pass
