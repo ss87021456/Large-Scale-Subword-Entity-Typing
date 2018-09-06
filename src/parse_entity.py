@@ -10,10 +10,11 @@ from itertools import chain
 from tqdm import tqdm
 from pprint import pprint
 from copy import copy
-
-# python src/parse_entity.py data/MeSH_type_hierarchy.txt --trim --threshold=1
-# python src/parse_entity.py data/UMLS_type_hierarchy.txt --trim --threshold=1
-# python src/parse_entity.py data/custom_subwords_v2.txt --subword
+"""
+python src/parse_entity.py data/MeSH_type_hierarchy.txt --trim --threshold=1
+python src/parse_entity.py data/UMLS_type_hierarchy.txt --trim --threshold=1
+python src/parse_entity.py data/custom_subwords_v2.txt --subword
+"""
 
 
 def entity_parser(file, trim=True, threshold=1, plot=False):
@@ -215,7 +216,7 @@ def entity_parser(file, trim=True, threshold=1, plot=False):
         all_types = [itr["TYPE"] for itr in leaf_info.values()]
         all_types = list(chain.from_iterable(all_types))
         n_org_labels = len(uni_list(all_types))
-        print(n_org_labels)
+        # print(n_org_labels)
         occurence = dict(Counter(all_types))
         # pprint(occurence)
 

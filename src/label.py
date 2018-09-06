@@ -10,17 +10,17 @@ import pandas as pd
 from collections import Counter
 import csv
 """
-python src/label.py ../share/data.txt --from_file --tag=kpb
-python src/label.py ../share/kbp_ascii.tsv --from_file --tag=kpb
+For KBP partial dataset
+python src/label.py ../share/kbp_ascii.tsv --from_file --tag=kbp --fit
+python src/label.py ../share/kbp_ascii.tsv --labels=data/label_kbp.json --from_file --replace
 
-python src/label.py data/ --trim
+For PubMed smaller.tsv
+python src/label.py data/ --trim --fit
 python src/label.py data/ --labels=data/label.json --replace \
---corpus=data/smaller_preprocessed_sentence_keywords.tsv --subwords=data/subwords.json --thread=10
+--corpus=data/smaller_preprocessed_sentence.tsv --subwords=data/subwords.json --thread=10
 
-python src/label.py data/ --labels=data/label.json --replace \
---corpus=data/smaller_preprocessed_sentence_keywords.tsv --subwords=data/subwords.json --thread=10 --limit=100
-
-python src/label.py data/ --corpus=data/smaller_preprocessed_sentence_keywords.tsv --stat
+Check statistical information of the data
+python src/label.py data/ --corpus=data/smaller_preprocessed_sentence.tsv --stat
 """
 
 
@@ -28,6 +28,7 @@ def fit_encoder(keywords_path,
                 model=None,
                 trim=True,
                 from_file=False,
+                desc=None,
                 thread=10,
                 output=None,
                 tag=None):
@@ -49,20 +50,16 @@ def fit_encoder(keywords_path,
     if from_file:
         contents = readlines(keywords_path, delimitor="\t")
         labels = [itr[0] for itr in contents]
-        # contents = pd.read_csv(keywords_path, sep="\t", names=['label','context','mention'], dtype={'mention': str}, quoting=csv.QUOTE_NONE)
-        # labels = contents['label'].values
     else:
-        # contents = json.load(open(keywords, "r"))
         contents = merge_dict(keywords_path, trim=trim)
-        # Unique the labels
         labels = list(contents.values())
+        labels = list(chain.from_iterable(labels))
 
     # LabelEncoder
     print("Initializing LabelEncoder for encoding unique types...")
     encoder = LabelEncoder()
 
-    unique_types = list(
-        np.unique(labels if from_file else list(chain.from_iterable(labels))))
+    unique_types = list(np.unique(labels))
     print(" - Total number of unique types: {0}".format(len(unique_types)))
 
     # Fit LabelEncoder
@@ -87,26 +84,6 @@ def fit_encoder(keywords_path,
     output_dict = dict(zip([int(itr) for itr in codes], unique_types))
     write_to_file(r_output, output_dict)
 
-    if from_file:
-        print("* Label corpus in place")
-        filename = keywords_path[:-4] + "_labeled{:s}.tsv".format(postfix)
-        encoded = encoder.transform(labels)
-        # Mark position of the mention in the contexts
-        contents = mark_positions(0, contents)
-        # [NOTE] Single-threading seems enough for now (2M entries in 20 seconds)
-        # contents = generic_threading(thread, contents, mark_positions)
-        #
-        contents = [
-            "\t".join([str(itr_l)] + itr_c[1:])
-            for itr_l, itr_c in zip(encoded, contents)
-        ]
-
-        write_to_file(filename, contents)
-        # contents['label'] = encoded
-        # contents.to_csv(filename, sep="\t", header=False, index=False)
-        # print(contents['mention'][732315])
-        print("Converted to file: {:s}".format(filename))
-
 
 def replace_labels(keywords_path,
                    corpus,
@@ -114,12 +91,13 @@ def replace_labels(keywords_path,
                    output,
                    subwords=None,
                    mode="MULTI",
+                   from_file=False,
                    duplicate=True,
                    thread=5,
+                   desc=None,
                    limit=None,
                    tag=None):
     """
-
     Arguments:
         keywords_path():
         output():
@@ -127,42 +105,66 @@ def replace_labels(keywords_path,
         thread():
     """
     postfix = ("_" + tag) if tag is not None else ""
-    if output is None:
+    if output is None and not from_file:
         output = corpus[:-4] + "_labeled{0}{1}.tsv"\
         .format("_subwords" if subwords is not None else "", postfix)
+    else:
+        output = keywords_path[:-4] + "_labeled{:s}.tsv".format(postfix)
 
-    print("Replacing mentions with their labels:")
+    # Load lines from corpus
+    print("Adding labels to the dataset according to their mentions:")
     print(" - Mention: {:s}".format(mode))
     print(" - Duplicate: {0}".format(duplicate))
     print()
-    # Load lines from corpus
-    raw_data = readlines(corpus, limit=limit)
 
-    print()
-    # Load keywords and labels
-    # Used for matching each mention and its corresponding types (text)
-    mentions = merge_dict(keywords_path)
     # Used for matching each type to its corresponding labels (int)
     print("Loading labels dictionary from file: {:s}".format(labels))
-    contents = json.load(open(labels, "r"))
-    print(" - Total number of labels: {0}".format(len(contents)))
+    lookup = json.load(open(labels, "r"))
+    print(" - Total number of labels: {0}".format(len(lookup)))
     print()
 
-    if subwords is not None:
-        # Used for matching each type to its corresponding labels (int)
-        print("Loading labels dictionary from file: {:s}".format(labels))
-        subword_dict = json.load(open(subwords, "r"))
-        print(" - Total number of labels: {0}".format(len(contents)))
-        print()
+    if from_file:
+        print("* Label corpus in place")
+        contents = readlines(keywords_path, limit=limit, delimitor="\t")
+        # Mark position of the mention in the contexts
+        contents = mark_positions(thread_idx=0, data=contents)
+
+        # Replace types (text) to labels (int)
+        encoded = [lookup[itr[0]] for itr in contents]
+        # [NOTE] Single-threading seems enough for now (2M entries in 20 seconds)
+        # contents = generic_threading(thread, contents, mark_positions)
+        contents = [
+            "\t".join([str(itr_l)] + itr_c[1:])
+            for itr_l, itr_c in zip(encoded, contents)
+        ]
+
+        write_to_file(output, contents)
+        # contents['label'] = encoded
+        # contents.to_csv(output, sep="\t", header=False, index=False)
+        # print(contents['mention'][732315])
+        print("Converted to file: {:s}".format(output))
+
     else:
-        subword_dict = None
+        raw_data = readlines(corpus, limit=limit)
+        # Load keywords and labels
+        # Used for matching each mention and its corresponding types (text)
+        mentions = merge_dict(keywords_path)
 
-    # Threading
-    param = (mentions, contents, subword_dict, mode, duplicate)
-    result = generic_threading(thread, raw_data, keywords_as_labels, param)
+        if subwords is not None:
+            # Used for matching each type to its corresponding labels (int)
+            print("Loading labels dictionary from file: {:s}".format(labels))
+            subword_dict = json.load(open(subwords, "r"))
+            print(" - Total number of labels: {0}".format(len(lookup)))
+            print()
+        else:
+            subword_dict = None
 
-    # Write result to file
-    write_to_file(output, result)
+        # Threading
+        param = (mentions, lookup, subword_dict, mode, duplicate)
+        result = generic_threading(thread, raw_data, keywords_as_labels, param)
+
+        # Write result to file
+        write_to_file(output, result)
 
 
 def acquire_statistic(corpus, keywords_path, output=None, tag=None):
@@ -199,6 +201,7 @@ if __name__ == '__main__':
         help="Path to where mention dictionaries are saved.")
     parser.add_argument("--model", type=str, help="Output encoder name.")
     parser.add_argument("--output", type=str, help="Sentences with key words")
+    parser.add_argument("--desc", type=str, help="Label descriptions.")
     parser.add_argument("--tag", type=str, help="Make tags on the files.")
     parser.add_argument(
         "--from_file", action="store_true", help="Load just from single file.")
@@ -221,6 +224,8 @@ if __name__ == '__main__':
     #
     parser.add_argument(
         "--replace", action="store_true", help="Replace labels.")
+    parser.add_argument(
+        "--fit", action="store_true", help="Fit labels with encoder.")
     parser.add_argument(
         "--labels", help="Points to data/label.json (when replacing labels).")
     parser.add_argument(
@@ -245,9 +250,12 @@ if __name__ == '__main__':
         replace_labels(args.keywords_path, args.corpus, args.labels,
                        args.output, args.subwords, args.mode,
                        args.no_duplicate, args.thread, args.from_file,
-                       args.limit, args.tag)
+                       args.desc, args.limit, args.tag)
     elif args.stat:
         acquire_statistic(args.corpus, args.keywords_path, args.output)
-    else:
+    elif args.fit:
         fit_encoder(args.keywords_path, args.model, args.trim, args.from_file,
-                    args.thread, args.output, args.tag)
+                    args.desc, args.thread, args.output, args.tag)
+    else:
+        print("No job to be done.")
+        pass
