@@ -1,12 +1,36 @@
 import os
 import argparse
 import json
+import nltk.data
 from pprint import pprint
 from tqdm import tqdm
 from itertools import chain
 from utils import write_to_file, keyword_in_sentences, readlines, generic_threading, merge_dict
+"""
+python src/recognize_sentences.py data/smaller_preprocessed.tsv data/ --trim --mode=MULTI --thread=10
+"""
 
-# python src/recognize_sentences.py data/smaller_preprocessed_sentence.txt data/ --trim --mode=MULTI --thread=10
+
+def parallel_split(thread_idx, data, tokenizer):
+    """
+    Args:
+        thread_idx()
+        data()
+        tokenizer():
+
+    Return:
+        result():
+    """
+    desc = "Thread {:2d}".format(thread_idx + 1)
+    result = list()
+    for article in tqdm(data, position=thread_idx, desc=desc):
+        content = tokenizer.tokenize(article)
+        tab_index = content[0].find("\t")
+        content[0] = content[0][tab_index + 1:]  # skip PMID\t
+        for element in content:
+            result.append(element)
+
+    return result
 
 
 def recognize_sentences(corpus,
@@ -24,36 +48,33 @@ def recognize_sentences(corpus,
         thread(int): Number of thread to process.
         output(str): Path to the output file.
     """
-    print("Recognize mentions in sentences (mode: {:s})".format(mode))
     # output name
     if output is None:
-        output = corpus[:-4] + "_keywords.tsv"
+        output = corpus[:-4] + "_sentences.tsv"
+
+    # Decompose corpus to sentences and each as one datum
+    # Load corpus (skip first line for PubMed smaller version)
+    raw_data = readlines(corpus, begin=1, limit=limit)
+    # Load tokenizer
+    tokenizer = nltk.data.load('tokenizers/punkt/english.pickle')
+    # Threading
+    param = (tokenizer, )
+    context = generic_threading(thread // 2, raw_data, parallel_split, param)
+    context = list(chain.from_iterable(context))
+    del raw_data
+
+    print()
+    print("Recognize mentions in sentences (mode: {:s})".format(mode))
 
     # Load all mentions
     entity = merge_dict(keywords_path, trim=trim)
 
-    # Load lines from corpus
-    raw_data = readlines(corpus, limit=limit)
-
     # Threading
     keywords = list(entity.keys())
     param = (keywords, mode)
-    result = generic_threading(thread, raw_data, keyword_in_sentences, param)
-    """
+    result = generic_threading(thread, context, keyword_in_sentences, param)
+
     # write all result to file
-    if split:
-        amount = sum([len(itr) for itr in result])
-        train_amt = amount * (1 - validation - testing)
-        valid_amt = amount * validation + train_amt
-        test_amt = amount * testing + valid_amt
-        ### SHUFFLE ###
-        # Add label
-        write_to_file(output[:-4] + "_train.tsv", result[:train_amt])
-        write_to_file(output[:-4] + "_validation.tsv", result[train_amt:valid_amt])
-        write_to_file(output[:-4] + "_test.tsv", result[valid_amt:test_amt])
-    else:
-        write_to_file(output, result)
-    """
     write_to_file(output, result)
 
 
