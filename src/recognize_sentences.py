@@ -50,7 +50,7 @@ def recognize_sentences(corpus,
     """
     # output name
     if output is None:
-        output = corpus[:-4] + "_sentences.tsv"
+        output = corpus[:-4] + "_sentence.tsv"
 
     # Decompose corpus to sentences and each as one datum
     # Load corpus (skip first line for PubMed smaller version)

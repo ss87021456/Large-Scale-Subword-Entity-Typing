@@ -111,7 +111,8 @@ def replace_labels(keywords_path,
     else:
         output = keywords_path[:-4] + "_labeled{:s}.tsv".format(postfix)
 
-    descriptions = json.load(open(desc, "r"))
+    if desc is not None:
+        descriptions = json.load(open(desc, "r"))
     # Load lines from corpus
     print("Adding labels to the dataset according to their mentions:")
     print(" - Mention: {:s}".format(mode))
