@@ -10,17 +10,19 @@ from sklearn.preprocessing import MultiLabelBinarizer, OneHotEncoder
 from sklearn.feature_extraction.text import CountVectorizer
 from keras.preprocessing import text, sequence
 import os
-
-# python ./src/generate_data.py --input=../share/data_labeled_kpb.tsv --tag=kbp
-# python ./src/generate_data.py --input=../share/kbp_ascii_labeled_kpb.tsv --tag=kbp
-# python ./src/generate_data.py --input=./data/smaller_preprocessed_sentence_keywords_labeled.tsv
-# python ./src/generate_data.py --input=./data/smaller_preprocessed_sentence_keywords_labeled_subwords.tsv --use_subword
+"""
+python ./src/generate_data.py --input=../share/data_labeled_kpb.tsv --tag=kbp
+python ./src/generate_data.py --input=../share/kbp_ascii_labeled.tsv --tag=kbp
+python ./src/generate_data.py --input=./data/smaller_preprocessed_sentence_labeled.tsv
+python ./src/generate_data.py --input=./data/smaller_preprocessed_sentence_labeled_subwords.tsv --subword
+"""
 
 # Feature-parameter..
 MAX_NUM_WORDS = 100000
 MAX_NUM_MENTION_WORDS = 20000
 MAX_SEQUENCE_LENGTH = 100
 MAX_MENTION_LENGTH = 5
+MAX_NUM_DESC_WORDS = 30000
 
 np.random.seed(0)
 
@@ -37,12 +39,13 @@ def parallel_index(thread_idx, mention_count, mentions):
     return result
 
 
-def run(model_dir, input, use_subword=False, tag=None, vector=True):
+def run(model_dir, input, subword=False, description=False, tag=None, vector=True):
     #
-    postfix = "{:s}{:s}".format("_subword" if use_subword else "", ("_" + tag)
-                                if tag is not None else "")
+    postfix = "{}{}{}".format("_subword" if subword else "",
+                             ("_" + tag) if tag is not None else "",
+                              "_d" if description else "" )
     #
-    MAX_MENTION_LENGTH = 5 if not use_subword else 15
+    MAX_MENTION_LENGTH = 5 if not subword else 15
     print("MAX_MENTION_LENGTH = {0}".format(MAX_MENTION_LENGTH))
     # Parse directory name
     if not model_dir.endswith("/"):
@@ -53,6 +56,8 @@ def run(model_dir, input, use_subword=False, tag=None, vector=True):
 
     print("Loading dataset from: {:s}".format(input))
     cols = ["label", "context", "mention", "begin", "end"]
+    if description:
+        cols += ["desc"]
 
     dataset = readlines(input, delimitor="\t")
     dataset = pd.DataFrame(dataset, columns=cols, dtype=str)
@@ -61,10 +66,13 @@ def run(model_dir, input, use_subword=False, tag=None, vector=True):
     """
     dataset["label"] = dataset["label"].astype(str)
     dataset["mention"] = dataset["mention"].astype(str)
+    dataset["desc"] = dataset["desc"].astype(str)
 
     X = dataset["context"].values
     mentions = dataset["mention"].values
     # subwords = dataset["subword"].values
+    if description:
+        desc = dataset["desc"].values
 
     # Parsing the labels and convert to integer using comma as separetor
     y = np.array(
@@ -86,6 +94,8 @@ def run(model_dir, input, use_subword=False, tag=None, vector=True):
     # Initialize content tokenizer
     X_tokenizer = text.Tokenizer(num_words=MAX_NUM_WORDS)
     m_tokenizer = text.Tokenizer(num_words=MAX_NUM_MENTION_WORDS)
+    # d_tokenizer = text.Tokenizer(num_words=MAX_NUM_DESC_WORDS)
+    d_tokenizer = text.Tokenizer()
     # Fit MLB
     mlb = MultiLabelBinarizer(sparse_output=True)
     mlb.fit(y)
@@ -96,8 +106,14 @@ def run(model_dir, input, use_subword=False, tag=None, vector=True):
         prefix = model_dir + itr
         # Load designated indices for each partitions
         filename = "{:s}_index{:s}.pkl".format(prefix, postfix)
-        print("Loading indices from file: {:s}".format(filename))
-        indices = pkl.load(open(filename, "rb"))
+        if description:
+            print("Loading Positive/Negative indices from file: {:s}".format(filename))
+            all_indices = pkl.load(open(filename, "rb"))
+            indices = all_indices["positive"]
+            neg_idx = all_indices["negative"]
+        else:
+            print("Loading indices from file: {:s}".format(filename))
+            indices = pkl.load(open(filename, "rb"))
         # Index the content according to the given indices
         X_itr = X[indices]
         m_itr = mentions[indices]
@@ -116,7 +132,7 @@ def run(model_dir, input, use_subword=False, tag=None, vector=True):
         X_tokenized = X_tokenizer.texts_to_sequences(X_itr)
         m_tokenized = m_tokenizer.texts_to_sequences(m_itr)
 
-        ######################################################################
+        ################### DO NOT REMOVE THIS PART OF CODE###################
         """
         # For debugging and choosing MAX_SEQUENCE_LENGTH
         length = [len(itr) for itr in X_tokenized]
@@ -124,12 +140,9 @@ def run(model_dir, input, use_subword=False, tag=None, vector=True):
         _eq = sum([itr == MAX_SEQUENCE_LENGTH for itr in length])
         _lt = sum([itr < MAX_SEQUENCE_LENGTH for itr in length])
         print(" * MAX_SEQUENCE_LENGTH = {}".format(MAX_SEQUENCE_LENGTH))
-        print(" - GT: {:d} ({:2.2f}%)".format(_gt,
-                                              100. * _gt / len(X_tokenized)))
-        print(" - EQ: {:d} ({:2.2f}%)".format(_eq,
-                                              100. * _eq / len(X_tokenized)))
-        print(" - LT: {:d} ({:2.2f}%)".format(_lt,
-                                              100. * _lt / len(X_tokenized)))
+        print(" - GT: {:d} ({:2.2f}%)".format(_gt, 100. * _gt / len(X_tokenized)))
+        print(" - EQ: {:d} ({:2.2f}%)".format(_eq, 100. * _eq / len(X_tokenized)))
+        print(" - LT: {:d} ({:2.2f}%)".format(_lt, 100. * _lt / len(X_tokenized)))
         # Check for extreme
         # max_len, max_idx = max(length), np.argmax(length)
         # print(" - MAX: {} at {} ({}:{})".format(
@@ -141,19 +154,15 @@ def run(model_dir, input, use_subword=False, tag=None, vector=True):
         # Out-of-Range (OOR)
         b_oor = sum([bb > MAX_SEQUENCE_LENGTH for bb in b_info])
         e_oor = sum([ee > MAX_SEQUENCE_LENGTH for ee in e_info])
-        print(
-            "\n * Mention indices Out-of-Seq (OOS) [B: begin, E: end, P: Part of mention]"
-        )
-        print(" - B : {:d} ({:2.2f}%)".format(b_oor,
-                                              100. * b_oor / len(X_tokenized)))
-        print(" - E : {:d} ({:2.2f}%)".format(e_oor,
-                                              100. * e_oor / len(X_tokenized)))
+        print()
+        print(" * Mention Out-of-Seq (OOS) [B: begin, E: end, P: Part of mention]")
+        print(" - B : {:d} ({:2.2f}%)".format(b_oor, 100. * b_oor / len(X_tokenized)))
+        print(" - E : {:d} ({:2.2f}%)".format(e_oor, 100. * e_oor / len(X_tokenized)))
 
         partial = (np.array(b_info) > MAX_SEQUENCE_LENGTH) * (
             np.array(e_info) > MAX_SEQUENCE_LENGTH)
         partial = partial.sum()
-        print(" - P : {:d} ({:2.2f}%)".format(
-            partial, 100. * partial / len(X_tokenized)))
+        print(" - P : {:d} ({:2.2f}%)".format(partial, 100. * partial / len(X_tokenized)))
         print(" - MAX_B: {}:{}".format(max(b_info), e_info[np.argmax(b_info)]))
         print(" - MAX_E: {}:{}".format(b_info[np.argmax(e_info)], max(e_info)))
         # Suggestions
@@ -168,11 +177,9 @@ def run(model_dir, input, use_subword=False, tag=None, vector=True):
             print(" - E : {:d} ({:2.2f}%)".format(
                 e_tr, 100. * e_tr / len(X_tokenized)))
 
-            partial = (np.array(b_info) > current_max) * (np.array(e_info) >
-                                                          current_max)
+            partial = (np.array(b_info) > current_max) * (np.array(e_info) > current_max)
             partial = partial.sum()
-            print(" - P : {:d} ({:2.2f}%)".format(
-                partial, 100. * partial / len(X_tokenized)))
+            print(" - P : {:d} ({:2.2f}%)".format(partial, 100. * partial / len(X_tokenized)))
         """
         ######################################################################
         # Padding contexts
@@ -194,12 +201,10 @@ def run(model_dir, input, use_subword=False, tag=None, vector=True):
             truncating="post")
 
         # Add indicator
-        count, old_count = 0, 0
         indicator = np.empty(X_pad.shape)
         for idx, (b, e) in enumerate(zip(b_itr, e_itr)):
             #print("positions: ", b, e)
             if len(b) > 1:
-                count += 1
                 # Look one ahead, e.g. P1, P2 are positions, the loop run
                 # just once, current P1, look ahead at P2
                 for mini_idx in range(len(b) - 1):
@@ -249,54 +254,73 @@ def run(model_dir, input, use_subword=False, tag=None, vector=True):
                 indicator[idx, ee + 1:] = 3
 
             # Mark padding as zero
-            # padded_idx = np.where(X_pad[idx, :] == -1)[0]
             padded_idx = np.where(X_pad[idx, :] == 0)[0]
-            #indicator[idx, padded_idx] = 0
             indicator[idx, len(X_itr[idx].split(" ")):] = 0
-            #if count > old_count:
-            #print(X_itr[idx])
-            #print(len(X_itr[idx].split(" ")))
-            #print(m_itr[idx])
-            #print(X_pad[idx, ])
-            #print(indicator[idx, ])
-            #print()
-            """
-                Fill padded positions with 0, i.e. fill indicator with zero
-            after the end of sequence (index after length_of_sentence.)
+        # End of adding indicator
 
-            ISSUE: If array "indicator" is initialize as empty array, some
-                Out-of-Vocabulary (OOV) words at the end of the sequence
-                would remain as padded values.
-            """
-            # X_pad[idx, len(X_itr[idx].split(" ")):] = 0
-            # print(X_pad[idx, ])
-            ############################################
+        # Max length to be determined
+        if description:
+            d_itr = desc[indices]
+            if itr == "training":
+                d_tokenizer.fit_on_texts(list(d_itr))
 
-            ############################################
-            #if count > 5:
-            #    exit()
-            #old_count = count
-        """
-        indicator_enc = OneHotEncoder()
-        indicator = indicator[:, :, np.newaxis]
-        indicator_enc.fit(indicator[0, :])
-        indicator = np.array([indicator_enc.transform(tmp) for tmp in indicator])
-        """
-        # print("show indicator example", indicator[0], indicator.shape)
+            # Tokenize context
+            d_tokenized = d_tokenizer.texts_to_sequences(d_itr)
+            d_pad = sequence.pad_sequences(
+                d_tokenized,
+                maxlen=MAX_SEQUENCE_LENGTH,
+                padding="post",
+                truncating="post")
 
+            # Add negative sample to the entry
+            if itr == "training":
+                X_tmp, i_tmp, d_tmp = list(), list(), list()
+                neg_amount = len(neg_idx[0])
+                for idx, negatives in enumerate(neg_idx):
+                    X_tmp.append([X_pad[idx, :] for _ in range(neg_amount + 1)])
+                    i_tmp.append([indicator[idx, :] for _ in range(neg_amount + 1)])
+                    # Add negative
+                    d_tmp.append([d_pad[idx, :]] + [d_pad[n, :] for n in negatives])
+
+                del X_pad, indicator, d_pad
+
+                # Convert to numpy.array
+                X_pad = np.array(X_tmp)
+                indicator = np.array(i_tmp)
+                # Description
+                d_pad = np.array(d_tmp)
+
+                # Positive/Negative Labels
+                l_tmp = np.zeros((len(indices), neg_amount))
+                # The first instance of the group is positive and negative otherwise
+                l_tmp[:, 0] = 1
+                # Reshape the array to insert negatives in-between the positives
+                l_tmp = l_tmp.reshape(l_tmp.size)
+            else:
+                l_tmp = np.ones(d_pad.shape[0])
+
+            # Dump to file
+            filename = "{:s}_descrp{:s}.pkl".format(prefix, postfix)
+            pkl.dump(d_pad, open(filename, "wb"))
+            print(" * Saved context to {:s}".format(filename))
+
+            filename = "{:s}_labels{:s}.pkl".format(prefix, postfix)
+            pkl.dump(l_tmp, open(filename, "wb"))
+            print(" * Saved description label to {:s}".format(filename))
+            
         # Save context vectors to pickle file
         # Sentence
         filename = "{:s}_context{:s}.pkl".format(prefix, postfix)
         pkl.dump(X_pad, open(filename, "wb"))
-        print(" * Save context to {:s}".format(filename))
+        print(" * Saved context to {:s}".format(filename))
         # Mention
         filename = "{:s}_mention{:s}.pkl".format(prefix, postfix)
         pkl.dump(m_pad, open(filename, "wb"))
-        print(" * Save mention to {:s}".format(filename))
+        print(" * Saved mention to {:s}".format(filename))
         # Indicator
         filename = "{:s}_indicator{:s}.pkl".format(prefix, postfix)
         pkl.dump(indicator, open(filename, "wb"))
-        print(" * Save indicator to {:s}".format(filename))
+        print(" * Saved indicator to {:s}".format(filename))
 
         del X_itr, X_tokenized, X_pad, m_itr, m_tokenized, m_pad, indicator
 
@@ -309,21 +333,21 @@ def run(model_dir, input, use_subword=False, tag=None, vector=True):
         # Save label vectors to pickle file
         filename = "{:s}_label{:s}.pkl".format(prefix, postfix)
         pkl.dump(y_bin, open(filename, "wb"))
-        print(" * Save binarizered labels to {:s}\n".format(filename))
+        print(" * Saved binarizered labels to {:s}\n".format(filename))
 
     # Save all models
     print("\nDumping pickle file of X_tokenizer/m_tokenizer/mlb...")
     filename = model_dir + "X_tokenizer{:s}.pkl".format(postfix)
     pkl.dump(X_tokenizer, open(filename, "wb"))
-    print(" * Save X_tokenizer to {:s}".format(filename))
+    print(" * Saved X_tokenizer to {:s}".format(filename))
 
     filename = model_dir + "m_tokenizer{:s}.pkl".format(postfix)
     pkl.dump(m_tokenizer, open(filename, "wb"))
-    print(" * Save m_tokenizer to {:s}".format(filename))
+    print(" * Saved m_tokenizer to {:s}".format(filename))
 
     filename = model_dir + "mlb{:s}.pkl".format(postfix)
     pkl.dump(mlb, open(filename, "wb"))
-    print(" * Save mlb to {:s}".format(filename))
+    print(" * Saved mlb to {:s}".format(filename))
 
 
 if __name__ == "__main__":
@@ -335,11 +359,12 @@ if __name__ == "__main__":
         default="model/",
         help="Directory to store models. [Default: \"model/\"]")
     parser.add_argument("--input", help="Input dataset filename.")
-    # parser.add_argument("--train_idx", help="Input training index pickle file")
-    # parser.add_argument("--test_idx", help="Input testing index pickle file")
-    # parser.add_argument("--vali_idx", help="Input validation index pickle file")
     parser.add_argument(
-        "--use_subword", action="store_true", help="Use subword or not")
+        "--subword", action="store_true", help="Use subword or not")
+    parser.add_argument(
+        "--description",
+        action="store_true",
+        help="Incorporate description from file.")
     parser.add_argument("--tag", type=str, help="Make tags on the files.")
     parser.add_argument(
         "--vector",
@@ -347,7 +372,7 @@ if __name__ == "__main__":
         help="Use vector-based subword information.")
     args = parser.parse_args()
 
-    run(args.model, args.input, args.use_subword, args.tag, args.vector)
+    run(args.model, args.input, args.subword, args.description, args.tag, args.vector)
     """ use for spliting data with mention specific 
     print("{0} unique mentions...".format(len(set(mentions))))
     unique, counts = np.unique(mentions, return_counts=True)
