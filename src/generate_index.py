@@ -1,9 +1,9 @@
 import pandas as pd
 import numpy as np
+import random
 import argparse
 import itertools
 import pickle as pkl
-import random
 from tqdm import tqdm
 from pprint import pprint
 from collections import Counter
@@ -15,7 +15,8 @@ import csv
 # python ./src/generate_index.py --input=../share_data/data_labeled_kpb.tsv --thread=20 --tag=kbp
 # python ./src/generate_index.py --input=./data/smaller_preprocessed_sentence_keywords_labeled.tsv
 
-np.random.seed(0)  # set random seed
+np.random.seed(0)  # set numpy random seed
+random.seed(0)     # set random seed
 
 
 def parallel_index(thread_idx, mention_count, mentions):
@@ -30,6 +31,18 @@ def parallel_index(thread_idx, mention_count, mentions):
 
     return result
 
+def parallel_neg_sample(thread_idx, pos_label, train_label, train_label_prob, label_dict, neg_num):
+    desc = "Thread {:02d}".format(thread_idx + 1)
+    result = list()
+    for i, pos in enumerate(tqdm(pos_label, position=thread_idx, desc=desc)):
+        tmp = list()
+        for j in range(neg_num):
+            n_sample = np.random.choice(a=train_label, p=train_label_prob) 
+            while pos == n_sample: # pos conflict with neg
+                n_sample = np.random.choice(a=train_label, p=train_label_prob)
+            np.array(tmp.append(label_dict[n_sample]))
+        result.append(tmp)
+    return result
 
 def run(model_dir, input, test_size, n_thread=20, tag=None, text_only=False, neg_sample=False, neg_num=10):
     postfix = ("_" + tag) if tag is not None else ""
@@ -46,7 +59,8 @@ def run(model_dir, input, test_size, n_thread=20, tag=None, text_only=False, neg
         sep='\t',
         names=['label', 'context', 'mention', 'begin', 'end', 'description'],
         dtype=str,
-        quoting=csv.QUOTE_NONE)
+        quoting=csv.QUOTE_NONE,
+        nrows=None)
     dataset['mention'] = dataset['mention'].astype(str)
     mentions = dataset['mention'].values
     labels   = dataset['label'].values
@@ -136,16 +150,29 @@ def run(model_dir, input, test_size, n_thread=20, tag=None, text_only=False, neg
     pos_label = labels[train_index]
     data_size = len(pos_label)
     distribution = Counter(pos_label)
-    for key in distribution:
+    label_idx = []
+    print("Producing distribution & lable_dict...")
+    for key in tqdm(distribution):
         distribution[key] = distribution[key]/data_size
+        label_idx.append(np.where(labels == key)[0][0])
 
-    neg_samples = np.empty(shape=(data_size, neg_num), dtype=np.int)
-    for i in tqdm(range(data_size)):
-        for j in range(neg_num):
-            n_sample = np.random.choice(a=list(distribution.keys()), p=distribution) 
-            while pos_label[i] == n_sample: # pos conflict with neg
-                n_sample = np.random.choice(a=list(distribution.keys()), p=distribution) 
-            neg_sample[i][j] = pos_label.index(n_sample)            
+    train_label = list(distribution.keys())
+    train_label_prob = list(distribution.values())
+    label_dict = dict(zip(list(distribution.keys()), label_idx))
+
+    param = (train_label, train_label_prob, label_dict, neg_num,)
+    neg_samples = generic_threading(n_thread, pos_label, parallel_neg_sample,
+                                      param)
+    neg_samples = np.array(list(itertools.chain.from_iterable(neg_samples)))
+    print("neg_samples shape:", neg_samples.shape)
+
+    #neg_samples = np.empty(shape=(data_size, neg_num), dtype=np.int)
+    #for i in tqdm(range(data_size)):
+    #    for j in range(neg_num):
+    #        n_sample = np.random.choice(a=train_label, p=train_label_prob) 
+    #        while pos_label[i] == n_sample: # pos conflict with neg
+    #            n_sample = np.random.choice(a=train_label, p=train_label_prob) 
+    #        neg_samples[i][j] = label_dict[n_sample]
 
     filename = "{:s}pos_neg_index{:s}.pkl".format(model_dir, postfix)
     pos_neg_sample = {"pos":train_index, "neg":neg_samples}
