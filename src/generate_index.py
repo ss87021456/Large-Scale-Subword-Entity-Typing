@@ -1,16 +1,18 @@
 import pandas as pd
-from pprint import pprint
 import numpy as np
 import argparse
 import itertools
-from tqdm import tqdm
 import pickle as pkl
+import random
+from tqdm import tqdm
+from pprint import pprint
+from collections import Counter
 from utils import generic_threading, readlines
 from sklearn.preprocessing import MultiLabelBinarizer
 import os
 import csv
 
-# python ./src/generate_index.py --input=../share/data_labeled_kpb.tsv --thread=20 --tag=kbp
+# python ./src/generate_index.py --input=../share_data/data_labeled_kpb.tsv --thread=20 --tag=kbp
 # python ./src/generate_index.py --input=./data/smaller_preprocessed_sentence_keywords_labeled.tsv
 
 np.random.seed(0)  # set random seed
@@ -29,7 +31,7 @@ def parallel_index(thread_idx, mention_count, mentions):
     return result
 
 
-def run(model_dir, input, test_size, n_thread=20, tag=None, text_only=False):
+def run(model_dir, input, test_size, n_thread=20, tag=None, text_only=False, neg_sample=False, neg_num=10):
     postfix = ("_" + tag) if tag is not None else ""
     # Parse directory name
     if not model_dir.endswith("/"):
@@ -42,11 +44,12 @@ def run(model_dir, input, test_size, n_thread=20, tag=None, text_only=False):
     dataset = pd.read_csv(
         input,
         sep='\t',
-        names=['label', 'context', 'mention', 'begin', 'end'],
+        names=['label', 'context', 'mention', 'begin', 'end', 'description'],
         dtype=str,
         quoting=csv.QUOTE_NONE)
     dataset['mention'] = dataset['mention'].astype(str)
     mentions = dataset['mention'].values
+    labels   = dataset['label'].values
 
     # use for spliting data with mention specific
     # np.random.shuffle(mentions)
@@ -129,6 +132,25 @@ def run(model_dir, input, test_size, n_thread=20, tag=None, text_only=False):
     np.random.shuffle(validation_index)
     np.random.shuffle(test_index)
 
+    # negative samples, kbp version only
+    pos_label = labels[train_index]
+    data_size = len(pos_label)
+    distribution = Counter(pos_label)
+    for key in distribution:
+        distribution[key] = distribution[key]/data_size
+
+    neg_samples = np.empty(shape=(data_size, neg_num), dtype=np.int)
+    for i in tqdm(range(data_size)):
+        for j in range(neg_num):
+            n_sample = np.random.choice(a=list(distribution.keys()), p=distribution) 
+            while pos_label[i] == n_sample: # pos conflict with neg
+                n_sample = np.random.choice(a=list(distribution.keys()), p=distribution) 
+            neg_sample[i][j] = pos_label.index(n_sample)            
+
+    filename = "{:s}pos_neg_index{:s}.pkl".format(model_dir, postfix)
+    pos_neg_sample = {"pos":train_index, "neg":neg_samples}
+    pkl.dump(pos_neg_sample, open(filename, 'wb'))
+
     filename = "{:s}training_index{:s}.pkl".format(model_dir, postfix)
     pkl.dump(train_index, open(filename, 'wb'))
     filename = "{:s}validation_index{:s}.pkl".format(model_dir, postfix)
@@ -173,8 +195,11 @@ if __name__ == '__main__':
         default=0.1,
         help="Specify the portion of the testing data to be split.\
                         [Default: 10\% of the entire dataset]")
+    parser.add_argument("--neg_sample", action="store_true", help="Perform negative samples for zero-shot learning.")
+    parser.add_argument(
+        "--neg_num", type=int, default=10, help="Number of negative samples.")
     parser.add_argument("--tag", type=str, help="Make tags on the files.")
     args = parser.parse_args()
 
     run(args.model_dir, args.input, args.test_size, args.thread, args.tag,
-        args.text_only)
+        args.text_only, args.neg_sample, args.neg_num)
