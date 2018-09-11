@@ -162,13 +162,14 @@ def run(model_dir,
     # Calculate the density of each labels
     distribution = Counter(pos_label)
     label_idx = []
-    print("Producing distribution & lable_dict...")
+    print("Producing distribution & label_dict...")
     for key in tqdm(distribution):
         # Normalize probabilities
         distribution[key] = distribution[key] / data_size
         # Global index (To-Be-Implemented)
         # label_idx.append(np.where(labels == key)[0][0])
         # Local index
+        # TO-DO: sample all possible candidates (second index)
         label_idx.append(np.where(pos_label == key)[0][0])
 
     train_label = list(distribution.keys())
@@ -181,6 +182,7 @@ def run(model_dir,
         label_dict,
         sample,
     )
+    print("Negative sampling: {}/instance".format(sample))
     neg_samples = generic_threading(n_thread, pos_label, negative_sampling, param)
     neg_samples = np.array(list(itertools.chain.from_iterable(neg_samples)))
 
@@ -215,7 +217,7 @@ def run(model_dir,
 
     filename = model_dir + "test_mention_list{:s}.txt".format(postfix)
     with open(filename, "w") as f:
-        for mention in X_test_mention:
+        for mention in m_test:
             f.write(mention + "\n")
 
 
@@ -245,7 +247,7 @@ if __name__ == "__main__":
         action="store_true",
         help="Perform negative samples for zero-shot learning.")
     parser.add_argument(
-        "--sample", type=int, default=10, help="Number of negative samples.")
+        "--sample", type=int, default=5, help="Number of negative samples.")
     parser.add_argument("--tag", type=str, help="Make tags on the files.")
     args = parser.parse_args()
 
