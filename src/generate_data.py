@@ -1,9 +1,10 @@
+import argparse
 import pandas as pd
 import numpy as np
-import argparse
-import itertools
-from tqdm import tqdm
 import pickle as pkl
+from time import time
+from itertools import chain
+from tqdm import tqdm
 from utils import generic_threading, readlines
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import MultiLabelBinarizer, OneHotEncoder
@@ -13,6 +14,7 @@ import os
 """
 python ./src/generate_data.py --input=../share/data_labeled_kpb.tsv --tag=kbp
 python ./src/generate_data.py --input=../share/kbp_ascii_labeled.tsv --tag=kbp
+python ./src/generate_data.py --input=../share/kbp_ascii_labeled.tsv --tag=kbp --description
 python ./src/generate_data.py --input=./data/smaller_preprocessed_sentence_labeled.tsv
 python ./src/generate_data.py --input=./data/smaller_preprocessed_sentence_labeled_subwords.tsv --subword
 """
@@ -23,6 +25,7 @@ MAX_NUM_MENTION_WORDS = 20000
 MAX_SEQUENCE_LENGTH = 100
 MAX_MENTION_LENGTH = 5
 MAX_NUM_DESC_WORDS = 30000
+MAX_DESCRIPTION_LENGTH = 100
 
 np.random.seed(0)
 
@@ -39,11 +42,15 @@ def parallel_index(thread_idx, mention_count, mentions):
     return result
 
 
-def run(model_dir, input, subword=False, description=False, tag=None, vector=True):
+def run(model_dir,
+        input,
+        subword=False,
+        description=False,
+        tag=None,
+        vector=True):
     #
-    postfix = "{}{}{}".format("_subword" if subword else "",
-                             ("_" + tag) if tag is not None else "",
-                              "_d" if description else "" )
+    postfix = "{}{}".format("_subword" if subword else "",
+                           ("_" + tag) if tag is not None else "")
     #
     MAX_MENTION_LENGTH = 5 if not subword else 15
     print("MAX_MENTION_LENGTH = {0}".format(MAX_MENTION_LENGTH))
@@ -66,12 +73,12 @@ def run(model_dir, input, subword=False, description=False, tag=None, vector=Tru
     """
     dataset["label"] = dataset["label"].astype(str)
     dataset["mention"] = dataset["mention"].astype(str)
-    dataset["desc"] = dataset["desc"].astype(str)
 
     X = dataset["context"].values
     mentions = dataset["mention"].values
     # subwords = dataset["subword"].values
     if description:
+        dataset["desc"] = dataset["desc"].astype(str)
         desc = dataset["desc"].values
 
     # Parsing the labels and convert to integer using comma as separetor
@@ -90,12 +97,12 @@ def run(model_dir, input, subword=False, description=False, tag=None, vector=Tru
     ### Choose criteria to only include useful subwords
     ### Choose vector dimension
 
-    print("Creating MultiLabel Binarizer...")
+    print("Creating MultiLabel Binarizer...\n")
     # Initialize content tokenizer
     X_tokenizer = text.Tokenizer(num_words=MAX_NUM_WORDS)
     m_tokenizer = text.Tokenizer(num_words=MAX_NUM_MENTION_WORDS)
-    # d_tokenizer = text.Tokenizer(num_words=MAX_NUM_DESC_WORDS)
-    d_tokenizer = text.Tokenizer()
+    d_tokenizer = text.Tokenizer(num_words=MAX_NUM_DESC_WORDS)
+    # d_tokenizer = text.Tokenizer()
     # Fit MLB
     mlb = MultiLabelBinarizer(sparse_output=True)
     mlb.fit(y)
@@ -105,13 +112,15 @@ def run(model_dir, input, subword=False, description=False, tag=None, vector=Tru
         # Parse prefix
         prefix = model_dir + itr
         # Load designated indices for each partitions
-        filename = "{:s}_index{:s}.pkl".format(prefix, postfix)
-        if description:
-            print("Loading Positive/Negative indices from file: {:s}".format(filename))
+        if description and itr == "training":
+            filename = "{:s}pos_neg_index{:s}.pkl".format(
+                model_dir, ("_" + tag) if tag is not None else "")
+            print("Positive/Negative indices from: {}".format(filename))
             all_indices = pkl.load(open(filename, "rb"))
             indices = all_indices["positive"]
             neg_idx = all_indices["negative"]
         else:
+            filename = "{:s}_index{:s}.pkl".format(prefix, postfix)
             print("Loading indices from file: {:s}".format(filename))
             indices = pkl.load(open(filename, "rb"))
         # Index the content according to the given indices
@@ -124,7 +133,7 @@ def run(model_dir, input, subword=False, description=False, tag=None, vector=Tru
         print("Tokenize {0} sentences and mentions...".format(itr))
         # Trim the token size w.r.t training context
         if itr == "training":
-            print(" - Fitting tokenizers on training data.\n")
+            print(" - Fitting tokenizers on training data.")
             X_tokenizer.fit_on_texts(list(X_itr))
             m_tokenizer.fit_on_texts(list(m_itr))
 
@@ -200,6 +209,7 @@ def run(model_dir, input, subword=False, description=False, tag=None, vector=Tru
             padding="post",
             truncating="post")
 
+        print("Generating indicators for each instances...")
         # Add indicator
         indicator = np.empty(X_pad.shape)
         for idx, (b, e) in enumerate(zip(b_itr, e_itr)):
@@ -260,6 +270,7 @@ def run(model_dir, input, subword=False, description=False, tag=None, vector=Tru
 
         # Max length to be determined
         if description:
+            print("Processing descriptions for {} data.".format(itr))
             d_itr = desc[indices]
             if itr == "training":
                 d_tokenizer.fit_on_texts(list(d_itr))
@@ -268,59 +279,77 @@ def run(model_dir, input, subword=False, description=False, tag=None, vector=Tru
             d_tokenized = d_tokenizer.texts_to_sequences(d_itr)
             d_pad = sequence.pad_sequences(
                 d_tokenized,
-                maxlen=MAX_SEQUENCE_LENGTH,
+                maxlen=MAX_DESCRIPTION_LENGTH,
                 padding="post",
                 truncating="post")
+
+            assert d_pad.shape[0] == X_pad.shape[0]
+            assert d_pad.shape[0] == indicator.shape[0]
 
             # Add negative sample to the entry
             if itr == "training":
                 X_tmp, i_tmp, d_tmp = list(), list(), list()
-                neg_amount = len(neg_idx[0])
+                neg_amt, n_ins = len(neg_idx[0]), X_pad.shape[0]
+
+                print("Total number of positive instances: {}".format(n_ins))
+                print(" * Negative samples per instance: {}".format(neg_amt))
+
                 for idx, negatives in enumerate(neg_idx):
-                    X_tmp.append([X_pad[idx, :] for _ in range(neg_amount + 1)])
-                    i_tmp.append([indicator[idx, :] for _ in range(neg_amount + 1)])
+                    time_begin = time()
+                    X_tmp.append([X_pad[idx, :] for _ in range(neg_amt + 1)])
+                    i_tmp.append([indicator[idx, :] for _ in range(neg_amt + 1)])
                     # Add negative
+                    # print(negatives)
                     d_tmp.append([d_pad[idx, :]] + [d_pad[n, :] for n in negatives])
+
+                    percentage = 100. * (idx + 1) / n_ins
+                    print("Progress: {:8d} / {:8d} ({:3.2f}%)".format(idx + 1, n_ins, percentage),
+                          end="\n" if idx == n_ins - 1 else "\r")
 
                 del X_pad, indicator, d_pad
 
+                print("Stacking to numpy.array")
                 # Convert to numpy.array
-                X_pad = np.array(X_tmp)
-                indicator = np.array(i_tmp)
+                X_pad = np.stack(chain.from_iterable(X_tmp), axis=0)
+                indicator = np.stack(chain.from_iterable(i_tmp), axis=0)
                 # Description
-                d_pad = np.array(d_tmp)
+                d_pad = np.stack(chain.from_iterable(d_tmp), axis=0)
 
                 # Positive/Negative Labels
-                l_tmp = np.zeros((len(indices), neg_amount))
+                print("Creating labels for description matching...")
+                l_tmp = np.zeros((len(indices), neg_amt))
                 # The first instance of the group is positive and negative otherwise
                 l_tmp[:, 0] = 1
                 # Reshape the array to insert negatives in-between the positives
                 l_tmp = l_tmp.reshape(l_tmp.size)
+
+                assert ((neg_amt + 1) * n_ins) == X_pad.shape[0]
+                assert X_pad.shape[0] == d_pad.shape[0]
             else:
                 l_tmp = np.ones(d_pad.shape[0])
 
             # Dump to file
-            filename = "{:s}_descrp{:s}.pkl".format(prefix, postfix)
-            pkl.dump(d_pad, open(filename, "wb"))
-            print(" * Saved context to {:s}".format(filename))
+            filename = "{:s}_desc{:s}.pkl".format(prefix, postfix, "_d" if description else "")
+            pkl.dump(d_pad, open(filename, "wb"), protocol=4)
+            print(" * Saved description      : {:s}".format(filename))
 
-            filename = "{:s}_labels{:s}.pkl".format(prefix, postfix)
+            filename = "{:s}_labels{:s}.pkl".format(prefix, postfix, "_d" if description else "")
             pkl.dump(l_tmp, open(filename, "wb"))
-            print(" * Saved description label to {:s}".format(filename))
-            
+            print(" * Saved description label: {:s}".format(filename))
+
         # Save context vectors to pickle file
         # Sentence
-        filename = "{:s}_context{:s}.pkl".format(prefix, postfix)
-        pkl.dump(X_pad, open(filename, "wb"))
-        print(" * Saved context to {:s}".format(filename))
+        filename = "{:s}_context{:s}{}.pkl".format(prefix, postfix, "_d" if description else "")
+        pkl.dump(X_pad, open(filename, "wb"), protocol=4)
+        print(" * Saved context  : {:s}".format(filename))
         # Mention
-        filename = "{:s}_mention{:s}.pkl".format(prefix, postfix)
+        filename = "{:s}_mention{:s}{}.pkl".format(prefix, postfix, "_d" if description else "")
         pkl.dump(m_pad, open(filename, "wb"))
-        print(" * Saved mention to {:s}".format(filename))
+        print(" * Saved mention  : {:s}".format(filename))
         # Indicator
-        filename = "{:s}_indicator{:s}.pkl".format(prefix, postfix)
-        pkl.dump(indicator, open(filename, "wb"))
-        print(" * Saved indicator to {:s}".format(filename))
+        filename = "{:s}_indicator{:s}{}.pkl".format(prefix, postfix, "_d" if description else "")
+        pkl.dump(indicator, open(filename, "wb"), protocol=4)
+        print(" * Saved indicator: {:s}".format(filename))
 
         del X_itr, X_tokenized, X_pad, m_itr, m_tokenized, m_pad, indicator
 
@@ -333,19 +362,19 @@ def run(model_dir, input, subword=False, description=False, tag=None, vector=Tru
         # Save label vectors to pickle file
         filename = "{:s}_label{:s}.pkl".format(prefix, postfix)
         pkl.dump(y_bin, open(filename, "wb"))
-        print(" * Saved binarizered labels to {:s}\n".format(filename))
+        print(" * Saved binarizered labels: {:s}\n".format(filename))
 
     # Save all models
-    print("\nDumping pickle file of X_tokenizer/m_tokenizer/mlb...")
-    filename = model_dir + "X_tokenizer{:s}.pkl".format(postfix)
+    print("Dumping pickle file for X_tokenizer/m_tokenizer/mlb...")
+    filename = model_dir + "X_tokenizer{:s}{}.pkl".format(postfix, "_d" if description else "")
     pkl.dump(X_tokenizer, open(filename, "wb"))
     print(" * Saved X_tokenizer to {:s}".format(filename))
 
-    filename = model_dir + "m_tokenizer{:s}.pkl".format(postfix)
+    filename = model_dir + "m_tokenizer{:s}{}.pkl".format(postfix, "_d" if description else "")
     pkl.dump(m_tokenizer, open(filename, "wb"))
     print(" * Saved m_tokenizer to {:s}".format(filename))
 
-    filename = model_dir + "mlb{:s}.pkl".format(postfix)
+    filename = model_dir + "mlb{:s}{}.pkl".format(postfix, "_d" if description else "")
     pkl.dump(mlb, open(filename, "wb"))
     print(" * Saved mlb to {:s}".format(filename))
 
@@ -372,7 +401,8 @@ if __name__ == "__main__":
         help="Use vector-based subword information.")
     args = parser.parse_args()
 
-    run(args.model, args.input, args.subword, args.description, args.tag, args.vector)
+    run(args.model, args.input, args.subword, args.description, args.tag,
+        args.vector)
     """ use for spliting data with mention specific 
     print("{0} unique mentions...".format(len(set(mentions))))
     unique, counts = np.unique(mentions, return_counts=True)

@@ -204,14 +204,14 @@ def run(model_dir,
     pkl.dump(test_index, open(filename, 'wb'))
 
     print("Writing new_test_mention_list{:s}..".format(postfix))
-    X_test_mention = mentions[test_index]
-    X_train_mention = mentions[train_index]
-    X_validation_mention = mentions[validation_index]
+    m_train = mentions[train_index]
+    m_test = mentions[test_index]
+    m_val = mentions[validation_index]
 
-    print("{0} train unique mentions...".format(len(set(X_train_mention))))
-    print("{0} validation unique mentions...".format(
-        len(set(X_validation_mention))))
-    print("{0} test unique mentions...".format(len(set(X_test_mention))))
+    print("Unique mentions in each partition: ")
+    print("Training   : {}".format(len(set(m_train))))
+    print("Testing    : {}".format(len(set(m_test))))
+    print("Validation : {}".format(len(set(m_val))))
 
     filename = model_dir + "test_mention_list{:s}.txt".format(postfix)
     with open(filename, "w") as f:
