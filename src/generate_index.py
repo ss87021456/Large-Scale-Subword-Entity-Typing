@@ -16,7 +16,7 @@ import csv
 # python ./src/generate_index.py --input=./data/smaller_preprocessed_sentence_keywords_labeled.tsv
 
 np.random.seed(0)  # set numpy random seed
-random.seed(0)     # set random seed
+random.seed(0)  # set random seed
 
 
 def parallel_index(thread_idx, mention_count, mentions):
@@ -31,20 +31,30 @@ def parallel_index(thread_idx, mention_count, mentions):
 
     return result
 
-def parallel_neg_sample(thread_idx, pos_label, train_label, train_label_prob, label_dict, neg_num):
+
+def negative_sampling(thread_idx, pos_label, train_label, distribution,
+                      label_dict, sample_amt):
     desc = "Thread {:02d}".format(thread_idx + 1)
     result = list()
     for i, pos in enumerate(tqdm(pos_label, position=thread_idx, desc=desc)):
         tmp = list()
-        for j in range(neg_num):
-            n_sample = np.random.choice(a=train_label, p=train_label_prob) 
-            while pos == n_sample: # pos conflict with neg
-                n_sample = np.random.choice(a=train_label, p=train_label_prob)
+        for j in range(sample_amt):
+            n_sample = np.random.choice(a=train_label, p=distribution)
+            while pos == n_sample:  # pos conflict with neg
+                n_sample = np.random.choice(a=train_label, p=distribution)
             np.array(tmp.append(label_dict[n_sample]))
         result.append(tmp)
     return result
 
-def run(model_dir, input, test_size, n_thread=20, tag=None, text_only=False, neg_sample=False, neg_num=10):
+
+def run(model_dir,
+        input,
+        test_size,
+        n_thread=20,
+        tag=None,
+        text_only=False,
+        neg_sample=False,
+        sample=10):
     postfix = ("_" + tag) if tag is not None else ""
     # Parse directory name
     if not model_dir.endswith("/"):
@@ -63,7 +73,7 @@ def run(model_dir, input, test_size, n_thread=20, tag=None, text_only=False, neg
         nrows=None)
     dataset['mention'] = dataset['mention'].astype(str)
     mentions = dataset['mention'].values
-    labels   = dataset['label'].values
+    labels = dataset['label'].values
 
     # use for spliting data with mention specific
     # np.random.shuffle(mentions)
@@ -74,12 +84,11 @@ def run(model_dir, input, test_size, n_thread=20, tag=None, text_only=False, neg
     unique, counts = np.unique(mentions, return_counts=True)
     mention_count = dict(zip(unique, counts))
 
-    print("processing mention_index...")
+    print("Processing mention_index...")
     param = (mentions, )
     key_list = list(mention_count.keys())
     # [['mention1',[indices]],['mention2',[indices]],...]
-    mention_index = generic_threading(n_thread, key_list, parallel_index,
-                                      param)
+    mention_index = generic_threading(n_thread, key_list, parallel_index, param)
     mention = []
     indices = []
     order = []
@@ -87,9 +96,9 @@ def run(model_dir, input, test_size, n_thread=20, tag=None, text_only=False, neg
     for mention_pair_thread in mention_index:
         order.append(mention_pair_thread[0])
 
-    print(order)
+    # print(order)
     order_idx = sorted(range(len(order)), key=lambda k: order[k])
-    print(order_idx)
+    # print(order_idx)
 
     ########################################
     # TO-BE-VERIFIED CODE NECESSITY
@@ -147,35 +156,44 @@ def run(model_dir, input, test_size, n_thread=20, tag=None, text_only=False, neg
     np.random.shuffle(test_index)
 
     # negative samples, kbp version only
+    # Get true (positive) labels for each instance
     pos_label = labels[train_index]
     data_size = len(pos_label)
+    # Calculate the density of each labels
     distribution = Counter(pos_label)
     label_idx = []
     print("Producing distribution & lable_dict...")
     for key in tqdm(distribution):
-        distribution[key] = distribution[key]/data_size
-        label_idx.append(np.where(labels == key)[0][0])
+        # Normalize probabilities
+        distribution[key] = distribution[key] / data_size
+        # Global index (To-Be-Implemented)
+        # label_idx.append(np.where(labels == key)[0][0])
+        # Local index
+        label_idx.append(np.where(pos_label == key)[0][0])
 
     train_label = list(distribution.keys())
     train_label_prob = list(distribution.values())
     label_dict = dict(zip(list(distribution.keys()), label_idx))
 
-    param = (train_label, train_label_prob, label_dict, neg_num,)
-    neg_samples = generic_threading(n_thread, pos_label, parallel_neg_sample,
-                                      param)
+    param = (
+        train_label,
+        train_label_prob,
+        label_dict,
+        sample,
+    )
+    neg_samples = generic_threading(n_thread, pos_label, negative_sampling, param)
     neg_samples = np.array(list(itertools.chain.from_iterable(neg_samples)))
-    print("neg_samples shape:", neg_samples.shape)
 
-    #neg_samples = np.empty(shape=(data_size, neg_num), dtype=np.int)
+    #neg_samples = np.empty(shape=(data_size, sample), dtype=np.int)
     #for i in tqdm(range(data_size)):
-    #    for j in range(neg_num):
-    #        n_sample = np.random.choice(a=train_label, p=train_label_prob) 
+    #    for j in range(sample):
+    #        n_sample = np.random.choice(a=train_label, p=train_label_prob)
     #        while pos_label[i] == n_sample: # pos conflict with neg
-    #            n_sample = np.random.choice(a=train_label, p=train_label_prob) 
+    #            n_sample = np.random.choice(a=train_label, p=train_label_prob)
     #        neg_samples[i][j] = label_dict[n_sample]
 
     filename = "{:s}pos_neg_index{:s}.pkl".format(model_dir, postfix)
-    pos_neg_sample = {"pos":train_index, "neg":neg_samples}
+    pos_neg_sample = {"positive": train_index, "negative": neg_samples}
     pkl.dump(pos_neg_sample, open(filename, 'wb'))
 
     filename = "{:s}training_index{:s}.pkl".format(model_dir, postfix)
@@ -201,7 +219,7 @@ def run(model_dir, input, test_size, n_thread=20, tag=None, text_only=False, neg
             f.write(mention + "\n")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "--model_dir",
@@ -222,11 +240,14 @@ if __name__ == '__main__':
         default=0.1,
         help="Specify the portion of the testing data to be split.\
                         [Default: 10\% of the entire dataset]")
-    parser.add_argument("--neg_sample", action="store_true", help="Perform negative samples for zero-shot learning.")
     parser.add_argument(
-        "--neg_num", type=int, default=10, help="Number of negative samples.")
+        "--neg_sample",
+        action="store_true",
+        help="Perform negative samples for zero-shot learning.")
+    parser.add_argument(
+        "--sample", type=int, default=10, help="Number of negative samples.")
     parser.add_argument("--tag", type=str, help="Make tags on the files.")
     args = parser.parse_args()
 
     run(args.model_dir, args.input, args.test_size, args.thread, args.tag,
-        args.text_only, args.neg_sample, args.neg_num)
+        args.text_only, args.neg_sample, args.sample)

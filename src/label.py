@@ -135,7 +135,8 @@ def replace_labels(keywords_path,
         if desc is not None:
             print(" * Adding label descriptions to the dataset")
             descriptions = json.load(open(desc, "r"))
-            contents = [(itr + [descriptions[itr[0]]["definition"]]) for itr in contents]
+            contents = [(itr + [descriptions[itr[0]]["definition"]])
+                        for itr in contents]
 
         # Replace types (text) to labels (int)
         encoded = [lookup[itr[0]] for itr in contents]
@@ -258,9 +259,9 @@ if __name__ == '__main__':
 
     if args.replace:
         replace_labels(args.keywords_path, args.corpus, args.labels,
-                       args.output, args.subwords, args.mode,
-                       args.from_file, args.desc, args.no_duplicate,
-                       args.limit, args.thread, args.tag)
+                       args.output, args.subwords, args.mode, args.from_file,
+                       args.desc, args.no_duplicate, args.limit, args.thread,
+                       args.tag)
     elif args.stat:
         acquire_statistic(args.corpus, args.keywords_path, args.output)
     elif args.fit:
