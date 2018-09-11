@@ -329,11 +329,11 @@ def run(model_dir,
                 l_tmp = np.ones(d_pad.shape[0])
 
             # Dump to file
-            filename = "{:s}_desc{:s}.pkl".format(prefix, postfix, "_d" if description else "")
+            filename = "{:s}_desc{:s}{}.pkl".format(prefix, postfix, "_d" if description else "")
             pkl.dump(d_pad, open(filename, "wb"), protocol=4)
             print(" * Saved description      : {:s}".format(filename))
 
-            filename = "{:s}_labels{:s}.pkl".format(prefix, postfix, "_d" if description else "")
+            filename = "{:s}_label{:s}{}.pkl".format(prefix, postfix, "_d" if description else "")
             pkl.dump(l_tmp, open(filename, "wb"))
             print(" * Saved description label: {:s}".format(filename))
 

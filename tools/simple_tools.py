@@ -70,10 +70,12 @@ def parse_description(args):
         raw = f.read().splitlines()
     raw_len = len(raw)
     print(" * {} entries (lines) read from file".format(raw_len))
+    """
     for itr in raw:
         if "yagogeoentity" in itr.lower():
             print(itr[:100])
             exit()
+    """
 
     tmp_file = "tmp.json"
     with open(tmp_file, "w") as f:
@@ -95,9 +97,9 @@ def parse_description(args):
 
     # Dictionary with word as keys and description as values
     keys = [itr["wordnet"].lower() for itr in raw]
-    print("yagogeoentity" in keys)
-    exit()
-    values = [{"definition": itr["defintion"]} for itr in raw]
+    # print("yagogeoentity" in keys)
+    # exit()
+    values = [{"definition": "{} {}".format(itr["wordnet"], itr["defintion"])} for itr in raw]
     # values = [{"definition": itr['defintion'], "entities": itr["entities"]} for itr in raw]
     dic = dict(zip(keys, values))
     assert len(dic) == raw_len

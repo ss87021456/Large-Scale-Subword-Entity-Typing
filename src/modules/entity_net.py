@@ -168,18 +168,24 @@ def EntityTypingNet(architecture,
                     n_classes,
                     context_tokenizer,
                     mention_tokenizer,
+                    desc_tokenizer,
                     context_emb=None,
                     context_embedding_dim=100,
                     mention_emb=None,
                     mention_embedding_dim=100,
+                    desc_emb=None,
+                    desc_embedding_dim=100,
                     same_emb=True,
-                    n_words=30000,
+                    n_words=100000,
                     n_mention=20000,
-                    len_context=40,
+                    n_description=20000,
+                    len_context=100,
                     len_mention=5,
+                    len_description=100,
                     attention=False,
                     subword=False,
                     indicator=False,
+                    description=False,
                     merge_mode="concatenate",
                     dropout=0.50,
                     use_softmax=False,
@@ -270,8 +276,8 @@ def EntityTypingNet(architecture,
         pass
 
     if indicator:
-        indicate = Input(shape=(len_context, ), name="Indicator")
-        x_indicate = Reshape((len_context, 1))(indicate)
+        indicator = Input(shape=(len_context, ), name="Indicator")
+        x_indicator = Reshape((len_context, 1))(indicator)
     else:
         # (2) Mention
         # Embedding for mention/subword
@@ -291,20 +297,34 @@ def EntityTypingNet(architecture,
 
         x_mention = mention_embedding(mention)
 
+    if description:
+        descrip = Input(shape=(len_description, ), name="Description")
+        descrip_embedding, _ = Embedding_Layer(
+            tokenizer_model=desc_tokenizer,
+            max_num_words=n_description,
+            input_length=len_description,
+            embedding_dim=desc_embedding_dim,
+            filename=None)
+        x_description = descrip_embedding(descrip)
+
+
     # Bi-Directional LSTM
     if architecture == "blstm":
         if indicator:
-            x_context = concatenate([x_context, x_indicate])
+            x_context = concatenate([x_context, x_indicator])
             x_context = BiLSTM(x_context)
         else:
             x_context = BiLSTM(x_context)
             x_mention = BiLSTM(x_mention)
 
+        if description:
+            x_description = BiLSTM(x_description)
+
     # Text CNN by Kim
     elif architecture == "cnn" or architecture == "text_cnn":
         # (1) Context
         if indicator:
-            x_context = concatenate([x_context, x_indicate])
+            x_context = concatenate([x_context, x_indicator])
             x_context = TextCNN(
                 input=x_context,
                 input_dim=(len_context, context_embedding_dim + 1),
@@ -332,14 +352,29 @@ def EntityTypingNet(architecture,
                 num_filters=num_filters,
                 filter_sizes=filter_sizes,
                 dropout=dropout,
-                batch_norm=False)
+                batch_norm=True)
+
+        if description:
+            x_description = TextCNN(
+                input=x_description,
+                input_dim=(len_description, desc_embedding_dim),
+                embedding_dim=desc_embedding_dim,
+                length=len_description,
+                num_filters=num_filters,
+                filter_sizes=filter_sizes,
+                dropout=dropout,
+                batch_norm=True)
     else:
         x_context = None
         x_mention = None
 
     # Concatenate
     if indicator:
-        x = Dropout(dropout)(x_context)
+        if description:
+            x = concatenate([x_context, x_description])
+            x = Dropout(dropout)(x)
+        else:
+            x = Dropout(dropout)(x_context)
     else:
         if merge_mode == "concatenate":
             x = concatenate([x_context, x_mention])
@@ -353,9 +388,16 @@ def EntityTypingNet(architecture,
     x = Dropout(dropout)(x)
 
     activation = "softmax" if use_softmax else "sigmoid"
-    x = Dense(n_classes, activation=activation)(x)
+    if description:
+        x = Dense(1, activation='sigmoid')(x)
+    else:
+        x = Dense(n_classes, activation=activation)(x)
+
     if indicator:
-        model = Model(inputs=[context, indicate], outputs=x)
+        if description:
+            model = Model(inputs=[context, indicator, descrip], outputs=x)
+        else:
+            model = Model(inputs=[context, indicator], outputs=x)
     else:
         model = Model(inputs=[context, mention], outputs=x)
 
@@ -374,6 +416,11 @@ def EntityTypingNet(architecture,
     if use_softmax:
         model.compile(
             loss="categorical_crossentropy",
+            optimizer=opt,
+            metrics=["accuracy"])
+    elif description:
+        model.compile(
+            loss="binary_crossentropy",
             optimizer=opt,
             metrics=["accuracy"])
     else:

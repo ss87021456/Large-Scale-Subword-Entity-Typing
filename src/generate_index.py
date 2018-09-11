@@ -12,7 +12,7 @@ from sklearn.preprocessing import MultiLabelBinarizer
 import os
 import csv
 
-# python ./src/generate_index.py --input=../share_data/data_labeled_kpb.tsv --thread=20 --tag=kbp
+# python ./src/generate_index.py --input=../share_data/kbp_ascii_labeled.tsv --thread=20 --tag=kbp
 # python ./src/generate_index.py --input=./data/smaller_preprocessed_sentence_keywords_labeled.tsv
 
 np.random.seed(0)  # set numpy random seed

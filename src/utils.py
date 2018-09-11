@@ -173,7 +173,7 @@ def split_data(data, n_slice, mode="TUPLE"):
     return partitioned_data
 
 
-def load_pkl_data(root, split_type, postfix, indicator=False):
+def load_pkl_data(root, split_type, postfix, indicator=False, description=False):
     """
     Args:
         root():
@@ -183,18 +183,27 @@ def load_pkl_data(root, split_type, postfix, indicator=False):
     """
 
     print("\nLoading {:s} data...".format(split_type))
-    filename = "{:s}{:s}_context{:s}.pkl".format(root, split_type, postfix)
+    filename = "{:s}{:s}_context{:s}{}.pkl".format(root, split_type, postfix, "_d" if description else "")
     X = pkl.load(open(filename, "rb"))
 
-    filename = "{:s}{:s}{:s}{:s}.pkl".format(
-        root, split_type, "_indicator" if indicator else "_mention", postfix)
+    filename = "{:s}{:s}{:s}{:s}{}.pkl".format(
+        root, split_type, "_indicator" if indicator else "_mention", postfix, "_d" if description else "")
     Z = pkl.load(open(filename, "rb"))
 
+    if description:
+        filename = "{:s}{:s}_desc{:s}{}.pkl".format(root, split_type, postfix, "_d" if description else "")
+        D = pkl.load(open(filename, "rb"))
+    else:
+        D = None
+
     # Load labels
-    filename = "{:s}{:s}_label{:s}.pkl".format(root, split_type, postfix)
+    if description and split_type == "training":
+        filename = "{:s}{:s}_label{:s}_d.pkl".format(root, split_type, postfix)
+    else:
+        filename = "{:s}{:s}_label{:s}.pkl".format(root, split_type, postfix)
     y = pkl.load(open(filename, "rb"))
 
-    return X, Z, y
+    return X, Z, y, D
 
 
 def generic_threading(n_jobs, data, method, param=None, shared=False):

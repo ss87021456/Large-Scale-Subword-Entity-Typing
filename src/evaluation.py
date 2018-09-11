@@ -55,7 +55,7 @@ config = tf.ConfigProto()
 config.gpu_options.per_process_gpu_memory_fraction = 0.3
 set_session(tf.Session(config=config))
 
-
+# run now is deprecated
 def run(model_dir,
         model_type,
         model_path,

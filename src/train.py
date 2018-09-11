@@ -24,8 +24,10 @@ from modules.entity_net import EntityTypingNet
 # Feature parameters
 MAX_NUM_WORDS = 100000
 MAX_NUM_MENTION_WORDS = 20000
+MAX_NUM_DESCRIPTION_WORDS = 20000
 MAX_SEQUENCE_LENGTH = 100
 MAX_MENTION_LENGTH = 5  # 15 if subword else 5
+MAX_DESCRIPTION_LENGTH = 100
 
 # Set memory constraint
 import tensorflow as tf
@@ -59,8 +61,11 @@ def run(args):
         postfix)
     args.mention_tokenizer = args.model_dir + "m_tokenizer{:s}.pkl".format(
         postfix)
+    # add description
+    if args.description:
+        args.desc_tokenizer = args.model_dir + "d_tokenizer{:s}.pkl".format(
+        postfix)
     #########################################
-
     # Building Model
     print("Building computational graph...")
 
@@ -69,18 +74,24 @@ def run(args):
         n_classes=n_classes,
         context_tokenizer=args.context_tokenizer,
         mention_tokenizer=args.mention_tokenizer,
+        desc_tokenizer = args.desc_tokenizer,
         context_emb=args.context_emb,
         context_embedding_dim=args.context_embedding_dim,
         mention_emb=args.mention_emb,
         mention_embedding_dim=args.mention_embedding_dim,
+        desc_emb=args.desc_emb,
+        desc_embedding_dim=args.desc_embedding_dim,
         same_emb=args.same_emb,
         n_words=MAX_NUM_WORDS,
         n_mention=MAX_NUM_MENTION_WORDS,
+        n_description=MAX_NUM_DESCRIPTION_WORDS,
         len_context=MAX_SEQUENCE_LENGTH,
         len_mention=MAX_MENTION_LENGTH,
+        len_description=MAX_MENTION_LENGTH,
         attention=args.attention,
         subword=args.subword,
         indicator=args.indicator,
+        description=args.description,
         merge_mode=args.merge_mode,
         dropout=args.dropout,
         use_softmax=args.use_softmax,
@@ -102,16 +113,16 @@ def run(args):
     early = EarlyStopping(monitor="val_loss", mode="min", patience=20)
     callbacks_list = [checkpoint, early]
 
-    X_train, Z_train, y_train = load_pkl_data(
-        args.model_dir, "training", postfix, indicator=args.indicator)
+    X_train, Z_train, y_train, D_train = load_pkl_data(
+        args.model_dir, "training", postfix, indicator=args.indicator, description=args.description)
     # input = [X_train, Z_train]
 
     #if args.use_softmax:
     #    y_train =  np.array(mlb.inverse_transform(y_train)).flatten()
-
+    input = [X_train, Z_train, D_train] if args.description else [X_train, Z_train]
     print("Begin training...")
     model.fit(
-        [X_train, Z_train],
+        input,
         y_train,
         batch_size=args.batch_size,
         epochs=args.epochs,
@@ -122,8 +133,8 @@ def run(args):
     record = 0
     index = 0
 
-    X_val, Z_val, y_val = load_pkl_data(
-        args.model_dir, "validation", postfix, indicator=args.indicator)
+    X_val, Z_val, y_val, D_val = load_pkl_data(
+        args.model_dir, "validation", postfix, indicator=args.indicator, description=args.description)
 
     print("Loading trained weights for validation...")
     for i in range(1, args.epochs + 1, 1):
@@ -185,6 +196,11 @@ if __name__ == "__main__":
         type=int,
         default=100,
         help="Embedding dimension for mention embedding layer.")
+    parser.add_argument(
+        "--desc_embedding_dim",
+        type=int,
+        default=100,
+        help="Embedding dimension for description embedding layer.")
     # Model hyperparameters
     parser.add_argument(
         "--arch",
@@ -206,6 +222,10 @@ if __name__ == "__main__":
         "--use_softmax",
         action="store_true",
         help="Perform single-class classification.")
+    parser.add_argument(
+        "--description",
+        action="store_true",
+        help="Using zero-shot learning method.")
     # Training hyperparameters
     parser.add_argument(
         "--batch_size", type=int, default=64, help="MiniBatch size.")
