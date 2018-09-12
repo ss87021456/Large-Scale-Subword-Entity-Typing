@@ -98,11 +98,23 @@ def replace_labels(keywords_path,
                    thread=5,
                    tag=None):
     """
+    Replace text label to integer label using the preprocessed dicts/tokenizers
+    from method "fit_encoder"
     Arguments:
-        keywords_path():
-        output():
-        corpus():
-        thread():
+        keywords_path(str):
+        corpus(str): 
+        labels(str): Path to the label dictionary (text to int)
+        output(str): Output filename
+        subwords(str): Path to the subword dictionary.
+        mode(str): Indicating the labeling support single/multiple label per
+            instance, choice ["SINGLE", "MULTI"].
+        from_file(bool): Add label to the file itself.
+        desc(str): Path to description file.
+        duplicate(bool): Duplicate context if multiple labels exist in one
+            instance if asserted.
+        limit(int): Maximum number of lines to load from input file.
+        thread(int): Number of thread to process.
+        tag(str): Add additional tag to all input/output file.
     """
     postfix = ("_" + tag) if tag is not None else ""
     if output is None and not from_file:
@@ -116,20 +128,18 @@ def replace_labels(keywords_path,
     # Load lines from corpus
     print("Adding labels to the dataset according to their mentions:")
     print(" - Mention: {:s}".format(mode))
-    print(" - Duplicate: {0}".format(duplicate))
-    print()
+    print(" - Duplicate: {0}\n".format(duplicate))
 
     # Used for matching each type to its corresponding labels (int)
     print("Loading labels dictionary from file: {:s}".format(labels))
     lookup = json.load(open(labels, "r"))
-    print(" - Total number of labels: {0}".format(len(lookup)))
-    print()
+    print(" - Total number of labels: {0}\n".format(len(lookup)))
 
     if from_file:
         print("* Label corpus in place")
         contents = readlines(keywords_path, limit=limit, delimitor="\t")
         # Mark position of the mention in the contexts
-        print(" * Adding indicator to the dataset")
+        print(" * Marking mention in each instance for indicators.")
         contents = mark_positions(thread_idx=0, data=contents)
         # Add label descriptions if given
         if desc is not None:
@@ -148,9 +158,8 @@ def replace_labels(keywords_path,
         ]
 
         write_to_file(output, contents)
-        # contents['label'] = encoded
+        # contents["label"] = encoded
         # contents.to_csv(output, sep="\t", header=False, index=False)
-        # print(contents['mention'][732315])
         print("Converted to file: {:s}".format(output))
 
     else:
@@ -202,7 +211,7 @@ def acquire_statistic(corpus, keywords_path, output=None, tag=None):
     write_to_file(output, stat)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "keywords_path",
@@ -217,7 +226,7 @@ if __name__ == '__main__':
     parser.add_argument(
         "--mode",
         choices=["SINGLE", "MULTI"],
-        nargs='?',
+        nargs="?",
         default="MULTI",
         help="Single mention or multi-mentions per sentence.")
     #
@@ -269,4 +278,3 @@ if __name__ == '__main__':
                     args.thread, args.output, args.tag)
     else:
         print("No job to be done.")
-        pass
