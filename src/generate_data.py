@@ -278,6 +278,11 @@ def run(model_dir,
             if itr == "training":
                 d_tokenizer.fit_on_texts(list(d_itr))
 
+                print("Dumping pickle file for d_tokenizer")
+                filename = model_dir + "d_tokenizer{}{}.pkl".format(postfix, "_d" if description else "")
+                pkl.dump(d_tokenizer, open(filename, "wb"))
+                print(" * Saved d_tokenizer to {:s}".format(filename))
+
             # Tokenize context
             d_tokenized = d_tokenizer.texts_to_sequences(d_itr)
             d_pad = sequence.pad_sequences(
@@ -320,7 +325,7 @@ def run(model_dir,
 
                 # Positive/Negative Labels
                 print("Creating labels for description matching...")
-                l_tmp = np.zeros((len(indices), neg_amt))
+                l_tmp = np.zeros((len(indices), neg_amt + 1))
                 # The first instance of the group is positive and negative otherwise
                 l_tmp[:, 0] = 1
                 # Reshape the array to insert negatives in-between the positives

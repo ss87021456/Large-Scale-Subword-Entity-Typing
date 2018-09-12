@@ -9,17 +9,23 @@ from evaluation import just_test, predict
 from utils import load_pkl_data
 from keras.optimizers import Adam, Adagrad, SGD, RMSprop
 from modules.entity_net import EntityTypingNet
+"""
+Training w/o pretrained
+CUDA_VISIBLE_DEVICES=0 python ./src/train.py --arch=[CNN,BLSTM]
+CUDA_VISIBLE_DEVICES=0 python ./src/train.py --arch=[CNN,BLSTM] --data_tag=kbp
 
-# Training w/o pretrained
-# CUDA_VISIBLE_DEVICES=0 python ./src/train.py --arch=[CNN,BLSTM]
-# CUDA_VISIBLE_DEVICES=0 python ./src/train.py --arch=[CNN,BLSTM] --data_tag=kbp
-# Training w/ pretrained
-# CUDA_VISIBLE_DEVICES=0 python ./src/train.py --emb=data/FastText_embedding.vec --arch=[CNN,BLSTM]
-# CUDA_VISIBLE_DEVICES=0 python ./src/train.py --emb=data/FastText_embedding.vec --arch=Text_CNN
-# CUDA_VISIBLE_DEVICES=0 python ./src/train.py --emb=/shared/data/embed/w2v.txt --arch=[CNN,BLSTM] --data_tag=kbp
+Training w/ pretrained
+CUDA_VISIBLE_DEVICES=0 python ./src/train.py --emb=data/FastText_embedding.vec --arch=[CNN,BLSTM]
+CUDA_VISIBLE_DEVICES=0 python ./src/train.py --emb=data/FastText_embedding.vec --arch=Text_CNN
+CUDA_VISIBLE_DEVICES=0 python ./src/train.py --emb=/shared/data/embed/w2v.txt --arch=[CNN,BLSTM] --data_tag=kbp
 
-# Additional option --subword --attention
-# /home/chiawei2/nlp_tool/fastText-0.1.0/vector/fastText_Pubmed.vec
+Additional option --subword --attention
+/home/chiawei2/nlp_tool/fastText-0.1.0/vector/fastText_Pubmed.vec
+
+Train with description
+CUDA_VISIBLE_DEVICES=0 python ./src/train.py --arch=cnn --description --data_tag=kbp
+
+"""
 
 # Feature parameters
 MAX_NUM_WORDS = 100000
@@ -41,12 +47,12 @@ def run(args):
     # Add underscore to the tag
     args.tag = ("_" + args.tag) if args.tag is not None else ""
     # Parse prefix and postfix
-    prefix = "{0}{1}".format("-Subword" if args.subword else "", "-Attention"
+    prefix = "{}{}".format("-Subword" if args.subword else "", "-Attention"
                              if args.attention else "")
 
-    postfix = "{:s}{:s}".format("_subword"
-                                if args.subword else "", ("_" + args.data_tag)
-                                if args.data_tag is not None else "")
+    postfix = "{}{}{}".format("_subword" if args.subword else "",
+                             ("_" + args.data_tag) if args.data_tag is not None else "",
+                             ("_d" if args.description else ""))
 
     # Parse directory name
     if not args.model_dir.endswith("/"):
@@ -74,7 +80,7 @@ def run(args):
         n_classes=n_classes,
         context_tokenizer=args.context_tokenizer,
         mention_tokenizer=args.mention_tokenizer,
-        desc_tokenizer = args.desc_tokenizer,
+        desc_tokenizer=args.desc_tokenizer,
         context_emb=args.context_emb,
         context_embedding_dim=args.context_embedding_dim,
         mention_emb=args.mention_emb,
@@ -87,7 +93,7 @@ def run(args):
         n_description=MAX_NUM_DESCRIPTION_WORDS,
         len_context=MAX_SEQUENCE_LENGTH,
         len_mention=MAX_MENTION_LENGTH,
-        len_description=MAX_MENTION_LENGTH,
+        len_description=MAX_DESCRIPTION_LENGTH,
         attention=args.attention,
         subword=args.subword,
         indicator=args.indicator,
@@ -115,7 +121,23 @@ def run(args):
 
     X_train, Z_train, y_train, D_train = load_pkl_data(
         args.model_dir, "training", postfix, indicator=args.indicator, description=args.description)
+    ######################################################
+    n_instance = X_train.shape[0] // 6
+    idxs = [i * 6 for i in range(n_instance)]
+    tmp = np.vstack([X_train[idxs] for _ in range(4)])
+    X_train = np.vstack([X_train, tmp])
+    del tmp
+    tmp = np.vstack([Z_train[idxs] for _ in range(4)])
+    Z_train = np.vstack([Z_train, tmp])
+    del tmp
+    tmp = np.hstack([y_train[idxs] for _ in range(4)])
+    y_train = np.hstack([y_train, tmp])
+    del tmp
+    tmp = np.vstack([D_train[idxs] for _ in range(4)])
+    D_train = np.vstack([D_train, tmp])
+    ######################################################
     # input = [X_train, Z_train]
+    print(X_train.shape, Z_train.shape, D_train.shape, y_train.shape)
 
     #if args.use_softmax:
     #    y_train =  np.array(mlb.inverse_transform(y_train)).flatten()
@@ -196,6 +218,8 @@ if __name__ == "__main__":
         type=int,
         default=100,
         help="Embedding dimension for mention embedding layer.")
+    parser.add_argument(
+        "--desc_emb", help="Pretrained embedding model for mention.")
     parser.add_argument(
         "--desc_embedding_dim",
         type=int,

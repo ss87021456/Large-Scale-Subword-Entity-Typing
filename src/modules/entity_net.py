@@ -276,8 +276,8 @@ def EntityTypingNet(architecture,
         pass
 
     if indicator:
-        indicator = Input(shape=(len_context, ), name="Indicator")
-        x_indicator = Reshape((len_context, 1))(indicator)
+        indicators = Input(shape=(len_context, ), name="Indicator")
+        x_indicator = Reshape((len_context, 1))(indicators)
     else:
         # (2) Mention
         # Embedding for mention/subword
@@ -395,9 +395,9 @@ def EntityTypingNet(architecture,
 
     if indicator:
         if description:
-            model = Model(inputs=[context, indicator, descrip], outputs=x)
+            model = Model(inputs=[context, indicators, descrip], outputs=x)
         else:
-            model = Model(inputs=[context, indicator], outputs=x)
+            model = Model(inputs=[context, indicators], outputs=x)
     else:
         model = Model(inputs=[context, mention], outputs=x)
 
@@ -420,7 +420,7 @@ def EntityTypingNet(architecture,
             metrics=["accuracy"])
     elif description:
         model.compile(
-            loss="binary_crossentropy",
+            loss="hinge",
             optimizer=opt,
             metrics=["accuracy"])
     else:
