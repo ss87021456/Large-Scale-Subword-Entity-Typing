@@ -11,9 +11,11 @@ from utils import generic_threading, readlines
 from sklearn.preprocessing import MultiLabelBinarizer
 import os
 import csv
+"""
+python ./src/generate_index.py --input=../share_data/kbp_ascii_labeled.tsv --thread=20 --tag=kbp
+python ./src/generate_index.py --input=./data/smaller_preprocessed_sentence_keywords_labeled.tsv
+"""
 
-# python ./src/generate_index.py --input=../share_data/kbp_ascii_labeled.tsv --thread=20 --tag=kbp
-# python ./src/generate_index.py --input=./data/smaller_preprocessed_sentence_keywords_labeled.tsv
 
 np.random.seed(0)  # set numpy random seed
 random.seed(0)  # set random seed
@@ -66,20 +68,20 @@ def run(model_dir,
     print("Loading dataset..")
     dataset = pd.read_csv(
         input,
-        sep='\t',
-        names=['label', 'context', 'mention', 'begin', 'end', 'description'],
+        sep="\t",
+        names=["label", "context", "mention", "begin", "end", "description"],
         dtype=str,
         quoting=csv.QUOTE_NONE,
         nrows=None)
-    dataset['mention'] = dataset['mention'].astype(str)
-    mentions = dataset['mention'].values
-    labels = dataset['label'].values
+    dataset["mention"] = dataset["mention"].astype(str)
+    mentions = dataset["mention"].values
+    labels = dataset["label"].values
 
     # use for spliting data with mention specific
     # np.random.shuffle(mentions)
     for idx, itr in enumerate(mentions):
         if type(itr) == float or type(itr) == int:
-            print(idx, itr, dataset['label'][idx], dataset['context'][idx])
+            print(idx, itr, dataset["label"][idx], dataset["context"][idx])
     print("{0} unique mentions...".format(len(set(mentions))))
     unique, counts = np.unique(mentions, return_counts=True)
     mention_count = dict(zip(unique, counts))
@@ -87,7 +89,7 @@ def run(model_dir,
     print("Processing mention_index...")
     param = (mentions, )
     key_list = list(mention_count.keys())
-    # [['mention1',[indices]],['mention2',[indices]],...]
+    # [["mention1",[indices]],["mention2",[indices]],...]
     mention_index = generic_threading(n_thread, key_list, parallel_index, param)
     mention = []
     indices = []
@@ -96,9 +98,7 @@ def run(model_dir,
     for mention_pair_thread in mention_index:
         order.append(mention_pair_thread[0])
 
-    # print(order)
     order_idx = sorted(range(len(order)), key=lambda k: order[k])
-    # print(order_idx)
 
     ########################################
     # TO-BE-VERIFIED CODE NECESSITY
@@ -186,24 +186,16 @@ def run(model_dir,
     neg_samples = generic_threading(n_thread, pos_label, negative_sampling, param)
     neg_samples = np.array(list(itertools.chain.from_iterable(neg_samples)))
 
-    #neg_samples = np.empty(shape=(data_size, sample), dtype=np.int)
-    #for i in tqdm(range(data_size)):
-    #    for j in range(sample):
-    #        n_sample = np.random.choice(a=train_label, p=train_label_prob)
-    #        while pos_label[i] == n_sample: # pos conflict with neg
-    #            n_sample = np.random.choice(a=train_label, p=train_label_prob)
-    #        neg_samples[i][j] = label_dict[n_sample]
-
     filename = "{:s}pos_neg_index{:s}.pkl".format(model_dir, postfix)
     pos_neg_sample = {"positive": train_index, "negative": neg_samples}
-    pkl.dump(pos_neg_sample, open(filename, 'wb'))
+    pkl.dump(pos_neg_sample, open(filename, "wb"))
 
     filename = "{:s}training_index{:s}.pkl".format(model_dir, postfix)
-    pkl.dump(train_index, open(filename, 'wb'))
+    pkl.dump(train_index, open(filename, "wb"))
     filename = "{:s}validation_index{:s}.pkl".format(model_dir, postfix)
-    pkl.dump(validation_index, open(filename, 'wb'))
+    pkl.dump(validation_index, open(filename, "wb"))
     filename = "{:s}testing_index{:s}.pkl".format(model_dir, postfix)
-    pkl.dump(test_index, open(filename, 'wb'))
+    pkl.dump(test_index, open(filename, "wb"))
 
     print("Writing new_test_mention_list{:s}..".format(postfix))
     m_train = mentions[train_index]
@@ -211,9 +203,9 @@ def run(model_dir,
     m_val = mentions[validation_index]
 
     print("Unique mentions in each partition: ")
-    print("Training   : {}".format(len(set(m_train))))
-    print("Testing    : {}".format(len(set(m_test))))
-    print("Validation : {}".format(len(set(m_val))))
+    print(" - Training   : {}".format(len(set(m_train))))
+    print(" - Testing    : {}".format(len(set(m_test))))
+    print(" - Validation : {}".format(len(set(m_val))))
 
     filename = model_dir + "test_mention_list{:s}.txt".format(postfix)
     with open(filename, "w") as f:
@@ -225,7 +217,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "--model_dir",
-        nargs='?',
+        nargs="?",
         type=str,
         default="model/",
         help="Directory to store models. [Default: \"model/\"]")
@@ -236,7 +228,7 @@ if __name__ == "__main__":
         "--thread", type=int, default=20, help="Number of threads to run.")
     parser.add_argument(
         "--test_size",
-        nargs='?',
+        nargs="?",
         const=0.1,
         type=float,
         default=0.1,

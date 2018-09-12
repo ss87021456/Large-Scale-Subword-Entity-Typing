@@ -12,9 +12,13 @@ from sklearn.feature_extraction.text import CountVectorizer
 from keras.preprocessing import text, sequence
 import os
 """
+For KBP dataset
 python ./src/generate_data.py --input=../share/data_labeled_kpb.tsv --tag=kbp
 python ./src/generate_data.py --input=../share/kbp_ascii_labeled.tsv --tag=kbp
+ - Add description
 python ./src/generate_data.py --input=../share/kbp_ascii_labeled.tsv --tag=kbp --description
+
+For Pubmed smaller.tsv
 python ./src/generate_data.py --input=./data/smaller_preprocessed_sentence_labeled.tsv
 python ./src/generate_data.py --input=./data/smaller_preprocessed_sentence_labeled_subwords.tsv --subword
 """
@@ -68,9 +72,8 @@ def run(model_dir,
 
     dataset = readlines(input, delimitor="\t")
     dataset = pd.DataFrame(dataset, columns=cols, dtype=str)
-    """
-    dataset = pd.read_csv(input, sep="\t", names=cols)
-    """
+    # dataset = pd.read_csv(input, sep="\t", names=cols)
+
     dataset["label"] = dataset["label"].astype(str)
     dataset["mention"] = dataset["mention"].astype(str)
 
