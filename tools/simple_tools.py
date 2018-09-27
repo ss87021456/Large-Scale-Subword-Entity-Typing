@@ -9,7 +9,7 @@ Convert non-ASCII encoding text to ASCII one
 python tools/simple_tools.py ../share/data.txt ../share/kbp_ascii.tsv --to_ascii
 
 Parse wordnet description
-python tools/simple_tools.py types_with_entity_mapping.json wordnet_desc.json --parse_desc
+python tools/simple_tools.py types_with_entity_mapping.json wordnet_desc.json --parse_desc --text_only
 
 Check keys presents in the collection
 python tools/simple_tools.py data/label_kbp.json wordnet_desc.json --check_key

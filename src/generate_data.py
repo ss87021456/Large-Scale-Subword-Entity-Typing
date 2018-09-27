@@ -17,6 +17,8 @@ python ./src/generate_data.py --input=../share/data_labeled_kpb.tsv --tag=kbp
 python ./src/generate_data.py --input=../share/kbp_ascii_labeled.tsv --tag=kbp
  - Add description
 python ./src/generate_data.py --input=../share/kbp_ascii_labeled.tsv --tag=kbp --description
+ - With separator
+python ./src/generate_data.py --input=../share/kbp_ascii_labeled.tsv --tag=kbp --negative_sample
 
 For Pubmed smaller.tsv
 python ./src/generate_data.py --input=./data/smaller_preprocessed_sentence_labeled.tsv
@@ -50,6 +52,7 @@ def run(model_dir,
         input,
         subword=False,
         description=False,
+        negative_sample=False,
         tag=None,
         vector=True):
     #
@@ -84,7 +87,7 @@ def run(model_dir,
         dataset["desc"] = dataset["desc"].astype(str)
         desc = dataset["desc"].values
 
-    # Parsing the labels and convert to integer using comma as separetor
+    # Parsing the labels and convert to integer using comma as separator
     y = np.array(
         [[int(itr) for itr in e.split(",")] for e in dataset["label"].values])
     b_position = [[int(itr) for itr in element.split(",")]
@@ -115,7 +118,8 @@ def run(model_dir,
         # Parse prefix
         prefix = model_dir + itr
         # Load designated indices for each partitions
-        if description and itr == "training":
+        # if description and itr == "training":
+        if itr == "training" and negative_sample:
             filename = "{:s}pos_neg_index{:s}.pkl".format(
                 model_dir, ("_" + tag) if tag is not None else "")
             print("Positive/Negative indices from: {}".format(filename))
@@ -126,7 +130,7 @@ def run(model_dir,
             filename = "{:s}_index{:s}.pkl".format(prefix, postfix)
             print("Loading indices from file: {:s}".format(filename))
             indices = pkl.load(open(filename, "rb"))
-        # Index the content according to the given indices
+        # Gather the content according to the given indices
         X_itr = X[indices]
         m_itr = mentions[indices]
         b_itr = b_position[indices]
@@ -216,7 +220,6 @@ def run(model_dir,
         # Add indicator
         indicator = np.empty(X_pad.shape)
         for idx, (b, e) in enumerate(zip(b_itr, e_itr)):
-            #print("positions: ", b, e)
             if len(b) > 1:
                 # Look one ahead, e.g. P1, P2 are positions, the loop run
                 # just once, current P1, look ahead at P2
@@ -257,8 +260,7 @@ def run(model_dir,
                     pass
 
             else:
-                bb = b[0]
-                ee = e[0]
+                bb, ee = b[0], e[0]
                 # Mention: 2
                 indicator[idx, bb:ee + 1] = 2
                 # Left: 1
@@ -269,6 +271,9 @@ def run(model_dir,
             # Mark padding as zero
             padded_idx = np.where(X_pad[idx, :] == 0)[0]
             indicator[idx, len(X_itr[idx].split(" ")):] = 0
+        #
+        indicator[:, 0] = 4  # Label's text name
+        indicator[:, 1] = 0  # Set separator same as padding
         # End of adding indicator
 
         # Max length to be determined
@@ -277,12 +282,8 @@ def run(model_dir,
             d_itr = desc[indices]
             if itr == "training":
                 d_tokenizer.fit_on_texts(list(d_itr))
-
-                print("Dumping pickle file for d_tokenizer")
-                filename = model_dir + "d_tokenizer{}{}.pkl".format(postfix, "_d" if description else "")
-                pkl.dump(d_tokenizer, open(filename, "wb"))
-                print(" * Saved d_tokenizer to {:s}".format(filename))
-
+            else:
+                pass
             # Tokenize context
             d_tokenized = d_tokenizer.texts_to_sequences(d_itr)
             d_pad = sequence.pad_sequences(
@@ -293,73 +294,55 @@ def run(model_dir,
 
             assert d_pad.shape[0] == X_pad.shape[0]
             assert d_pad.shape[0] == indicator.shape[0]
+        else:
+            pass
 
-            # Add negative sample to the entry
-            if itr == "training":
-                X_tmp, i_tmp, d_tmp = list(), list(), list()
-                neg_amt, n_ins = len(neg_idx[0]), X_pad.shape[0]
+        # Add negative sample to the entry
+        if itr == "training" and (negative_sample or description):
+            X_tmp, i_tmp, d_tmp = list(), list(), list()
+            neg_amt, n_ins = len(neg_idx[0]), X_pad.shape[0]
+            print("Total number of positive instances: {}".format(n_ins))
+            print(" * Negative samples per instance: {}".format(neg_amt))
 
-                print("Total number of positive instances: {}".format(n_ins))
-                print(" * Negative samples per instance: {}".format(neg_amt))
+            for idx, negatives in enumerate(neg_idx):
+                time_begin = time()
+                X_tmp.append([X_pad[idx, :] for _ in range(neg_amt + 1)])
+                i_tmp.append([indicator[idx, :] for _ in range(neg_amt + 1)])
 
-                for idx, negatives in enumerate(neg_idx):
-                    time_begin = time()
-                    X_tmp.append([X_pad[idx, :] for _ in range(neg_amt + 1)])
-                    i_tmp.append([indicator[idx, :] for _ in range(neg_amt + 1)])
-                    # Add negative
-                    # print(negatives)
+                # Add negative
+                if description:
                     d_tmp.append([d_pad[idx, :]] + [d_pad[n, :] for n in negatives])
 
-                    percentage = 100. * (idx + 1) / n_ins
-                    print("Progress: {:8d} / {:8d} ({:3.2f}%)".format(idx + 1, n_ins, percentage),
-                          end="\n" if idx == n_ins - 1 else "\r")
+                percentage = 100. * (idx + 1) / n_ins
+                print("Progress: {:8d} / {:8d} ({:3.2f}%)".format(idx + 1, n_ins, percentage),
+                      end="\n" if idx == n_ins - 1 else "\r")
 
-                del X_pad, indicator, d_pad
+            del X_pad, indicator
 
-                print("Stacking to numpy.array")
-                # Convert to numpy.array
-                X_pad = np.stack(chain.from_iterable(X_tmp), axis=0)
-                indicator = np.stack(chain.from_iterable(i_tmp), axis=0)
-                # Description
+            # Convert to numpy.array
+            print("Stacking to numpy.array")
+            X_pad = np.stack(chain.from_iterable(X_tmp), axis=0)
+            indicator = np.stack(chain.from_iterable(i_tmp), axis=0)
+
+            # Description
+            if description:
+                del d_pad
                 d_pad = np.stack(chain.from_iterable(d_tmp), axis=0)
-
-                # Positive/Negative Labels
-                print("Creating labels for description matching...")
-                l_tmp = np.zeros((len(indices), neg_amt + 1))
-                # The first instance of the group is positive and negative otherwise
-                l_tmp[:, 0] = 1
-                # Reshape the array to insert negatives in-between the positives
-                l_tmp = l_tmp.reshape(l_tmp.size)
-
                 assert ((neg_amt + 1) * n_ins) == X_pad.shape[0]
                 assert X_pad.shape[0] == d_pad.shape[0]
-            else:
-                l_tmp = np.ones(d_pad.shape[0])
+        else:
+            pass
 
-            # Dump to file
-            filename = "{:s}_desc{:s}{}.pkl".format(prefix, postfix, "_d" if description else "")
-            pkl.dump(d_pad, open(filename, "wb"), protocol=4)
-            print(" * Saved description      : {:s}".format(filename))
-
-            filename = "{:s}_label{:s}{}.pkl".format(prefix, postfix, "_d" if description else "")
-            pkl.dump(l_tmp, open(filename, "wb"))
-            print(" * Saved description label: {:s}".format(filename))
-
-        # Save context vectors to pickle file
-        # Sentence
-        filename = "{:s}_context{:s}{}.pkl".format(prefix, postfix, "_d" if description else "")
-        pkl.dump(X_pad, open(filename, "wb"), protocol=4)
-        print(" * Saved context  : {:s}".format(filename))
-        # Mention
-        filename = "{:s}_mention{:s}{}.pkl".format(prefix, postfix, "_d" if description else "")
-        pkl.dump(m_pad, open(filename, "wb"))
-        print(" * Saved mention  : {:s}".format(filename))
-        # Indicator
-        filename = "{:s}_indicator{:s}{}.pkl".format(prefix, postfix, "_d" if description else "")
-        pkl.dump(indicator, open(filename, "wb"), protocol=4)
-        print(" * Saved indicator: {:s}".format(filename))
-
-        del X_itr, X_tokenized, X_pad, m_itr, m_tokenized, m_pad, indicator
+        # Positive/Negative Labels
+        print("Creating labels for description matching...")
+        if negative_sample or description:
+            l_tmp = np.zeros((len(indices), neg_amt + 1))
+            # The first instance of the group is positive and negative otherwise
+            l_tmp[:, 0] = 1
+            # Reshape the array to insert negatives in-between the positives
+            l_tmp = l_tmp.reshape(l_tmp.size)
+        else:
+            l_tmp = np.ones(X_pad.shape[0])
 
         # Binarizer the labels
         print("Binarizering labels..")
@@ -367,24 +350,37 @@ def run(model_dir,
         y_bin = mlb.transform(y_itr)
         print(" - {0} label shape: {1}".format(prefix, y_bin.shape))
 
-        # Save label vectors to pickle file
-        filename = "{:s}_label{:s}.pkl".format(prefix, postfix)
-        pkl.dump(y_bin, open(filename, "wb"))
-        print(" * Saved binarizered labels: {:s}\n".format(filename))
+        ###################################################################
+        # Collect data to pickle file
+        collection = {
+                "label": y_bin,
+                "context": X_pad,
+                "mention": m_pad,
+                "indicator": indicator
+                }
+        if description:
+            collection.update({"description": d_pad})
+        if negative_sample:
+            collection.update({"matching": l_tmp})
+        print("Collection: {}".format(list(collection.keys())))
+        # Save data to pickle file
+        filename = "{:s}_collection{:s}{}.pkl".format(prefix, postfix, "_d" if description else "")
+        pkl.dump(collection, open(filename, "wb"), protocol=4)
+        print("Saved all {} data in: {}\n".format(itr, filename))
+        del X_itr, X_tokenized, X_pad, m_itr, m_tokenized, m_pad
+        del indicator, y_bin, l_tmp, collection
+        ###################################################################
+    # End of all partitions
 
+    # Collect all models
+    collection = {"context": X_tokenizer, "mention": m_tokenizer, "mlb": mlb}
+    if description:
+        collection.update({"description": d_tokenizer})
+    print("Tokenizers: {}".format(list(collection.keys())))
     # Save all models
-    print("Dumping pickle file for X_tokenizer/m_tokenizer/mlb...")
-    filename = model_dir + "X_tokenizer{:s}{}.pkl".format(postfix, "_d" if description else "")
-    pkl.dump(X_tokenizer, open(filename, "wb"))
-    print(" * Saved X_tokenizer to {:s}".format(filename))
-
-    filename = model_dir + "m_tokenizer{:s}{}.pkl".format(postfix, "_d" if description else "")
-    pkl.dump(m_tokenizer, open(filename, "wb"))
-    print(" * Saved m_tokenizer to {:s}".format(filename))
-
-    filename = model_dir + "mlb{:s}{}.pkl".format(postfix, "_d" if description else "")
-    pkl.dump(mlb, open(filename, "wb"))
-    print(" * Saved mlb to {:s}".format(filename))
+    filename = model_dir + "tokenizers{:s}{}.pkl".format(postfix, "_d" if description else "")
+    pkl.dump(collection, open(filename, "wb"))
+    print(" * Saved all tokenizers to {:s}".format(filename))
 
 
 if __name__ == "__main__":
@@ -402,6 +398,14 @@ if __name__ == "__main__":
         "--description",
         action="store_true",
         help="Incorporate description from file.")
+    parser.add_argument(
+        "--sep",
+        type=str,
+        help="Customized separator.")
+    parser.add_argument(
+        "--negative_sample",
+        action="store_true",
+        help="Negative sampling")
     parser.add_argument("--tag", type=str, help="Make tags on the files.")
     parser.add_argument(
         "--vector",
@@ -409,8 +413,8 @@ if __name__ == "__main__":
         help="Use vector-based subword information.")
     args = parser.parse_args()
 
-    run(args.model, args.input, args.subword, args.description, args.tag,
-        args.vector)
+    run(args.model, args.input, args.subword, args.description, args.negative_sample,
+        args.tag, args.vector)
     """ use for spliting data with mention specific 
     print("{0} unique mentions...".format(len(set(mentions))))
     unique, counts = np.unique(mentions, return_counts=True)

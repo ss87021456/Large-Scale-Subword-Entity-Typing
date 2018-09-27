@@ -55,8 +55,7 @@ def run(model_dir,
         n_thread=20,
         tag=None,
         text_only=False,
-        neg_sample=False,
-        sample=10):
+        n_sample=5):
     postfix = ("_" + tag) if tag is not None else ""
     # Parse directory name
     if not model_dir.endswith("/"):
@@ -180,9 +179,9 @@ def run(model_dir,
         train_label,
         train_label_prob,
         label_dict,
-        sample,
+        n_sample,
     )
-    print("Negative sampling: {}/instance".format(sample))
+    print("Negative sampling: {}/instance".format(n_sample))
     neg_samples = generic_threading(n_thread, pos_label, negative_sampling, param)
     neg_samples = np.array(list(itertools.chain.from_iterable(neg_samples)))
 
@@ -234,14 +233,16 @@ if __name__ == "__main__":
         default=0.1,
         help="Specify the portion of the testing data to be split.\
                         [Default: 10\% of the entire dataset]")
+    """
     parser.add_argument(
         "--neg_sample",
         action="store_true",
         help="Perform negative samples for zero-shot learning.")
+    """
     parser.add_argument(
         "--sample", type=int, default=5, help="Number of negative samples.")
     parser.add_argument("--tag", type=str, help="Make tags on the files.")
     args = parser.parse_args()
 
     run(args.model_dir, args.input, args.test_size, args.thread, args.tag,
-        args.text_only, args.neg_sample, args.sample)
+        args.text_only, args.sample)

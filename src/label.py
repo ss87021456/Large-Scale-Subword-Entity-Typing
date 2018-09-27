@@ -1,6 +1,7 @@
 import argparse
 import json
 import numpy as np
+import re
 from itertools import chain
 from sklearn.externals import joblib
 from sklearn.preprocessing import LabelEncoder
@@ -14,6 +15,8 @@ For KBP partial dataset
 python src/label.py ../share/kbp_ascii.tsv --from_file --tag=kbp --fit
 python src/label.py ../share/kbp_ascii.tsv --labels=data/label_kbp.json \
 --desc=wordnet_desc.json --from_file --replace
+python src/label.py ../share/kbp_ascii.tsv --labels=data/label_kbp.json \
+--sep=* --from_file --replace
 
 For PubMed smaller.tsv
 python src/label.py data/ --trim --fit
@@ -93,6 +96,7 @@ def replace_labels(keywords_path,
                    mode="MULTI",
                    from_file=False,
                    desc=None,
+                   separator=None,
                    duplicate=True,
                    limit=None,
                    thread=5,
@@ -110,6 +114,7 @@ def replace_labels(keywords_path,
             instance, choice ["SINGLE", "MULTI"].
         from_file(bool): Add label to the file itself.
         desc(str): Path to description file.
+        separator(str): Custom delimitor for label-context.
         duplicate(bool): Duplicate context if multiple labels exist in one
             instance if asserted.
         limit(int): Maximum number of lines to load from input file.
@@ -138,6 +143,10 @@ def replace_labels(keywords_path,
     if from_file:
         print("* Label corpus in place")
         contents = readlines(keywords_path, limit=limit, delimitor="\t")
+        # Add separator
+        for idx, itr in enumerate(contents):
+            name = re.sub("\d", "", contents[idx][0])
+            contents[idx][1] = "{} {} {}".format(name, separator, contents[idx][1])
         # Mark position of the mention in the contexts
         print(" * Marking mention in each instance for indicators.")
         contents = mark_positions(thread_idx=0, data=contents)
@@ -152,6 +161,7 @@ def replace_labels(keywords_path,
         encoded = [lookup[itr[0]] for itr in contents]
         # [NOTE] Single-threading seems enough for now (2M entries in 20 seconds)
         # contents = generic_threading(thread, contents, mark_positions)
+
         contents = [
             "\t".join([str(itr_l)] + itr_c[1:])
             for itr_l, itr_c in zip(encoded, contents)
@@ -263,14 +273,18 @@ if __name__ == "__main__":
         help="Number of threads to run, default: 2 * number_of_cores")
     parser.add_argument(
         "--limit", type=int, help="Number of maximum lines to load.")
+    parser.add_argument(
+        "--sep",
+        type=str,
+        help="Customized separator.")
 
     args = parser.parse_args()
 
     if args.replace:
         replace_labels(args.keywords_path, args.corpus, args.labels,
                        args.output, args.subwords, args.mode, args.from_file,
-                       args.desc, args.no_duplicate, args.limit, args.thread,
-                       args.tag)
+                       args.desc, args.sep, args.no_duplicate,
+                       args.limit, args.thread, args.tag)
     elif args.stat:
         acquire_statistic(args.corpus, args.keywords_path, args.output)
     elif args.fit:

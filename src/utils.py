@@ -173,7 +173,7 @@ def split_data(data, n_slice, mode="TUPLE"):
     return partitioned_data
 
 
-def load_pkl_data(root, split_type, postfix, indicator=False, description=False):
+def load_pkl_data(root, split_type, postfix, indicator=False, description=False, matching=False):
     """
     Args:
         root():
@@ -182,29 +182,18 @@ def load_pkl_data(root, split_type, postfix, indicator=False, description=False)
         indicator():
     """
 
-    print("\nLoading {:s} data...".format(split_type))
-    filename = "{:s}{:s}_context{:s}.pkl".format(root, split_type, postfix)
-    X = pkl.load(open(filename, "rb"))
+    print("\nLoading {:s} collection...".format(split_type))
+    filename = "{:s}{:s}_collection{:s}.pkl".format(root, split_type, postfix)
+    collection = pkl.load(open(filename, "rb"))
 
-    filename = "{:s}{:s}{:s}{:s}.pkl".format(
-        root, split_type, "_indicator" if indicator else "_mention", postfix)
-    Z = pkl.load(open(filename, "rb"))
+    X = collection["context"]
+    Z = collection["indicator"]
+    y = collection["matching"] if matching else collection["label"]
 
-    if description:
-        filename = "{:s}{:s}_desc{:s}.pkl".format(root, split_type, postfix)
-        D = pkl.load(open(filename, "rb"))
+    if False:#  description:
+        D = collection["description"]
     else:
         D = None
-
-    # Load labels
-    """
-    if description and split_type == "training":
-        filename = "{:s}{:s}_label{:s}_d.pkl".format(root, split_type, postfix)
-    else:
-        filename = "{:s}{:s}_label{:s}.pkl".format(root, split_type, postfix)
-    """
-    filename = "{:s}{:s}_label{:s}.pkl".format(root, split_type, postfix)
-    y = pkl.load(open(filename, "rb"))
 
     return X, Z, y, D
 
