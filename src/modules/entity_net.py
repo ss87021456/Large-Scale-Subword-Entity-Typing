@@ -8,7 +8,7 @@ from modules.fastText_model import fastText
 import numpy as np
 
 
-def Embedding_Layer(tokenizer_model,
+def Embedding_Layer(tokenizer,  # tokenizer_model,
                     max_num_words,
                     input_length,
                     embedding_dim,
@@ -27,7 +27,7 @@ def Embedding_Layer(tokenizer_model,
         embeddings_index(): 
     """
     # Load trained tokenizer model
-    tokenizer = pkl.load(open(tokenizer_model, "rb"))
+    # tokenizer = pkl.load(open(tokenizer_model, "rb"))
     word_index = tokenizer.word_index
     # Parameters for embedding layer
     num_words = min(max_num_words, len(word_index) + 1)
@@ -186,6 +186,7 @@ def EntityTypingNet(architecture,
                     subword=False,
                     indicator=False,
                     description=False,
+                    matching=False,
                     merge_mode="concatenate",
                     dropout=0.50,
                     use_softmax=False,
@@ -259,7 +260,7 @@ def EntityTypingNet(architecture,
     context = Input(shape=(len_context, ), name="Context")
 
     context_embedding, preload = Embedding_Layer(
-        tokenizer_model=context_tokenizer,
+        tokenizer=context_tokenizer,
         max_num_words=n_words,
         input_length=len_context,
         embedding_dim=context_embedding_dim,
@@ -286,7 +287,7 @@ def EntityTypingNet(architecture,
         # Vectorization on subwords
 
         mention_embedding, _ = Embedding_Layer(
-            tokenizer_model=mention_tokenizer,
+            tokenizer=mention_tokenizer,
             max_num_words=n_mention,
             input_length=len_mention,
             embedding_dim=mention_embedding_dim,
@@ -300,7 +301,7 @@ def EntityTypingNet(architecture,
     if description:
         descrip = Input(shape=(len_description, ), name="Description")
         descrip_embedding, _ = Embedding_Layer(
-            tokenizer_model=desc_tokenizer,
+            tokenizer=desc_tokenizer,
             max_num_words=n_description,
             input_length=len_description,
             embedding_dim=desc_embedding_dim,
@@ -387,9 +388,10 @@ def EntityTypingNet(architecture,
     x = BatchNormalization()(x)
     x = Dropout(dropout)(x)
 
-    activation = "softmax" if use_softmax else "sigmoid"
-    if description:
-        x = Dense(1, activation='sigmoid')(x)
+    use_sigmoid = description or matching
+    activation = "softmax" if (use_softmax and not use_sigmoid) else "sigmoid"
+    if description or matching:
+        x = Dense(1, activation=activation)(x)
     else:
         x = Dense(n_classes, activation=activation)(x)
 
@@ -424,6 +426,9 @@ def EntityTypingNet(architecture,
             optimizer=opt,
             metrics=["accuracy"])
     else:
-        model.compile(loss="binary_crossentropy", optimizer=opt)
+        model.compile(
+            loss="binary_crossentropy",
+            optimizer=opt,
+            metrics=["accuracy"])
 
     return model

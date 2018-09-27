@@ -23,7 +23,7 @@ Additional option --subword --attention
 /home/chiawei2/nlp_tool/fastText-0.1.0/vector/fastText_Pubmed.vec
 
 Train with description
-CUDA_VISIBLE_DEVICES=0 python ./src/train.py --arch=cnn --description --data_tag=kbp
+CUDA_VISIBLE_DEVICES=0 python ./src/train.py --arch=cnn --tokenizers=model/tokenizers_kbp.pkl --data_tag=kbp
 
 """
 
@@ -57,20 +57,16 @@ def run(args):
     # Parse directory name
     if not args.model_dir.endswith("/"):
         args.model_dir += "/"
-
+    if args.matching:
+        print("Matching problem.")
     #########################################
     # Load models (TO-BE-REVISED)
-    mlb_ = "{:s}mlb{:s}.pkl".format(args.model_dir, postfix)
-    mlb = pkl.load(open(mlb_, "rb"))
-    n_classes = len(mlb.classes_)
-    args.context_tokenizer = args.model_dir + "X_tokenizer{:s}.pkl".format(
-        postfix)
-    args.mention_tokenizer = args.model_dir + "m_tokenizer{:s}.pkl".format(
-        postfix)
-    # add description
-    if args.description:
-        args.desc_tokenizer = args.model_dir + "d_tokenizer{:s}.pkl".format(
-        postfix)
+    tokenizers = pkl.load(open(args.tokenizers, "rb"))
+    n_classes = len(tokenizers["mlb"].classes_)
+    try:
+        desc_tokenizer = tokenizers["description"]
+    except:
+        desc_tokenizer = None
     #########################################
     # Building Model
     print("Building computational graph...")
@@ -78,9 +74,9 @@ def run(args):
     model = EntityTypingNet(
         architecture=args.arch,
         n_classes=n_classes,
-        context_tokenizer=args.context_tokenizer,
-        mention_tokenizer=args.mention_tokenizer,
-        desc_tokenizer=args.desc_tokenizer,
+        context_tokenizer=tokenizers["context"],
+        mention_tokenizer=tokenizers["mention"],
+        desc_tokenizer=desc_tokenizer,
         context_emb=args.context_emb,
         context_embedding_dim=args.context_embedding_dim,
         mention_emb=args.mention_emb,
@@ -97,7 +93,8 @@ def run(args):
         attention=args.attention,
         subword=args.subword,
         indicator=args.indicator,
-        description=args.description,
+        description=False, # args.description,
+        matching=args.matching,
         merge_mode=args.merge_mode,
         dropout=args.dropout,
         use_softmax=args.use_softmax,
@@ -120,8 +117,10 @@ def run(args):
     callbacks_list = [checkpoint, early]
 
     X_train, Z_train, y_train, D_train = load_pkl_data(
-        args.model_dir, "training", postfix, indicator=args.indicator, description=args.description)
+        args.model_dir, "training", postfix, indicator=args.indicator, matching=args.matching)
     ######################################################
+    print(X_train.shape, y_train.shape)
+    print("Stacking positive samples")
     n_instance = X_train.shape[0] // 6
     idxs = [i * 6 for i in range(n_instance)]
     tmp = np.vstack([X_train[idxs] for _ in range(4)])
@@ -133,11 +132,12 @@ def run(args):
     tmp = np.hstack([y_train[idxs] for _ in range(4)])
     y_train = np.hstack([y_train, tmp])
     del tmp
-    tmp = np.vstack([D_train[idxs] for _ in range(4)])
-    D_train = np.vstack([D_train, tmp])
+    if args.description:
+        tmp = np.vstack([D_train[idxs] for _ in range(4)])
+        D_train = np.vstack([D_train, tmp])
     ######################################################
     # input = [X_train, Z_train]
-    print(X_train.shape, Z_train.shape, D_train.shape, y_train.shape)
+    print(X_train.shape, Z_train.shape, y_train.shape)
 
     #if args.use_softmax:
     #    y_train =  np.array(mlb.inverse_transform(y_train)).flatten()
@@ -196,9 +196,8 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     # Tokenizers
     parser.add_argument(
-        "--context_tokenizer", type=str, help="Path to context_tokenizer.")
-    parser.add_argument(
-        "--mention_tokenizer", type=str, help="Path to mention_tokenizer.")
+        "--tokenizers", type=str, help="Path to tokenizers.")
+
     # Embedding configurations
     parser.add_argument(
         "--same_emb",
@@ -237,6 +236,10 @@ if __name__ == "__main__":
         "--subword", action="store_true", help="Use subword or not")
     parser.add_argument(
         "--indicator", action="store_true", help="Use indicator or not")
+    parser.add_argument(
+        "--matching",
+        action="store_true",
+        help="Matching problem")
     parser.add_argument(
         "--merge_mode",
         type=str,
