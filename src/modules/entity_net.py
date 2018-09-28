@@ -276,11 +276,11 @@ def EntityTypingNet(architecture,
     else:
         pass
 
+    # (2) Indicator or Mention
     if indicator:
         indicators = Input(shape=(len_context, ), name="Indicator")
         x_indicator = Reshape((len_context, 1))(indicators)
     else:
-        # (2) Mention
         # Embedding for mention/subword
         mention = Input(shape=(len_mention, ), name="Mention")
         # TO-DOs:
@@ -298,6 +298,7 @@ def EntityTypingNet(architecture,
 
         x_mention = mention_embedding(mention)
 
+    # (3) Description (if applicable as third input stream)
     if description:
         descrip = Input(shape=(len_description, ), name="Description")
         descrip_embedding, _ = Embedding_Layer(
@@ -306,8 +307,8 @@ def EntityTypingNet(architecture,
             input_length=len_description,
             embedding_dim=desc_embedding_dim,
             filename=None)
-        x_description = descrip_embedding(descrip)
 
+        x_description = descrip_embedding(descrip)
 
     # Bi-Directional LSTM
     if architecture == "blstm":
@@ -390,6 +391,7 @@ def EntityTypingNet(architecture,
 
     use_sigmoid = description or matching
     activation = "softmax" if (use_softmax and not use_sigmoid) else "sigmoid"
+    # print(" - Last layer activation function: {}".format(activation))
     if description or matching:
         x = Dense(1, activation=activation)(x)
     else:
