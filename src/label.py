@@ -144,9 +144,12 @@ def replace_labels(keywords_path,
         print("* Label corpus in place")
         contents = readlines(keywords_path, limit=limit, delimitor="\t")
         # Add separator
-        for idx, itr in enumerate(contents):
-            name = re.sub("\d", "", contents[idx][0])
-            contents[idx][1] = "{} {} {}".format(name, separator, contents[idx][1])
+        if separator is not None:
+            for idx, itr in enumerate(contents):
+                name = re.sub("\d", "", contents[idx][0])
+                contents[idx][1] = "{} {} {}".format(name, separator, contents[idx][1])
+        else:
+            print("No separator given.")
         # Mark position of the mention in the contexts
         print(" * Marking mention in each instance for indicators.")
         contents = mark_positions(thread_idx=0, data=contents)
@@ -190,9 +193,13 @@ def replace_labels(keywords_path,
         # Threading
         param = (mentions, lookup, subword_dict, mode, duplicate)
         result = generic_threading(thread, raw_data, keywords_as_labels, param)
+        # Mark position of the mention in the contexts
+        result = list(chain.from_iterable(result))
+        print(" * Marking mention in each instance for indicators.")
+        contents = mark_positions(thread_idx=0, data=result)
 
         # Write result to file
-        write_to_file(output, result)
+        write_to_file(output, contents)
 
 
 def acquire_statistic(corpus, keywords_path, output=None, tag=None):

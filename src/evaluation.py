@@ -295,7 +295,7 @@ def just_test(model,
     print("Restoring best weights from: {:s}".format(filename))
     model.load_weights(filename)
 
-    X, Z, y = load_pkl_data(model_dir, "testing", postfix, indicator=indicator)
+    X, Z, y, d = load_pkl_data(model_dir, "testing", postfix, indicator=indicator)
 
     predict(
         model,

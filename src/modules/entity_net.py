@@ -391,7 +391,7 @@ def EntityTypingNet(architecture,
 
     use_sigmoid = description or matching
     activation = "softmax" if (use_softmax and not use_sigmoid) else "sigmoid"
-    # print(" - Last layer activation function: {}".format(activation))
+    print(" - Last layer activation function: {}".format(activation))
     if description or matching:
         x = Dense(1, activation=activation)(x)
     else:
@@ -406,7 +406,7 @@ def EntityTypingNet(architecture,
         model = Model(inputs=[context, mention], outputs=x)
 
     # Optimizer
-    print("Using {0} optimizer (lr={1})".format(optimizer, learning_rate))
+    print("*** Using {0} optimizer (lr={1}) ***".format(optimizer, learning_rate))
     opt = None
     if optimizer == "adam":
         opt = Adam(lr=learning_rate)

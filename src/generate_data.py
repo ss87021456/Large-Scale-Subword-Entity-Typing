@@ -73,12 +73,14 @@ def run(model_dir,
     if description:
         cols += ["desc"]
 
-    dataset = readlines(input, delimitor="\t")
-    dataset = pd.DataFrame(dataset, columns=cols, dtype=str)
-    # dataset = pd.read_csv(input, sep="\t", names=cols)
+    # dataset = readlines(input, delimitor="\t")
+    # dataset = pd.DataFrame(dataset, columns=cols, dtype=str)
+    dataset = pd.read_csv(input, sep="\t", names=cols)
 
     dataset["label"] = dataset["label"].astype(str)
     dataset["mention"] = dataset["mention"].astype(str)
+    dataset["begin"] = dataset["begin"].astype(str)
+    dataset["end"] = dataset["end"].astype(str)
 
     X = dataset["context"].values
     mentions = dataset["mention"].values

@@ -119,6 +119,7 @@ def run(args):
     X_train, Z_train, y_train, D_train = load_pkl_data(
         args.model_dir, "training", postfix, indicator=args.indicator, matching=args.matching)
     ######################################################
+    """
     print(X_train.shape, y_train.shape)
     print("Stacking positive samples")
     n_instance = X_train.shape[0] // 6
@@ -135,6 +136,7 @@ def run(args):
     if args.description:
         tmp = np.vstack([D_train[idxs] for _ in range(4)])
         D_train = np.vstack([D_train, tmp])
+    """
     ######################################################
     # input = [X_train, Z_train]
     print(X_train.shape, Z_train.shape, y_train.shape)

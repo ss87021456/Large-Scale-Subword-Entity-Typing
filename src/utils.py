@@ -187,9 +187,14 @@ def load_pkl_data(root, split_type, postfix, indicator=False, description=False,
     collection = pkl.load(open(filename, "rb"))
 
     X = collection["context"]
-    Z = collection["indicator"]
+    Z = collection["indicator"] if indicator else collection["mention"]
     y = collection["matching"] if matching else collection["label"]
-
+    
+    #
+    X[:, 0:2] = 0
+    if indicator:
+        Z[:, 0:2] = 1
+    #
     if False:#  description:
         D = collection["description"]
     else:
@@ -597,21 +602,30 @@ def keywords_as_labels(thread_idx,
 def mark_positions(thread_idx, data):
     desc = "Thread {:02d}".format(thread_idx + 1)
     result = list()
+    criterion = (type(data[0]) == str)
 
     for itr in tqdm(data, position=thread_idx, desc=desc):
+        if criterion:
+            itr = itr.split("\t")
         # Extract context and mention from entry
-        context, mention = itr[1].split(" "), itr[2].split(" ")
+        context, mention = itr[1].lower().split(" "), itr[2].lower().split(" ")
+        # Remove comma at the end of the sentences
+        # context = [itr[:-1] if itr.endswith(".") else itr for itr in context]
+        if context[-1].endswith("."):
+            context[-1] = context[-1][:-1]
+
         # Find possible candidate indices
         begin_candidates = [
-            idx for idx, itr in enumerate(context) if itr == mention[0]
+            idx for idx, itr in enumerate(context) if mention[0] in itr
         ]
-        # Use windos to extract candidates words in the sentence
+        # Use sliding window to extract candidates words in the sentence
         words_candidates = [
             context[itr:itr + len(mention)] for itr in begin_candidates
         ]
         # Compare the candidates and the target mention
         comparison = [
-            " ".join(mention) == " ".join(itr) for itr in words_candidates
+            " ".join(mention) in " ".join(itr)
+            for itr in words_candidates
         ]
 
         # Collect positions [begin, end]
@@ -624,6 +638,10 @@ def mark_positions(thread_idx, data):
                 pass
         # Add positions to entry
         itr += [",".join(begin), ",".join(end)]
+
+        if len(begin) == 0:
+            print(itr)
+            exit()
         """
         if sum(comparison) > 1:
             print()
@@ -637,6 +655,8 @@ def mark_positions(thread_idx, data):
             print(itr)
             exit()
         """
+        if criterion:
+            itr = "\t".join(itr)
         result.append(itr)
 
     return result

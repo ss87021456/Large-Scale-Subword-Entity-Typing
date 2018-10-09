@@ -13,7 +13,7 @@ import os
 import csv
 """
 python ./src/generate_index.py --input=../share_data/kbp_ascii_labeled.tsv --thread=20 --tag=kbp
-python ./src/generate_index.py --input=./data/smaller_preprocessed_sentence_keywords_labeled.tsv
+python ./src/generate_index.py --input=./data/smaller_preprocessed_sentence_labeled.tsv
 """
 
 
@@ -55,6 +55,7 @@ def run(model_dir,
         n_thread=20,
         tag=None,
         text_only=False,
+        neg_sample=False,
         n_sample=5):
     postfix = ("_" + tag) if tag is not None else ""
     # Parse directory name
@@ -156,34 +157,37 @@ def run(model_dir,
 
     # negative samples, kbp version only
     # Get true (positive) labels for each instance
-    pos_label = labels[train_index]
-    data_size = len(pos_label)
-    # Calculate the density of each labels
-    distribution = Counter(pos_label)
-    label_idx = []
-    print("Producing distribution & label_dict...")
-    for key in tqdm(distribution):
-        # Normalize probabilities
-        distribution[key] = distribution[key] / data_size
-        # Global index (To-Be-Implemented)
-        # label_idx.append(np.where(labels == key)[0][0])
-        # Local index
-        # TO-DO: sample all possible candidates (second index)
-        label_idx.append(np.where(pos_label == key)[0][0])
+    if neg_sample:
+        pos_label = labels[train_index]
+        data_size = len(pos_label)
+        # Calculate the density of each labels
+        distribution = Counter(pos_label)
+        label_idx = []
+        print("Producing distribution & label_dict...")
+        for key in tqdm(distribution):
+            # Normalize probabilities
+            distribution[key] = distribution[key] / data_size
+            # Global index (To-Be-Implemented)
+            # label_idx.append(np.where(labels == key)[0][0])
+            # Local index
+            # TO-DO: sample all possible candidates (second index)
+            label_idx.append(np.where(pos_label == key)[0][0])
 
-    train_label = list(distribution.keys())
-    train_label_prob = list(distribution.values())
-    label_dict = dict(zip(list(distribution.keys()), label_idx))
+        train_label = list(distribution.keys())
+        train_label_prob = list(distribution.values())
+        label_dict = dict(zip(list(distribution.keys()), label_idx))
 
-    param = (
-        train_label,
-        train_label_prob,
-        label_dict,
-        n_sample,
-    )
-    print("Negative sampling: {}/instance".format(n_sample))
-    neg_samples = generic_threading(n_thread, pos_label, negative_sampling, param)
-    neg_samples = np.array(list(itertools.chain.from_iterable(neg_samples)))
+        param = (
+            train_label,
+            train_label_prob,
+            label_dict,
+            n_sample,
+        )
+        print("Negative sampling: {}/instance".format(n_sample))
+        # neg_samples = generic_threading(n_thread, pos_label, negative_sampling, param)
+        # neg_samples = np.array(list(itertools.chain.from_iterable(neg_samples)))
+    else:
+        neg_samples = None
 
     filename = "{:s}pos_neg_index{:s}.pkl".format(model_dir, postfix)
     pos_neg_sample = {"positive": train_index, "negative": neg_samples}
@@ -233,16 +237,14 @@ if __name__ == "__main__":
         default=0.1,
         help="Specify the portion of the testing data to be split.\
                         [Default: 10\% of the entire dataset]")
-    """
     parser.add_argument(
         "--neg_sample",
         action="store_true",
         help="Perform negative samples for zero-shot learning.")
-    """
     parser.add_argument(
         "--sample", type=int, default=5, help="Number of negative samples.")
     parser.add_argument("--tag", type=str, help="Make tags on the files.")
     args = parser.parse_args()
 
     run(args.model_dir, args.input, args.test_size, args.thread, args.tag,
-        args.text_only, args.sample)
+        args.text_only, args.neg_sample, args.sample)
