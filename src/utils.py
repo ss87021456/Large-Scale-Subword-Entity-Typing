@@ -191,7 +191,7 @@ def load_pkl_data(root, split_type, postfix, indicator=False, description=False,
     y = collection["matching"] if matching else collection["label"]
     
     #
-    X[:, 0:2] = 0
+    # X[:, 0:2] = 0
     if indicator:
         Z[:, 0:2] = 1
     #
