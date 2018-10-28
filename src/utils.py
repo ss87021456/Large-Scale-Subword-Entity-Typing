@@ -192,8 +192,8 @@ def load_pkl_data(root, split_type, postfix, indicator=False, description=False,
     
     #
     # X[:, 0:2] = 0
-    if indicator:
-        Z[:, 0:2] = 1
+    # if indicator:
+    #     Z[:, 0:2] = 1
     #
     if False:#  description:
         D = collection["description"]
@@ -639,9 +639,9 @@ def mark_positions(thread_idx, data):
         # Add positions to entry
         itr += [",".join(begin), ",".join(end)]
 
-        if len(begin) == 0:
-            print(itr)
-            exit()
+        # if len(begin) == 0:
+        #     print(itr)
+        #     exit()
         """
         if sum(comparison) > 1:
             print()

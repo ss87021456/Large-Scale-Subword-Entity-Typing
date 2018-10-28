@@ -14,9 +14,9 @@ import csv
 For KBP partial dataset
 python src/label.py ../share/kbp_ascii.tsv --from_file --tag=kbp --fit
 python src/label.py ../share/kbp_ascii.tsv --labels=data/label_kbp.json \
---desc=wordnet_desc.json --from_file --replace
+        --sep=* --desc=wordnet_desc.json --from_file --replace
 python src/label.py ../share/kbp_ascii.tsv --labels=data/label_kbp.json \
---sep=* --from_file --replace
+        --from_file --replace
 
 For PubMed smaller.tsv
 python src/label.py data/ --trim --fit
