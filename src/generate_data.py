@@ -10,6 +10,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import MultiLabelBinarizer, OneHotEncoder
 from sklearn.feature_extraction.text import CountVectorizer
 from keras.preprocessing import text, sequence
+import csv
 import os
 """
 For KBP dataset
@@ -73,9 +74,11 @@ def run(model_dir,
     if description:
         cols += ["desc"]
 
-    # dataset = readlines(input, delimitor="\t")
-    # dataset = pd.DataFrame(dataset, columns=cols, dtype=str)
-    dataset = pd.read_csv(input, sep="\t", names=cols)
+    # Read and split context by hand, encounter bugs in pandas.read_csv
+    dataset = readlines(input, delimitor="\t")
+    dataset = pd.DataFrame(dataset, columns=cols, dtype=str)
+    # Use pandas to read tsv
+    # dataset = pd.read_csv(input, sep="\t", names=cols)
 
     dataset["label"] = dataset["label"].astype(str)
     dataset["mention"] = dataset["mention"].astype(str)
@@ -92,6 +95,18 @@ def run(model_dir,
     # Parsing the labels and convert to integer using comma as separator
     y = np.array(
         [[int(itr) for itr in e.split(",")] for e in dataset["label"].values])
+
+    # DEBUG SECTION
+    for idx, element in enumerate(dataset["begin"].values):
+        try: 
+            [int(itr) for itr in element.split(",")]
+        except:
+            print(idx, dataset["context"][idx])
+            print()
+            print(dataset["mention"][idx])
+            raise ValueError()
+    #
+
     b_position = [[int(itr) for itr in element.split(",")]
                   for element in dataset["begin"].values]
     b_position = np.array(b_position)

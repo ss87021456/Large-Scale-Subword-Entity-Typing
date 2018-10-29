@@ -607,12 +607,26 @@ def mark_positions(thread_idx, data):
     for itr in tqdm(data, position=thread_idx, desc=desc):
         if criterion:
             itr = itr.split("\t")
+
+        # Quick fix on messy corpus concerning quotation mark
+        itr[1] = itr[1].replace("''", "\"")
+        # For duplicated and consecutive quotation mark
+        itr[1] = itr[1].replace("\" \" ", "\" ")
+        itr[1] = itr[1].replace(" \" \"", " \"")
+        # wrong quotation mark
+        itr[2] = itr[2].replace("''", "\"")
+
         # Extract context and mention from entry
-        context, mention = itr[1].lower().split(" "), itr[2].lower().split(" ")
-        # Remove comma at the end of the sentences
+        # (use lower-case only)
+        context, mention = itr[1].lower(), itr[2].lower()
+
+        # Split by space
+        context, mention = itr[1].split(" "), itr[2].split(" ")
+
+        # Remove comma at the end of the sentences (DEPRECATED)
         # context = [itr[:-1] if itr.endswith(".") else itr for itr in context]
-        if context[-1].endswith("."):
-            context[-1] = context[-1][:-1]
+        # if context[-1].endswith("."):
+        #     context[-1] = context[-1][:-1]
 
         # Find possible candidate indices
         begin_candidates = [
@@ -639,9 +653,11 @@ def mark_positions(thread_idx, data):
         # Add positions to entry
         itr += [",".join(begin), ",".join(end)]
 
-        # if len(begin) == 0:
-        #     print(itr)
-        #     exit()
+        if len(begin) == 0:
+            raise ValueError(itr)
+
+        assert "\t" not in itr[1]
+
         """
         if sum(comparison) > 1:
             print()
@@ -657,6 +673,7 @@ def mark_positions(thread_idx, data):
         """
         if criterion:
             itr = "\t".join(itr)
+
         result.append(itr)
 
     return result
