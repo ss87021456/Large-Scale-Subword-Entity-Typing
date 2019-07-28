@@ -12,11 +12,11 @@ Daniel You
 (2) Get some result on KBP dataset  
 
 # Pipeline
-(1) put smaller.tsv into directory data/ <br>
-(2) pip install -r requirements.txt <br>
-(3) ./prepare_corpus.sh <br>
-(4) ./generate_pickle.sh <br>
-(5) python src/train.py # for more information use python src/train.py -h  
+put smaller.tsv into directory data/ <br>
+`$ pip install -r requirements.txt`
+`$ ./prepare_corpus.sh`
+`$ ./generate_pickle.sh`
+`$ python src/train.py`
 
 # To-Do List
 - [ ] Testing and tuning the model on KBP dataset  
