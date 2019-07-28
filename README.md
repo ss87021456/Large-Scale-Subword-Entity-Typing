@@ -13,9 +13,9 @@ Daniel You
 
 # Pipeline
 put smaller.tsv into directory data/ <br>
-`$ pip install -r requirements.txt`
-`$ ./prepare_corpus.sh`
-`$ ./generate_pickle.sh`
+`$ pip install -r requirements.txt` <br>
+`$ ./prepare_corpus.sh` <br>
+`$ ./generate_pickle.sh` <br>
 `$ python src/train.py`
 
 # To-Do List
