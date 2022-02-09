@@ -1,5 +1,5 @@
 sklearn
-tensorflow-gpu == 1.15.2
+tensorflow-gpu == 2.5.3
 nltk
 pandas
 tqdm
